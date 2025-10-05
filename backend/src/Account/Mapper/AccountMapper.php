@@ -1,0 +1,20 @@
+<?php
+
+namespace App\Account\Mapper;
+
+use App\Account\DTO\AccountDTO;
+use App\Entity\Account;
+
+class AccountMapper
+{
+    public function toSimpleDto(Account $entity): AccountDTO
+    {
+        $dto = new AccountDTO();
+        $dto->id = $entity->getId();
+        $dto->name = $entity->getName();
+        $dto->accountNumber = $entity->getAccountNumber();
+        $dto->isDefault = $entity->isDefault(); // ← zorg dat Account::isDefault() bestaat
+
+        return $dto;
+    }
+}

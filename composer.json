@@ -1,0 +1,11 @@
+{
+    "require": {
+        "php": "^8.3",
+        "ext-bcmath": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-zip": "*",
+        "symfony/http-kernel": "^7.2",
+        "moneyphp/money": "^3.3"
+    }
+}

@@ -1,0 +1,24 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: 'Mr Munney API'
+            description: 'Documentatie'
+            version: '1.0.0'
+    areas:
+        default:
+            path_patterns: [ ^/api ]  # alle endpoints onder /api
+        categories:
+            path_patterns: [ ^/api/account/.*/categories ]
+        accounts:
+            path_patterns: [ ^/api/accounts ]
+        savings_accounts:
+            path_patterns: [ ^/api/account/.*/savings-accounts ]
+        savings_patterns:
+            path_patterns: [ ^/api/account/.*/savings-accounts/.*/patterns ]
+        transactions:
+            path_patterns:
+                - ^/api/transactions
+                - ^/api/account/.*/transactions
+        patterns:
+            path_patterns:
+                - ^/api/account/[^/]+/patterns.*

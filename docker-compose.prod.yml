@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  backend:
+    container_name: munney-backend-prod
+    restart: unless-stopped
+    ports:
+      - "8687:80"
+    volumes:
+      - ./backend:/var/www/html:ro  # Read-only in productie
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "false"
+      DATABASE_URL: "mysql://money:${MYSQL_PASSWORD}@database:3306/money_db_prod?serverVersion=8.0&charset=utf8mb4"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    depends_on:
+      database:
+        condition: service_healthy
+
+  frontend:
+    container_name: munney-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: "http://${NAS_IP}:8687"
+    depends_on:
+      - backend
+
+  database:
+    container_name: munney-mysql-prod
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: money_db_prod
+      MYSQL_USER: money
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3334:3306"
+    volumes:
+      - db_data_prod:/var/lib/mysql
+      - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
+      - ./backups:/backups  # Voor backup script
+    command: --default-time-zone='+00:00'
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  db_data_prod:
+    name: munney_db_data_prod

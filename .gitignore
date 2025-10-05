@@ -1,0 +1,69 @@
+# Environment files met secrets
+.env
+**/.env
+.env.local
+.env.*.local
+**/.env.local
+**/.env.*.local
+
+# Specifieke environment bestanden (geen examples!)
+.env.dev
+.env.test
+.env.prod
+.env.production
+**/.env.dev
+**/.env.test
+**/.env.prod
+**/.env.production
+
+# Maar WEL .env.example bestanden toestaan
+!.env.example
+!**/.env.example
+!*.env.*example
+!**/*.env.*example
+
+# Docker volumes
+docker-compose.override.yml
+
+# Database data
+db_data/
+mysql_data/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Node modules (root level, als die er zijn)
+node_modules/
+
+# Backup files
+backups/
+*.sql
+*.sql.gz
+*.git.backup
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Windows Zone.Identifier files
+*Zone.Identifier
+
+# Project specific
+complete_tree.txt
+backend_analysis_report.md
+phase1_detailed_implementation.md
+# Python Hypothesis testing cache
+.hypothesis/
