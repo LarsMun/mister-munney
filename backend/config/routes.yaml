@@ -1,0 +1,34 @@
+controllers:
+    resource: ../src/
+    type: attribute
+
+# JSON-output per area for Schemathesis
+nelmio_api_doc_categories_json:
+    path: /api/doc/categories.json
+    controller: nelmio_api_doc.controller.swagger
+    defaults: { area: categories }
+
+nelmio_api_doc_accounts_json:
+    path: /api/doc/accounts.json
+    controller: nelmio_api_doc.controller.swagger
+    defaults: { area: accounts }
+
+nelmio_api_doc_savings_accounts_json:
+    path: /api/doc/savings-accounts.json
+    controller: nelmio_api_doc.controller.swagger
+    defaults: { area: savings_accounts }
+
+nelmio_api_doc_savings_patterns_json:
+    path: /api/doc/savings-patterns.json
+    controller: nelmio_api_doc.controller.swagger
+    defaults: { area: savings_patterns }
+
+nelmio_api_doc_transactions_json:
+    path: /api/doc/transactions.json
+    controller: nelmio_api_doc.controller.swagger
+    defaults: { area: transactions }
+
+nelmio_api_doc_patterns_json:
+    path: /api/doc/patterns.json
+    controller: nelmio_api_doc.controller.swagger
+    defaults: { area: patterns }

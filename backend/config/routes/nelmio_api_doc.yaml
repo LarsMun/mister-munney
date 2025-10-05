@@ -1,0 +1,40 @@
+# Expose your documentation as JSON swagger compliant
+app.swagger:
+    path: /api/doc.json
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger }
+
+app.swagger_ui:
+    path: /api/doc
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger_ui }
+
+nelmio_api_doc_categories:
+    path: /api/doc/categories
+    controller: nelmio_api_doc.controller.swagger_ui
+    defaults: { area: categories }
+
+nelmio_api_doc_accounts:
+    path: /api/doc/accounts
+    controller: nelmio_api_doc.controller.swagger_ui
+    defaults: { area: accounts }
+
+nelmio_api_doc_savings_accounts:
+    path: /api/doc/savings-accounts
+    controller: nelmio_api_doc.controller.swagger_ui
+    defaults: { area: savings_accounts }
+
+nelmio_api_doc_savings_patterns:
+    path: /api/doc/savings-patterns
+    controller: nelmio_api_doc.controller.swagger_ui
+    defaults: { area: savings_patterns }
+
+nelmio_api_doc_transactions:
+    path: /api/doc/transactions
+    controller: nelmio_api_doc.controller.swagger_ui
+    defaults: { area: transactions }
+
+nelmio_api_doc_patterns:
+    path: /api/doc/patterns
+    controller: nelmio_api_doc.controller.swagger_ui
+    defaults: { area: patterns }

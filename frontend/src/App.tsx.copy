@@ -1,0 +1,265 @@
+import {useState, useEffect} from "react";
+import TransactionTable from "./components/TransactionTable";
+import TransactionDrawer from "./components/TransactionDrawer";
+import {fetchTransactions, fetchAvailableMonths} from "./lib/api.ts";
+import {formatMoney} from "./utils/MoneyFormat.tsx";
+import toast, { Toaster } from 'react-hot-toast';
+
+import type {Transaction} from "./types";
+import {formatMonthFull} from "./utils/DateFormat.tsx";
+import {motion, AnimatePresence} from "framer-motion";
+
+type SummaryType = {
+    total: number;
+    total_debit: string;
+    total_credit: string;
+    net_total: string;
+};
+
+interface SummaryBarProps {
+    summary: SummaryType;
+    selectedMonth: string;
+    handleFileUpload: (file: File) => void;
+}
+
+export function SummaryBar({
+                               summary,
+                               selectedMonth,
+                               handleFileUpload,
+                           }: SummaryBarProps) {
+    const [showUpload, setShowUpload] = useState(false);
+
+    return (
+        <div
+            className="
+        flex flex-col sm:flex-row
+        justify-between items-start sm:items-center
+        text-sm text-gray-700 gap-2 sm:gap-4
+        bg-white border border-gray-200
+        rounded-t-lg px-4 py-2
+      "
+        >
+            {/* Linkerkant */}
+            <div
+                className="text-blue-600 underline cursor-pointer"
+                onClick={() => setShowUpload(true)}
+            >
+                Transacties importeren
+            </div>
+
+            {/* Rechterkant: motion.div is direct flex-container */}
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={selectedMonth}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-wrap justify-end gap-6 w-full sm:w-auto"
+                >
+                    <div className="flex items-center gap-1 text-red-600">
+                        <span className="text-xs">▼</span>
+                        <span>{formatMoney(summary.total_debit)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-green-700">
+                        <span className="text-xs">▲</span>
+                        <span>{formatMoney(summary.total_credit)}</span>
+                    </div>
+                    <div
+                        className={`flex items-center gap-1 ${
+                            Number(summary.net_total) >= 0
+                                ? "text-green-800"
+                                : "text-red-800"
+                        }`}
+                    >
+                        <span className="text-xs">↕</span>
+                        <span>
+              {Number(summary.net_total) >= 0 ? "+" : ""}
+                            {formatMoney(summary.net_total)}
+            </span>
+                    </div>
+                    <div className="text-gray-400 italic">
+                        {summary.total} transacties
+                    </div>
+                </motion.div>
+            </AnimatePresence>
+
+            {/* Upload-modal */}
+            {showUpload && (
+                <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold">CSV uploaden</h2>
+                            <button
+                                onClick={() => setShowUpload(false)}
+                                className="text-gray-500 hover:text-black"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <input
+                            type="file"
+                            accept=".csv"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    handleFileUpload(file);
+                                    setShowUpload(false);
+                                }
+                            }}
+                            className="
+                block w-full text-sm text-gray-700
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100 cursor-pointer
+              "
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function App() {
+    const [months, setMonths] = useState<string[]>([]);
+    const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [selected, setSelected] = useState<Transaction | null>(null);
+    const years = [...new Set(months.map(m => m.split("-")[0]))];
+    const selectedYear = selectedMonth ? selectedMonth.split("-")[0] : "";
+    const selectedMonthOnly = selectedMonth ? selectedMonth.split("-")[1] : "";
+
+    const availableMonthsInYear = months
+        .filter(m => m.startsWith(selectedYear))
+        .map(m => m.split("-")[1]);
+    const [summary, setSummary] = useState<{
+        total: number;
+        total_debit: string;
+        total_credit: string;
+        net_total: string;
+    } | null>(null);
+
+    useEffect(() => {
+        fetchAvailableMonths(1).then((months) => {
+            setMonths(months);
+            if (months.length > 0) {
+                setSelectedMonth(months[0]);
+            }
+        });
+    }, []);
+    useEffect(() => {
+        if (selectedMonth) {
+            const [year, month] = selectedMonth.split("-");
+            const startDate = `${year}-${month}-01`;
+            const endDate = new Date(Number(year), Number(month), 1).toISOString().slice(0, 10);
+            fetchTransactions(1, {startDate, endDate}).then((res) => {
+                setTransactions(res.data);
+                setSummary(res.summary);
+            });
+        }
+    }, [selectedMonth]);
+
+    async function handleFileUpload(file: File) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("http://localhost:8686/api/transactions/import_transactions", {
+                method: "POST",
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                // Toon direct de backend‑melding en stop de functie
+                toast.error("Import mislukt:\n\n" + result.error);
+                return;
+            }
+
+            toast.success(`${result.imported} transacties geïmporteerd\n${result.skipped} transacties overgeslagen`);
+
+            const updatedMonths = await fetchAvailableMonths(1);
+            setMonths(updatedMonths);
+            setSelectedMonth(updatedMonths[0]);
+
+        } catch (err) {
+            console.error("Upload error", err);
+            toast.error((err as Error).message || "Upload mislukt");
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    duration: 8000,
+                    removeDelay: 500,
+                }}/>
+            {/* 🧭 Titel + maandnavigatie */}
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                <h1 className="text-2xl font-bold">Transacties</h1>
+
+                <div className="flex items-center gap-2">
+                    <select
+                        className="text-sm px-2 py-1 rounded bg-white border border-gray-300"
+                        value={selectedMonthOnly}
+                        onChange={(e) => {
+                            const newMonth = e.target.value;
+                            setSelectedMonth(`${selectedYear}-${newMonth}`);
+                        }}
+                    >
+                        {availableMonthsInYear.map((month) => (
+                            <option key={month} value={month}>
+                                {formatMonthFull(`2023-${month}-01`)} {/* jaar maakt hier niet uit */}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        className="text-sm px-2 py-1 rounded bg-white border border-gray-300"
+                        value={selectedYear}
+                        onChange={(e) => {
+                            const newYear = e.target.value;
+                            const defaultMonth = months.find(m => m.startsWith(newYear))?.split("-")[1];
+                            if (defaultMonth) {
+                                setSelectedMonth(`${newYear}-${defaultMonth}`);
+                            }
+                        }}
+                    >
+                        {years.map((year) => (
+                            <option key={year} value={year}>
+                                {year}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+            </div>
+
+            {/* 📊 Samenvatting + importlink boven de tabel */}
+            {summary && selectedMonth && (
+                <SummaryBar
+                    summary={summary}
+                    selectedMonth={selectedMonth}
+                    handleFileUpload={handleFileUpload}
+                />
+            )}
+
+            {/* 📋 Tabel */}
+            {transactions.length === 0 ? (
+                <p className="text-gray-500 mt-4">Geen transacties gevonden.</p>
+            ) : (
+                <TransactionTable transactions={transactions} onSelect={setSelected}/>
+            )}
+
+            <TransactionDrawer transaction={selected} onClose={() => setSelected(null)}/>
+        </div>
+    );
+}
+
+export default App;
