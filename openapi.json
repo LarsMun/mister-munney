@@ -1,0 +1,1420 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Mr Munney API",
+        "description": "Documentatie",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/accounts": {
+            "get": {
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Toon alle accounts",
+                "operationId": "get_api_accounts_get_all_accounts",
+                "responses": {
+                    "200": {
+                        "description": "Lijst van accounts",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AccountDTO"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/accounts/{id}": {
+            "get": {
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Haal een specifiek account op",
+                "operationId": "get_api_accounts_get_account",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van het account",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Accountgegevens",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AccountDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Account niet gevonden"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Wijzig een accountnaam",
+                "operationId": "put_api_accounts_update_account",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van het account",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Nieuwe naam van het account",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Dhr. Piet Jansen"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Account succesvol bijgewerkt",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AccountDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ongeldige input"
+                    },
+                    "404": {
+                        "description": "Account niet gevonden"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/categories": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Haal alle categorie\u00ebn op voor een account",
+                "operationId": "get_get_all_categories",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lijst van categorie\u00ebn",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CategoryDTO"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Maak een nieuwe categorie aan",
+                "operationId": "post_create_category",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account waaraan de categorie wordt gekoppeld",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Categoriegegevens (minimaal name, optioneel icon en color)",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Boodschappen"
+                                    },
+                                    "icon": {
+                                        "type": "string",
+                                        "example": "shopping-cart"
+                                    },
+                                    "color": {
+                                        "type": "string",
+                                        "example": "#FF9900"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Categorie succesvol aangemaakt",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ongeldige invoer"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/categories/{id}": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Haal een specifieke categorie op",
+                "operationId": "get_get_category",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van de categorie",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 5
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Categoriegegevens",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Categorie niet gevonden"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Werk een categorie bij",
+                "operationId": "put_update_category",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van de categorie",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 7
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Bijgewerkte categorienaam en optionele eigenschappen",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Auto"
+                                    },
+                                    "icon": {
+                                        "type": "string",
+                                        "example": "car"
+                                    },
+                                    "color": {
+                                        "type": "string",
+                                        "example": "#336699"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Categorie succesvol bijgewerkt",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ongeldige invoer"
+                    },
+                    "404": {
+                        "description": "Categorie niet gevonden"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Verwijder een categorie",
+                "operationId": "delete_delete_category",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van de te verwijderen categorie",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 7
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Categorie succesvol verwijderd"
+                    },
+                    "404": {
+                        "description": "Categorie niet gevonden"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/categories/{id}/with_transactions": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Haal een categorie op inclusief gekoppelde transacties",
+                "operationId": "get_get_category_with_transactions",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van de categorie",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 7
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Categorie met gekoppelde transacties",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryWithTransactionsDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Categorie niet gevonden"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/savings-accounts/assign-by-pattern": {
+            "post": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Koppel transacties automatisch aan spaarrekeningen op basis van patronen",
+                "operationId": "post_assign_savings_by_pattern",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account waarvoor de toewijzing moet gebeuren",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignPatternDateRangeDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Resultaat van automatische toewijzing (matched, conflicts, skipped)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "12 gekoppeld, 2 conflicten, 4 geskipped."
+                                        },
+                                        "matched": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "conflicts": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "skipped_same": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "skipped_different": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "skipped_no_match": {
+                                            "type": "integer",
+                                            "example": 2
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validatiefout of ontbrekende datumvelden"
+                    },
+                    "500": {
+                        "description": "Onverwachte serverfout"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/savings-accounts": {
+            "get": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Toon alle spaarrekeningen van een account",
+                "operationId": "get_savings_accounts_list",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "description": "ID van het account waarvan de spaarrekeningen worden opgehaald",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lijst van spaarrekeningen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SavingsAccountDTO"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Maak een nieuwe spaarrekening aan",
+                "operationId": "post_savings_account_create",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Gegevens van de nieuwe spaarrekening",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "accountId"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Vakantie"
+                                    },
+                                    "accountId": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "targetAmount": {
+                                        "type": "number",
+                                        "example": 1500
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Spaarrekening succesvol aangemaakt",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SavingsAccountDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ongeldige invoer"
+                    },
+                    "500": {
+                        "description": "Interne serverfout"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/savings-accounts/details": {
+            "get": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Toon spaarrekeningen inclusief toegewezen patronen",
+                "operationId": "get_savings_accounts_list_detailed",
+                "parameters": [
+                    {
+                        "name": "account",
+                        "in": "path",
+                        "description": "ID van het account waarvoor de details worden opgehaald",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Spaarrekeningen met doelbedrag en gekoppelde patronen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SavingsAccountWithPatternsDTO"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/savings-accounts/{id}": {
+            "get": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Toon details van een specifieke spaarrekening",
+                "operationId": "get_savings_account_show",
+                "parameters": [
+                    {
+                        "name": "account",
+                        "in": "path",
+                        "description": "ID van het account waarin gezocht moet worden",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van de spaarrekening",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 42
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Spaarrekeninggegevens inclusief gekoppelde patronen",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SavingsAccountWithPatternsDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Spaarrekening niet gevonden of hoort niet bij dit account"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Werk een bestaande spaarrekening bij",
+                "operationId": "put_savings_account_update",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van de spaarrekening die je wilt bijwerken",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 42
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Nieuwe waarden voor de spaarrekening (alle velden optioneel)",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Buffer"
+                                    },
+                                    "accountId": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "targetAmount": {
+                                        "type": "number",
+                                        "example": 1000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Spaarrekening bijgewerkt",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SavingsAccountDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ongeldige invoer"
+                    },
+                    "404": {
+                        "description": "Spaarrekening niet gevonden"
+                    },
+                    "500": {
+                        "description": "Interne serverfout"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Verwijder een spaarrekening",
+                "operationId": "delete_savings_account_delete",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID van de spaarrekening die je wilt verwijderen",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 42
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Spaarrekening succesvol verwijderd"
+                    },
+                    "404": {
+                        "description": "Spaarrekening niet gevonden"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/savings-accounts/{savingsAccountId}": {
+            "get": {
+                "summary": "Haalt alle bestaande savings patterns op.",
+                "description": "GET /api/savings-patterns",
+                "operationId": "get_list_savings_patterns",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "savingsAccountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/savings-accounts/{savingsAccountId}/{id}": {
+            "get": {
+                "summary": "Haalt een specifiek savings pattern op via ID.",
+                "description": "GET /api/savings-patterns/{id}",
+                "operationId": "get_get_savings_pattern",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "savingsAccountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "summary": "Wijzigt een bestaand savings pattern.",
+                "description": "PUT /api/savings-patterns/{id}",
+                "operationId": "put_update_savings_pattern",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "savingsAccountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Verwijdert een savings pattern.",
+                "description": "DELETE /api/savings-patterns/{id}",
+                "operationId": "delete_delete_savings_pattern",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "savingsAccountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/savings-accounts/{savingsAccountId}/patterns": {
+            "post": {
+                "tags": [
+                    "Savings Accounts"
+                ],
+                "summary": "Voeg een savings pattern toe aan een spaarrekening",
+                "operationId": "post_create_savings_pattern",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "savingsAccountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 42
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateSavingsPatternDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Pattern aangemaakt"
+                    },
+                    "400": {
+                        "description": "Validatiefout"
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/transactions": {
+            "get": {
+                "operationId": "get_get_transactions",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/transactions/months": {
+            "get": {
+                "operationId": "get_get_transaction_months",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/transactions/import": {
+            "post": {
+                "operationId": "post_import",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/transactions/{id}/category": {
+            "patch": {
+                "summary": "Wijs een categorie toe aan een transactie.",
+                "description": "Vereist JSON-body met veld:\n- categoryId: ID van de categorie",
+                "operationId": "patch_transaction_set_category",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/account/{accountId}/transactions/{id}/assign_savings": {
+            "patch": {
+                "operationId": "patch_assign_savings_account",
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AccountDTO": {
+                "required": [
+                    "id",
+                    "name",
+                    "accountNumber"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "accountNumber": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "CategoryDTO": {
+                "required": [
+                    "id",
+                    "name",
+                    "createdAt",
+                    "updatedAt",
+                    "accountId"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "color": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "accountId": {
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "CategoryWithTransactionsDTO": {
+                "required": [
+                    "id",
+                    "name",
+                    "createdAt",
+                    "updatedAt",
+                    "accountId"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "color": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "accountId": {
+                        "type": "integer"
+                    },
+                    "transactions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TransactionDTO"
+                        },
+                        "default": []
+                    }
+                },
+                "type": "object"
+            },
+            "AssignPatternDateRangeDTO": {
+                "title": "AssignPatternDateRangeDTO",
+                "description": "DTO voor de daterange van transcaties om automatisch een SavingsAccount aan toe te wijzen.",
+                "required": [
+                    "startDate",
+                    "endDate"
+                ],
+                "properties": {
+                    "startDate": {
+                        "description": "De startdatum (jjjj-mm-dd)",
+                        "type": "string",
+                        "example": "2025-01-01"
+                    },
+                    "endDate": {
+                        "description": "De einddatum (jjjj-mm-dd)",
+                        "type": "string",
+                        "example": "2025-01-31"
+                    }
+                },
+                "type": "object"
+            },
+            "SavingsAccountDTO": {
+                "required": [
+                    "id",
+                    "name",
+                    "accountId"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "targetAmount": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "accountId": {
+                        "type": "integer"
+                    }
+                },
+                "type": "object"
+            },
+            "SavingsAccountWithPatternsDTO": {
+                "required": [
+                    "id",
+                    "name",
+                    "account"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "targetAmount": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "account": {
+                        "$ref": "#/components/schemas/AccountDTO"
+                    },
+                    "patterns": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SavingsPatternDTO"
+                        },
+                        "default": []
+                    }
+                },
+                "type": "object"
+            },
+            "CreateSavingsPatternDTO": {
+                "title": "CreateSavingsPatternDTO",
+                "description": "DTO voor het aanmaken van een savings pattern",
+                "required": [
+                    "pattern",
+                    "columnName"
+                ],
+                "properties": {
+                    "pattern": {
+                        "description": "Het patroon dat gezocht moet worden (bijv. IBAN, tekst)",
+                        "type": "string",
+                        "example": "NL55INGB0123456789"
+                    },
+                    "columnName": {
+                        "description": "De kolom waarop het patroon van toepassing is (bijv. description, iban)",
+                        "type": "string",
+                        "example": "description"
+                    }
+                },
+                "type": "object"
+            },
+            "TransactionDTO": {
+                "required": [
+                    "id",
+                    "hash",
+                    "date",
+                    "description",
+                    "accountId",
+                    "transactionType",
+                    "amount",
+                    "mutationType",
+                    "notes",
+                    "balanceAfter"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "hash": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "accountId": {
+                        "type": "integer"
+                    },
+                    "counterpartyAccount": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "transactionCode": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "transactionType": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "mutationType": {
+                        "type": "string"
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "balanceAfter": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "tag": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "categoryId": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "savingsAccountId": {
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "SavingsPatternDTO": {
+                "required": [
+                    "id",
+                    "pattern",
+                    "columnName"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "pattern": {
+                        "type": "string"
+                    },
+                    "columnName": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Accounts",
+            "description": "Beheer van bankrekeningen en hun basisgegevens"
+        },
+        {
+            "name": "Categories",
+            "description": "Beheer van categorie\u00ebn"
+        },
+        {
+            "name": "Savings Accounts",
+            "description": "Beheer van spaarrekeningen: aanmaken, bewerken, verwijderen en automatisch toewijzen van transacties op basis van patronen."
+        }
+    ]
+}

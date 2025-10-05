@@ -1,0 +1,52 @@
+# Multi-stage build voor productie
+FROM php:8.3-apache AS base
+
+# Installeer alleen productie dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    zip \
+    unzip \
+    libzip-dev \
+    curl \
+    && docker-php-ext-install pdo pdo_mysql zip bcmath \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Apache configuratie
+RUN a2enmod rewrite
+RUN sed -i 's|AllowOverride None|AllowOverride All|' /etc/apache2/apache2.conf
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-available/000-default.conf
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+WORKDIR /var/www/html
+
+# Installeer Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Kopieer composer files eerst (voor caching)
+COPY composer.json composer.lock symfony.lock ./
+
+# Installeer dependencies (zonder dev packages)
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+
+# Kopieer de rest van de applicatie
+COPY . .
+
+# Voer post-install scripts uit
+RUN composer dump-autoload --optimize --no-dev
+
+# Zorg voor juiste permissions
+RUN mkdir -p var/cache var/log \
+    && chown -R www-data:www-data var/ \
+    && chmod -R 775 var/
+
+# Warm up cache (als productie)
+RUN php bin/console cache:warmup --env=prod || true
+
+# Clean up
+RUN rm -rf .git tests/
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost/api/health || exit 1
+
+EXPOSE 80
