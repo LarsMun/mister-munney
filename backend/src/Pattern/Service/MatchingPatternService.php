@@ -64,9 +64,9 @@ class MatchingPatternService
         // Filter op description
         if ($pattern->description) {
             $expr = match ($pattern->matchTypeDescription) {
-                'LIKE' => 't.description LIKE :desc',
-                'REGEX' => 'REGEXP(t.description, :desc)',
-                'EXACT' => 't.description = :desc',
+                'LIKE', 'like', null => 't.description LIKE :desc',
+                'REGEX', 'regex' => 'REGEXP(t.description, :desc)',
+                'EXACT', 'exact' => 't.description = :desc',
             };
             $qb->andWhere($expr)
                 ->setParameter('desc', $pattern->matchTypeDescription === 'LIKE' ? '%' . $pattern->description . '%' : $pattern->description);
@@ -75,9 +75,9 @@ class MatchingPatternService
         // Filter op notes
         if ($pattern->notes) {
             $expr = match ($pattern->matchTypeNotes) {
-                'LIKE' => 't.notes LIKE :notes',
-                'REGEX' => 'REGEXP(t.notes, :notes)',
-                'EXACT' => 't.notes = :notes',
+                'LIKE', 'like', null => 't.notes LIKE :notes',
+                'REGEX', 'regex' => 'REGEXP(t.notes, :notes)',
+                'EXACT', 'exact' => 't.notes = :notes',
             };
             $qb->andWhere($expr)
                 ->setParameter('notes', $pattern->matchTypeNotes === 'LIKE' ? '%' . $pattern->notes . '%' : $pattern->notes);

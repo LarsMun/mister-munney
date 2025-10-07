@@ -192,4 +192,18 @@ readonly class PatternService
 
         return $this->mapper->toDto($pattern);
     }
+
+    public function deleteWithoutCategory(int $accountId): int
+    {
+        $patterns = $this->patternRepository->findWithoutCategory($accountId);
+        $count = count($patterns);
+
+        foreach ($patterns as $pattern) {
+            $this->patternRepository->remove($pattern, false);
+        }
+
+        $this->patternRepository->flush();
+
+        return $count;
+    }
 }
