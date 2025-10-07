@@ -50,19 +50,19 @@ class CreatePatternDTO
     public ?float $maxAmount = null;
 
     #[OA\Property(description: 'Type transactie', type: 'string', example: 'debit')]
-    public ?TransactionType $transactionType = null;
+    public ?string $transactionType = null;
 
     #[OA\Property(description: 'Zoekterm in omschrijving', type: 'string', example: 'Albert Heijn')]
     public ?string $description = null;
 
-    #[Assert\Choice(['EXACT', 'LIKE'])]
+    #[Assert\Choice(['exact', 'like', 'EXACT', 'LIKE'])]
     #[OA\Property(description: 'Matching type voor description', type: 'string', example: 'LIKE')]
     public ?string $matchTypeDescription = null;
 
     #[OA\Property(description: 'Zoekterm in notities', type: 'string', example: 'Boodschappen')]
     public ?string $notes = null;
 
-    #[Assert\Choice(['EXACT', 'LIKE',])]
+    #[Assert\Choice(['exact', 'like', 'EXACT', 'LIKE'])]
     #[OA\Property(description: 'Matching type voor notes', type: 'string', example: 'LIKE')]
     public ?string $matchTypeNotes = null;
 
