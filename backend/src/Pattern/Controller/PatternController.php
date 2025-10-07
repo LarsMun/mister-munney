@@ -174,6 +174,41 @@ class PatternController extends AbstractController
         return $this->json($patternDto);
     }
 
+    #[Route('/without-category', name: 'delete_patterns_without_category', methods: ['DELETE'])]
+    #[OA\Delete(
+        summary: 'Verwijder alle patterns zonder categorie',
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 1)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Patterns verwijderd',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'deletedCount', type: 'integer', example: 5),
+                        new OA\Property(property: 'message', type: 'string', example: '5 patterns zonder categorie verwijderd')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function deleteWithoutCategory(int $accountId): JsonResponse
+    {
+        $count = $this->patternService->deleteWithoutCategory($accountId);
+
+        return $this->json([
+            'deletedCount' => $count,
+            'message' => "$count patterns zonder categorie verwijderd"
+        ]);
+    }
+
     #[Route('/{patternId}', name: 'delete_pattern', methods: ['DELETE'])]
     #[OA\Delete(
         summary: 'Verwijder een pattern',

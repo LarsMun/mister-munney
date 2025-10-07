@@ -73,11 +73,22 @@ class PatternRepository extends ServiceEntityRepository
 
     public function persist(Transaction $transaction): void
     {
-        $this->_em->persist($transaction);
+        $this->em->persist($transaction);
     }
 
     public function flush(): void
     {
-        $this->_em->flush();
+        $this->em->flush();
+    }
+
+    public function findWithoutCategory(int $accountId): array
+    {
+        return $this->createQueryBuilder('p')
+            ->join('p.account', 'a')
+            ->andWhere('a.id = :accountId')
+            ->andWhere('p.category IS NULL')
+            ->setParameter('accountId', $accountId)
+            ->getQuery()
+            ->getResult();
     }
 }

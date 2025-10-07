@@ -4,7 +4,6 @@
 #
 # Usage: ./synology/deploy-dev.sh
 #
-
 set -e  # Stop bij errors
 
 # Kleuren voor output
@@ -35,28 +34,31 @@ fi
 
 # Stop bestaande containers
 echo -e "${GREEN}🛑 Stopping existing containers...${NC}"
-docker-compose down
+sudo docker compose down
 
 # Build nieuwe images
 echo -e "${GREEN}🏗️  Building development images...${NC}"
-docker-compose build
+sudo docker compose build
 
 # Start containers
 echo -e "${GREEN}▶️  Starting development containers...${NC}"
-docker-compose up -d
+sudo docker compose up -d
 
 # Wacht tot database ready is
 echo -e "${GREEN}⏳ Waiting for database to be ready...${NC}"
 sleep 10
 
+# Get backend container name (dynamisch)
+BACKEND_CONTAINER=$(sudo docker compose ps -q backend)
+
 # Run database migrations
 echo -e "${GREEN}🗄️  Running database migrations...${NC}"
-docker exec money-backend php bin/console doctrine:migrations:migrate --no-interaction
+sudo docker exec $BACKEND_CONTAINER php bin/console doctrine:migrations:migrate --no-interaction
 
 # Check container status
 echo ""
 echo -e "${GREEN}📊 Container Status:${NC}"
-docker-compose ps
+sudo docker compose ps
 
 echo ""
 echo -e "${GREEN}✅ Development deployment complete!${NC}"
@@ -66,6 +68,5 @@ echo "🔌 Backend API: http://YOUR_NAS_IP:8686"
 echo "🗄️  Database: YOUR_NAS_IP:3333"
 echo ""
 echo "📝 Logs bekijken:"
-echo "   docker logs money-backend -f"
-echo "   docker logs money-frontend -f"
-echo ""
+echo "   sudo docker compose logs backend -f"
+echo "   sudo docker compose logs frontend -f"

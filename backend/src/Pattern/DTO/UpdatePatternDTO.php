@@ -49,12 +49,12 @@ class UpdatePatternDTO
     public ?float $maxAmount = null;
 
     #[OA\Property(description: 'Type transactie', type: 'string', example: 'debit')]
-    public ?TransactionType $transactionType = null;
+    public ?string $transactionType = null;
 
     #[OA\Property(type: 'string', example: 'Albert Heijn')]
     public ?string $description = null;
 
-    #[Assert\Choice(['EXACT', 'LIKE'])]
+    #[Assert\Choice(['exact', 'like', 'EXACT', 'LIKE'])]
     #[Assert\NotBlank]
     #[OA\Property(description: 'Matching type voor description', type: 'string', example: 'LIKE')]
     public string $matchTypeDescription;
@@ -62,7 +62,7 @@ class UpdatePatternDTO
     #[OA\Property(type: 'string', example: 'Weekboodschappen')]
     public ?string $notes = null;
 
-    #[Assert\Choice(['EXACT', 'LIKE'])]
+    #[Assert\Choice(['exact', 'like', 'EXACT', 'LIKE'])]
     #[Assert\NotBlank]
     #[OA\Property(description: 'Matching type voor notes', type: 'string', example: 'LIKE')]
     public string $matchTypeNotes;

@@ -2,9 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { PatternDTO } from "../models/PatternDTO";
-import { getPatternsForAccount, deletePattern } from "../services/PatternService";
-import { useCategories } from "../../categories/hooks/useCategories";
-import { useSavingsAccounts } from "../../savingsAccounts/hooks/useSavingsAccounts";
+import {getPatternsForAccount, deletePattern, deletePatternsWithoutCategory} from "../services/PatternService";
 import { useRequiredAccount } from "../../../app/context/AccountContext";
 import { formatMoney } from "../../../shared/utils/MoneyFormat";
 import { formatDateFullMonthName } from "../../../shared/utils/DateFormat";
@@ -14,9 +12,10 @@ import { useConfirmDialog } from "../../../shared/hooks/useConfirmDialog";
 
 interface Props {
     resetSignal?: number;
+    onEdit?: (pattern: PatternDTO) => void; // 🆕
 }
 
-export default function PatternList(resetSignal) {
+export default function PatternList({ resetSignal, onEdit }: Props) {
     const accountId = useRequiredAccount()
 
     useEffect(() => {
@@ -32,6 +31,23 @@ export default function PatternList(resetSignal) {
     const [patterns, setPatterns] = useState<PatternDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const { confirm, Confirm } = useConfirmDialog();
+
+    const handleDeleteWithoutCategory = async () => {
+        const ok = await confirm({
+            title: "Patronen zonder categorie verwijderen?",
+            description: "Weet je zeker dat je alle patronen zonder categorie wilt verwijderen? Deze actie kan niet ongedaan gemaakt worden.",
+        });
+
+        if (!ok) return;
+
+        try {
+            const result = await deletePatternsWithoutCategory(accountId);
+            toast.success(result.message);
+            await refresh();
+        } catch (error) {
+            toast.error("Verwijderen mislukt.");
+        }
+    };
 
     const refresh = async () => {
         if (!accountId) return;
@@ -64,7 +80,11 @@ export default function PatternList(resetSignal) {
     };
 
     const handleEdit = (pattern: PatternDTO) => {
-        console.log("Bewerk patroon:", pattern);
+        if (onEdit) {
+            onEdit(pattern);
+            // Scroll naar boven zodat het form zichtbaar is
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     };
 
     const getTargetElement = (p: PatternDTO): React.ReactNode => {
@@ -127,6 +147,17 @@ export default function PatternList(resetSignal) {
 
     return (
         <>
+            <div className="flex justify-end mb-2">
+                {patterns.some(p => !p.category?.id) && (
+                    <button
+                        onClick={handleDeleteWithoutCategory}
+                        className="p-2 text-gray-500 hover:text-red-600 transition"
+                        title="Alle patronen zonder categorie verwijderen"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                )}
+            </div>
             <div className="space-y-2">
                 {patterns.map((p) => (
                     <div key={p.id} className="relative group border p-3 rounded bg-white shadow-sm hover:shadow transition">

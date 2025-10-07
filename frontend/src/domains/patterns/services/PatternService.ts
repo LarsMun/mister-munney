@@ -24,12 +24,18 @@ export function sanitizePattern(p: PatternInput): Record<string, any> {
 
     if (p.description?.trim()) {
         clean.description = p.description?.trim();
-        clean.matchTypeDescription = p.matchTypeDescription;
+        // Alleen toevoegen als het een geldige waarde is
+        if (p.matchTypeDescription === "LIKE" || p.matchTypeDescription === "EXACT") {
+            clean.matchTypeDescription = p.matchTypeDescription;
+        }
     }
 
     if (p.notes?.trim()) {
         clean.notes = p.notes?.trim();
-        clean.matchTypeNotes = p.matchTypeNotes;
+        // Alleen toevoegen als het een geldige waarde is
+        if (p.matchTypeNotes === "LIKE" || p.matchTypeNotes === "EXACT") {
+            clean.matchTypeNotes = p.matchTypeNotes;
+        }
     }
 
     if (p.tag?.trim()) {
@@ -57,6 +63,16 @@ export async function createPattern(accountId: number, payload: any) {
     return response.data;
 }
 
+export async function updatePattern(accountId: number, patternId: number, payload: any): Promise<PatternDTO> {
+    const response = await api.patch(`/account/${accountId}/patterns/${patternId}`, payload);
+    return response.data;
+}
+
 export function deletePattern(accountId: number, patternId: number) {
     return api.delete(`/account/${accountId}/patterns/${patternId}`);
+}
+
+export async function deletePatternsWithoutCategory(accountId: number): Promise<{ deletedCount: number; message: string }> {
+    const response = await api.delete(`/account/${accountId}/patterns/without-category`);
+    return response.data;
 }
