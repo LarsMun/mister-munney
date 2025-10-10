@@ -2,7 +2,7 @@
 
 import {PatternInput} from "../models/PatternInput.ts";
 import {Transaction} from "../../../types.tsx";
-import {api} from "../../../lib/axios.ts";
+import api from "../../../lib/axios.ts";
 import {PatternDTO} from "../models/PatternDTO.ts";
 
 export async function fetchPatternMatches(accountId: number, pattern: PatternInput): Promise<{ total: number, data: Transaction[] }> {
