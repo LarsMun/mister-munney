@@ -108,7 +108,7 @@ class AccountService
 
     /**
      * Stelt een account in als default account.
-     * De EventListener zorgt ervoor dat andere accounts automatisch niet meer default zijn.
+     * Zorgt ervoor dat alle andere accounts NIET meer default zijn.
      *
      * @param int $id Het ID van het account dat default moet worden
      * @return Account Het bijgewerkte account
@@ -118,8 +118,22 @@ class AccountService
     public function setDefault(int $id): Account
     {
         $account = $this->getById($id);
+        
+        // Haal eerst ALLE andere default accounts op en zet ze op false
+        $otherDefaults = $this->accountRepository->findBy(['isDefault' => true]);
+        foreach ($otherDefaults as $other) {
+            if ($other->getId() !== $id) {
+                $other->setIsDefault(false);
+                $this->accountRepository->save($other, false); // Don't flush yet
+            }
+        }
+        
+        // Nu pas het nieuwe default account instellen
         $account->setIsDefault(true);
-        $this->accountRepository->save($account);
+        $this->accountRepository->save($account); // Flush alles tegelijk
+        
+        // Force refresh van de entity manager om zeker te zijn dat we verse data hebben
+        $this->accountRepository->refresh($account);
 
         return $account;
     }

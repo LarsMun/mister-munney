@@ -37,6 +37,10 @@ export async function assignCategoryToMultipleTransactions(
     clearSelection: () => void
 ) {
     try {
+        if (!category) {
+            toast.error('Geen categorie geselecteerd');
+            return;
+        }
         await bulkAssignCategoryToTransactions(accountId, transactionIds, category.id);
         await refresh();
         clearSelection();

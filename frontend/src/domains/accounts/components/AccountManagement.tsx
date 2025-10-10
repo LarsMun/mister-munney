@@ -1,12 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount } from '../../../app/context/AccountContext';
 import { updateAccountName, setDefaultAccount } from '../services/AccountActions';
 import { Account } from '../models/Account';
 
 export default function AccountManagement() {
-    const { accounts, isLoading, refreshAccounts, updateAccountInContext } = useAccount();
+    const { accounts, isLoading, refreshAccounts } = useAccount();
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
+    const [localAccounts, setLocalAccounts] = useState(accounts);
+
+    // Sync local state with context
+    useEffect(() => {
+        setLocalAccounts(accounts);
+    }, [accounts]);
 
     const handleStartEdit = (account: Account) => {
         setEditingId(account.id);
@@ -26,15 +32,17 @@ export default function AccountManagement() {
         await updateAccountName(accountId, editValue.trim(), (updatedAccount) => {
             setEditingId(null);
             setEditValue('');
-            updateAccountInContext(updatedAccount);
+            // Update local state immediately
+            setLocalAccounts(prev => 
+                prev.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)
+            );
         });
     };
 
     const handleSetDefault = async (accountId: number) => {
-        await setDefaultAccount(accountId, (updatedAccount) => {
-            // When setting a new default, we need to refresh all accounts
-            // because the old default needs to be updated too
-            refreshAccounts();
+        await setDefaultAccount(accountId, async () => {
+            // Refresh accounts to get updated isDefault values
+            await refreshAccounts();
         });
     };
 
@@ -76,17 +84,17 @@ export default function AccountManagement() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {accounts.map((account) => (
+                            {localAccounts.map((account) => (
                                 <tr key={account.id} className={account.isDefault ? 'bg-blue-50' : ''}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <button
-                                            onClick={() => !account.isDefault && handleSetDefault(account.id)}
-                                            disabled={account.isDefault}
+                                            onClick={() => handleSetDefault(account.id)}
+                                            type="button"
                                             className={`
-                                                w-6 h-6 rounded-full border-2 flex items-center justify-center
+                                                w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all
                                                 ${account.isDefault 
-                                                    ? 'bg-blue-600 border-blue-600 cursor-default' 
-                                                    : 'border-gray-300 hover:border-blue-600 cursor-pointer'
+                                                    ? 'bg-blue-600 border-blue-600' 
+                                                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                                                 }
                                             `}
                                             title={account.isDefault ? 'Dit is het default account' : 'Klik om dit account als default in te stellen'}
@@ -158,7 +166,7 @@ export default function AccountManagement() {
                     </table>
                 </div>
 
-                {accounts.length === 0 && (
+                {localAccounts.length === 0 && (
                     <div className="text-center py-12 text-gray-500">
                         Geen accounts gevonden
                     </div>

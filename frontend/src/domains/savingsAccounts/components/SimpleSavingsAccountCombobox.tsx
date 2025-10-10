@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSavingsAccounts } from "../hooks/useSavingsAccounts";
 import type { SavingsAccount } from "../models/SavingsAccount";
 import { useAccount } from "../../../app/context/AccountContext";
@@ -63,7 +63,7 @@ export default function SimpleSavingsAccountCombobox({ savingsAccountId, onChang
             {selectedSavingsAccount ? (
                 <div
                     className="inline-flex items-center text-gray-700 text-xs font-semibold rounded overflow-hidden cursor-default"
-                    style={{ backgroundColor: selectedSavingsAccount.color }}
+                    style={{ backgroundColor: selectedSavingsAccount.color || undefined }}
                 >
                     <span className="px-2 py-1">{selectedSavingsAccount.name}</span>
                     <span
@@ -105,7 +105,7 @@ export default function SimpleSavingsAccountCombobox({ savingsAccountId, onChang
                                 >
                                     <span
                                         className="inline-block px-2 py-1 rounded text-gray-700 text-sm"
-                                        style={{ backgroundColor: sa.color }}
+                                        style={{ backgroundColor: sa.color || undefined }}
                                     >
                                         {sa.name}
                                     </span>

@@ -1,10 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Transaction } from "../../transactions/models/Transaction";
-import type { PatternInput } from "../models/PatternInput";
 import PatternForm from "./PatternForm";
-import {useAccount} from "../../../app/context/AccountContext.tsx";
 
 type Props = {
     transaction: Transaction | null;
@@ -12,29 +10,12 @@ type Props = {
     onClose: () => void;
 };
 
-export default function PatternDrawer({ transaction, transactions, onClose }: Props) {
-    const { accountId } = useAccount();
+export default function PatternDrawer({ transaction, onClose }: Props) {
     const [open, setOpen] = useState(false);
     const [closing, setClosing] = useState(false);
-    const [pattern, setPattern] = useState<PatternInput | null>(null);
 
     useEffect(() => {
         if (transaction) {
-            setPattern({
-                accountId: accountId,
-                description: transaction.description,
-                matchTypeDescription: "LIKE",
-                transactionType: transaction.transactionType,
-                minAmount: 0,
-                maxAmount: 0,
-                notes: "",
-                matchTypeNotes: "LIKE",
-                tag: "",
-                startDate: null,
-                endDate: null,
-                categoryId: transaction.category?.id || 0,
-                savingsAccountId: transaction.savingsAccount?.id ?? null,
-            });
             setOpen(true);
             setClosing(false);
         }
@@ -48,7 +29,11 @@ export default function PatternDrawer({ transaction, transactions, onClose }: Pr
         }, 300);
     };
 
-    if (!pattern) return null;
+    const handleSuccess = () => {
+        handleClose();
+    };
+
+    if (!transaction) return null;
 
     return (
         <Dialog.Root open={open} onOpenChange={handleClose}>
@@ -72,11 +57,13 @@ export default function PatternDrawer({ transaction, transactions, onClose }: Pr
                     </div>
 
                     <PatternForm
-                        pattern={pattern}
-                        setPattern={setPattern}
-                        transaction={transaction}
-                        transactions={transactions}
-                        onClose={handleClose}
+                        prefill={{
+                            description: transaction.description,
+                            notes: undefined,
+                            categoryId: transaction.category?.id,
+                            savingsAccountId: transaction.savingsAccount?.id,
+                        }}
+                        onSuccess={handleSuccess}
                     />
                 </Dialog.Content>
             </Dialog.Portal>
