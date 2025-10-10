@@ -45,7 +45,7 @@ export function prepareTreeChartData(transactions: Transaction[]): TreeMapData {
     const totalAmount = data.reduce((sum, item) => sum + item.value, 0);
 
     // Organiseer de data als een boomstructuur
-    const treeData: TreeMapData = {
+    return {
         name: "Root",
         children: data.map(item => ({
             name: item.name,
@@ -54,6 +54,4 @@ export function prepareTreeChartData(transactions: Transaction[]): TreeMapData {
             color: item.color,  // Voeg de kleur toe aan de children
         })),
     };
-
-    return treeData;
 }
