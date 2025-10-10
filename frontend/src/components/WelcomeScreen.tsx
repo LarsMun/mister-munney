@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../lib/axios";
+import api from "../lib/axios";
 import toast from "react-hot-toast";
 
 interface WelcomeScreenProps {
