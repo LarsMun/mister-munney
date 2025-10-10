@@ -15,7 +15,6 @@ export type Props = {
 
 export function useCategoryCombobox({
                                         transactionId,
-                                        currentCategory,
                                         accountId,
                                         categories,
                                         onSelect,
@@ -75,7 +74,7 @@ export function useCategoryCombobox({
             if (transactionId !== undefined) {
                 onSelect(newCategory, transactionId, accountId, true);
             } else {
-                onSelect(newCategory, 0, accountId, true); // 👈 Bijvoorbeeld 0 als "bulk"
+                onSelect(newCategory, 0, accountId, true);
             }
 
             setInputValue('');

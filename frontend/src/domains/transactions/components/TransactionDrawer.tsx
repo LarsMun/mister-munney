@@ -1,17 +1,17 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Transaction } from "../models/Transaction";
 import { formatMoney } from "../../../shared/utils/MoneyFormat.tsx";
 import { formatDate } from "../../../shared/utils/DateFormat.tsx";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
     transaction: Transaction | null;
     onClose: () => void;
 };
 
-export default function TransactionDrawer({ transaction, onClose, onCreatePattern }: Props) {
+export default function TransactionDrawer({ transaction, onClose }: Props) {
     if (!transaction) return null;
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
@@ -34,15 +34,6 @@ export default function TransactionDrawer({ transaction, onClose, onCreatePatter
             onClose();
         }, 300);
     };
-
-    function Detail({ label, value }: { label: string; value?: React.ReactNode }) {
-        return (
-            <div>
-                <dt className="font-medium text-gray-700">{label}</dt>
-                <dd className="text-gray-900">{value ?? <span className="text-gray-400 italic">–</span>}</dd>
-            </div>
-        );
-    }
 
     if (!visibleTransaction) return null;
 
@@ -75,9 +66,9 @@ export default function TransactionDrawer({ transaction, onClose, onCreatePatter
                             value={
                                 <span
                                     className={`font-mono ${transaction.transactionType === "debit" ? "text-red-500" : "text-green-700"}`}>
-                {transaction.transactionType === "debit" ? "–" : "+"} {formatMoney(transaction.amount)}{" "}
+                                    {transaction.transactionType === "debit" ? "–" : "+"} {formatMoney(transaction.amount)}{" "}
                                     {transaction.transactionType === "debit" ? "▼" : "▲"}
-            </span>
+                                </span>
                             }
                         />
                         <Detail label="Mutatiesoort" value={transaction.mutationType}/>
@@ -104,7 +95,7 @@ export default function TransactionDrawer({ transaction, onClose, onCreatePatter
     );
 }
 
-function Detail({label, value}: { label: string; value?: string | null }) {
+function Detail({ label, value }: { label: string; value?: string | React.ReactNode | null }) {
     return (
         <div>
             <dt className="font-medium text-gray-600">{label}</dt>

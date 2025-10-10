@@ -139,18 +139,6 @@ function getActiveVersion(budget: Budget): BudgetVersion | undefined {
 }
 
 /**
- * Get the earliest future version (starts after current month)
- */
-function getEarliestFutureVersion(budget: Budget): BudgetVersion | undefined {
-    const currentMonth = getCurrentMonth();
-    const futureVersions = budget.versions
-        .filter(v => v.effectiveFromMonth > currentMonth)
-        .sort((a, b) => a.effectiveFromMonth.localeCompare(b.effectiveFromMonth));
-
-    return futureVersions[0];
-}
-
-/**
  * Check if budget is currently active (has an active version right now)
  */
 export function isCurrentlyActive(budget: Budget): boolean {

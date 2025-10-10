@@ -1,4 +1,3 @@
-import React from "react";
 import { formatDate } from "../../../shared/utils/DateFormat";
 import FilterBadge from "./FilterBadge";
 import { XCircle, CalendarX, Tag } from "lucide-react";
