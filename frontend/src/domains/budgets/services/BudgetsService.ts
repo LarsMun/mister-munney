@@ -1,6 +1,6 @@
 // frontend/src/domains/budgets/services/BudgetsService.ts
 
-import { api } from "../../../lib/axios";
+import api from "../../../lib/axios";
 import type {
     Budget,
     CreateBudget,

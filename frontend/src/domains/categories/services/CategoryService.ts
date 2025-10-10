@@ -1,4 +1,4 @@
-import { api } from '../../../lib/axios';
+import api from '../../../lib/axios';
 import type { Category } from '../models/Category';
 import toast from "react-hot-toast";
 import type { CategoryStatistics } from '../models/CategoryStatistics';

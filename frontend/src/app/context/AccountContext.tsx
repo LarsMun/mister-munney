@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { api } from '../../lib/axios';
+import api from '../../lib/axios';
 
 type Account = {
     id: number;
