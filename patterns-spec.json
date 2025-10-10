@@ -1,0 +1,1040 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Mr Munney API",
+    "description": "Documentatie",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/account/{accountId}/patterns/match": {
+      "post": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Zoek transacties die overeenkomen met een patroon",
+        "operationId": "post_pattern_match_preview",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "maximum": 2147483647,
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePatternDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lijst van overeenkomende transacties",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "total": {
+                      "type": "integer",
+                      "example": 134
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TransactionMatchesDTO"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/patterns/assign": {
+      "patch": {
+        "tags": [
+          "Patterns Assign"
+        ],
+        "summary": "Wijs bestaande transacties toe op basis van bestaande patterns",
+        "operationId": "patch_assign_transactions_to_patterns",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account waarvoor transacties geëvalueerd worden",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignPatternDateRangeDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aantal gekoppelde transacties"
+          },
+          "400": {
+            "description": "Validatiefout"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/patterns": {
+      "get": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Alle patterns voor een account",
+        "operationId": "get_get_patterns_by_account",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lijst van patterns",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PatternDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Maak een nieuw pattern aan",
+        "operationId": "post_create_pattern",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account waarvoor het pattern wordt aangemaakt",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePatternDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pattern succesvol aangemaakt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatternDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validatiefout"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/patterns/{patternId}": {
+      "get": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Geef één pattern op basis van ID",
+        "operationId": "get_get_pattern_by_id",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "patternId",
+            "in": "path",
+            "description": "ID van het pattern",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 42
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pattern details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatternDTO"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Pattern hoort niet bij account"
+          },
+          "404": {
+            "description": "Pattern niet gevonden"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Verwijder een pattern",
+        "operationId": "delete_delete_pattern",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "patternId",
+            "in": "path",
+            "description": "ID van het te verwijderen pattern",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Pattern verwijderd"
+          },
+          "403": {
+            "description": "Pattern hoort niet bij account"
+          },
+          "404": {
+            "description": "Pattern niet gevonden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Wijzig een bestaand pattern",
+        "operationId": "patch_update_pattern",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "patternId",
+            "in": "path",
+            "description": "ID van het pattern dat je wil wijzigen",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 12
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePatternDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pattern succesvol bijgewerkt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatternDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validatiefout"
+          },
+          "404": {
+            "description": "Pattern niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/patterns/without-category": {
+      "delete": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Verwijder alle patterns zonder categorie",
+        "operationId": "delete_delete_patterns_without_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Patterns verwijderd",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deletedCount": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "5 patterns zonder categorie verwijderd"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/patterns/category/{categoryId}": {
+      "get": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Alle patterns voor een categorie",
+        "operationId": "get_get_patterns_by_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "path",
+            "description": "ID van de categorie",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 3
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lijst van patterns",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PatternDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/patterns/savings-account/{savingsAccountId}": {
+      "get": {
+        "tags": [
+          "Patterns"
+        ],
+        "summary": "Alle patterns voor een spaarrekening",
+        "operationId": "get_get_patterns_by_savings_account",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "savingsAccountId",
+            "in": "path",
+            "description": "ID van de spaarrekening",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lijst van patterns",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PatternDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreatePatternDTO": {
+        "required": [
+          "accountId",
+          "startDate",
+          "endDate",
+          "minAmount",
+          "maxAmount",
+          "transactionType",
+          "description",
+          "matchTypeDescription",
+          "notes",
+          "matchTypeNotes",
+          "tag",
+          "categoryId",
+          "savingsAccountId"
+        ],
+        "properties": {
+          "accountId": {
+            "description": "ID van het account",
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "example": 1
+          },
+          "startDate": {
+            "description": "Transactiedatum vanaf (optioneel)",
+            "type": "string",
+            "format": "date",
+            "example": "2024-01-01"
+          },
+          "endDate": {
+            "description": "Transactiedatum tot en met (optioneel)",
+            "type": "string",
+            "format": "date",
+            "example": "2024-12-31"
+          },
+          "minAmount": {
+            "description": "Minimaal bedrag",
+            "type": "number",
+            "minimum": 0,
+            "example": 10
+          },
+          "maxAmount": {
+            "description": "Maximaal bedrag",
+            "type": "number",
+            "minimum": 0,
+            "example": 1000
+          },
+          "transactionType": {
+            "description": "Type transactie",
+            "type": "string",
+            "example": "debit"
+          },
+          "description": {
+            "description": "Zoekterm in omschrijving",
+            "type": "string",
+            "example": "Albert Heijn"
+          },
+          "matchTypeDescription": {
+            "description": "Matching type voor description",
+            "type": "string",
+            "enum": [
+              "exact",
+              "like",
+              "EXACT",
+              "LIKE"
+            ],
+            "example": "LIKE"
+          },
+          "notes": {
+            "description": "Zoekterm in notities",
+            "type": "string",
+            "example": "Boodschappen"
+          },
+          "matchTypeNotes": {
+            "description": "Matching type voor notes",
+            "type": "string",
+            "enum": [
+              "exact",
+              "like",
+              "EXACT",
+              "LIKE"
+            ],
+            "example": "LIKE"
+          },
+          "tag": {
+            "description": "Zoekterm in tag",
+            "type": "string",
+            "example": "Supermarkt"
+          },
+          "strict": {
+            "description": "Overschrijf bestaande categorieën of spaarrekeningen",
+            "type": "boolean",
+            "default": false,
+            "example": false
+          },
+          "categoryId": {
+            "description": "ID van de toe te wijzen categorie",
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "example": 4
+          },
+          "savingsAccountId": {
+            "description": "ID van de toe te wijzen spaarrekening",
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "example": 2
+          }
+        },
+        "type": "object"
+      },
+      "CategoryDTO": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "accountId",
+          "transactionType"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Boodschappen"
+          },
+          "icon": {
+            "type": "string",
+            "example": "shopping-cart",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "example": "#FF9900",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "integer",
+            "example": 1
+          },
+          "transactionType": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ],
+            "example": "debit"
+          },
+          "budgetId": {
+            "type": "integer",
+            "example": 5,
+            "nullable": true
+          },
+          "budgetName": {
+            "type": "string",
+            "example": "Budget 2024",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "SavingsAccountDTO": {
+        "required": [
+          "id",
+          "name",
+          "accountId"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "integer"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "TransactionMatchesDTO": {
+        "required": [
+          "id",
+          "hash",
+          "date",
+          "description",
+          "accountId",
+          "transactionType",
+          "amount",
+          "mutationType",
+          "notes",
+          "balanceAfter"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "integer"
+          },
+          "counterpartyAccount": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionType": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float"
+          },
+          "mutationType": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "balanceAfter": {
+            "type": "number",
+            "format": "float"
+          },
+          "tag": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CategoryDTO"
+              }
+            ]
+          },
+          "savingsAccount": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SavingsAccountDTO"
+              }
+            ]
+          },
+          "matchConflict": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "AssignPatternDateRangeDTO": {
+        "required": [
+          "startDate",
+          "endDate"
+        ],
+        "properties": {
+          "startDate": {
+            "description": "Startdatum van de periode waarin transacties opnieuw worden geëvalueerd",
+            "type": "string",
+            "format": "date",
+            "example": "2024-01-01"
+          },
+          "endDate": {
+            "description": "Einddatum van de periode waarin transacties opnieuw worden geëvalueerd",
+            "type": "string",
+            "format": "date",
+            "example": "2024-01-31"
+          }
+        },
+        "type": "object"
+      },
+      "PatternDTO": {
+        "required": [
+          "id",
+          "accountId",
+          "startDate",
+          "endDate",
+          "minAmount",
+          "maxAmount",
+          "transactionType",
+          "description",
+          "matchTypeDescription",
+          "notes",
+          "matchTypeNotes",
+          "tag"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 1,
+            "example": 42
+          },
+          "accountId": {
+            "description": "ID van het account",
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 1,
+            "example": 2
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2024-01-01"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2024-12-31"
+          },
+          "minAmount": {
+            "type": "number",
+            "format": "decimal",
+            "example": 10
+          },
+          "maxAmount": {
+            "type": "number",
+            "format": "decimal",
+            "example": 100
+          },
+          "transactionType": {
+            "type": "string",
+            "example": "credit"
+          },
+          "description": {
+            "type": "string",
+            "example": "Albert Heijn"
+          },
+          "matchTypeDescription": {
+            "description": "Matching type voor description",
+            "type": "string",
+            "example": "LIKE"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Weekboodschappen"
+          },
+          "matchTypeNotes": {
+            "description": "Matching type voor notes",
+            "type": "string",
+            "example": "LIKE"
+          },
+          "tag": {
+            "type": "string",
+            "example": "boodschappen"
+          },
+          "strict": {
+            "type": "boolean",
+            "default": false,
+            "example": "false"
+          },
+          "category": {
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "color": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "type": "object",
+            "nullable": true
+          },
+          "savingsAccount": {
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "color": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "UpdatePatternDTO": {
+        "required": [
+          "accountId",
+          "startDate",
+          "endDate",
+          "minAmount",
+          "maxAmount",
+          "transactionType",
+          "description",
+          "matchTypeDescription",
+          "notes",
+          "matchTypeNotes",
+          "tag",
+          "categoryId",
+          "savingsAccountId"
+        ],
+        "properties": {
+          "accountId": {
+            "description": "ID van het account",
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "example": 1
+          },
+          "startDate": {
+            "description": "Transactiedatum vanaf (optioneel)",
+            "type": "string",
+            "format": "date",
+            "example": "2024-01-01"
+          },
+          "endDate": {
+            "description": "Transactiedatum tot en met (optioneel)",
+            "type": "string",
+            "format": "date",
+            "example": "2024-12-31"
+          },
+          "minAmount": {
+            "type": "number",
+            "format": "decimal",
+            "minimum": 0,
+            "example": 10
+          },
+          "maxAmount": {
+            "type": "number",
+            "format": "decimal",
+            "minimum": 0,
+            "example": 100
+          },
+          "transactionType": {
+            "description": "Type transactie",
+            "type": "string",
+            "example": "debit"
+          },
+          "description": {
+            "type": "string",
+            "example": "Albert Heijn"
+          },
+          "matchTypeDescription": {
+            "description": "Matching type voor description",
+            "type": "string",
+            "enum": [
+              "exact",
+              "like",
+              "EXACT",
+              "LIKE"
+            ],
+            "example": "LIKE"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Weekboodschappen"
+          },
+          "matchTypeNotes": {
+            "description": "Matching type voor notes",
+            "type": "string",
+            "enum": [
+              "exact",
+              "like",
+              "EXACT",
+              "LIKE"
+            ],
+            "example": "LIKE"
+          },
+          "tag": {
+            "type": "string",
+            "example": "boodschappen"
+          },
+          "strict": {
+            "description": "Overschrijf bestaande categorieën of spaarrekeningen",
+            "type": "boolean",
+            "default": false,
+            "example": false
+          },
+          "categoryId": {
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "example": 3
+          },
+          "savingsAccountId": {
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "example": 5
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Patterns",
+      "description": "Beheer van patterns"
+    },
+    {
+      "name": "Patterns Assign",
+      "description": "Toewijzen van categories of savingsaccounts op basis van patterns"
+    }
+  ]
+}
