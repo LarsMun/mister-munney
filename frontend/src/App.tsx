@@ -47,7 +47,7 @@ export default function App() {
                             <Link to="/" className="hover:underline">Home</Link>
                             <Link to="/transactions" className="hover:underline">Transacties</Link>
                             <Link to="/patterns" className="hover:underline">Patronen</Link>
-                            <Link to="/budgets" className="hover:underline">Budgets</Link>
+                            <Link to="/budgets" className="hover:underline">Budgetten</Link>
                             {accounts.length > 1 && (
                                 <select
                                     value={accountId || ''}
