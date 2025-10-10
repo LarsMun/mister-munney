@@ -4,6 +4,7 @@ import TransactionsModule from './domains/transactions';
 import PatternModule from './domains/patterns';
 import WelcomeScreen from './components/WelcomeScreen';
 import BudgetsModule from './domains/budgets';
+import AccountManagement from './domains/accounts';
 import { useAccount } from './app/context/AccountContext';
 import logo from './assets/mister-munney-logo.png';
 import { Toaster } from "react-hot-toast";
@@ -48,6 +49,7 @@ export default function App() {
                             <Link to="/transactions" className="hover:underline">Transacties</Link>
                             <Link to="/patterns" className="hover:underline">Patronen</Link>
                             <Link to="/budgets" className="hover:underline">Budgetten</Link>
+                            <Link to="/accounts" className="hover:underline">Accounts</Link>
                             {accounts.length > 1 && (
                                 <select
                                     value={accountId || ''}
@@ -96,6 +98,7 @@ export default function App() {
                         <Route path="/transactions/*" element={<TransactionsModule />} />
                         <Route path="/patterns/*" element={<PatternModule />} />
                         <Route path="/budgets/*" element={<BudgetsModule />} />
+                        <Route path="/accounts" element={<AccountManagement />} />
                         {/* andere routes kunnen hier */}
                     </Routes>
                 </main>

@@ -112,7 +112,9 @@ class SavingsAccountService
         }
 
         $newName = $dto->name ?? $savingsAccount->getName();
-        $newTargetAmount = $dto->targetAmount ?? $savingsAccount->getTargetAmount();
+        $newTargetAmount = $dto->targetAmount !== null 
+            ? number_format($dto->targetAmount, 2, '.', '') 
+            : $savingsAccount->getTargetAmount();
         $newColor = $dto->color ?? $savingsAccount->getColor();
 
         if ($savingsAccount->getName() !== $newName || $savingsAccount->getAccount()->getId() !== $account->getId()) {
