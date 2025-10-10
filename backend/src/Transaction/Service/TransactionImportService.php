@@ -118,21 +118,29 @@ class TransactionImportService
         $this->logger->info("CSV import gestart: " . $file->getClientOriginalName());
 
         if (!$this->isValidCsvFile($file)) {
-            return ['status' => 'error', 'message' => 'Ongeldig bestand. Alleen CSV van ING toegestaan.'];
+            throw new BadRequestHttpException('Ongeldig bestand. Alleen CSV van ING toegestaan.');
         }
 
         try {
             $csv = $this->readCsvFile($file);
             $this->validateCsvHeader($csv->getHeader());
-            $dates = $this->extractUniqueDatesFromCsv($csv->getRecords());
+            
+            // Check if CSV has any data rows (not just header)
+            $records = iterator_to_array($csv->getRecords());
+            if (empty($records)) {
+                throw new BadRequestHttpException('CSV bestand is leeg (alleen header, geen transacties).');
+            }
+            
+            $dates = $this->extractUniqueDatesFromCsv($records);
             $this->loadExistingTransactions($dates);
-            [$imported, $skipped, $errors] = $this->processRecords($csv->getRecords());
-
+            [$imported, $skipped, $errors] = $this->processRecords($records);
 
             return $this->generateResponse($imported, $skipped, $errors);
+        } catch (BadRequestHttpException $e) {
+            throw $e; // Re-throw validation errors
         } catch (CsvException $e) {
             $this->logger->critical("Onverwachte fout tijdens verwerking CSV: " . $e->getMessage());
-            return ['status' => 'error', 'message' => 'Onverwachte fout tijdens CSV-import.'];
+            throw new BadRequestHttpException('Onverwachte fout tijdens CSV-import: ' . $e->getMessage());
         }
     }
 
@@ -147,7 +155,10 @@ class TransactionImportService
      */
     private function isValidCsvFile(UploadedFile $file): bool
     {
-        return $file->getClientOriginalExtension() === self::REQUIRED_EXTENSION;
+        // In test environment, just check the extension
+        // In production, the browser will set proper mime type
+        $extension = strtolower($file->getClientOriginalExtension());
+        return $extension === self::REQUIRED_EXTENSION;
     }
 
     /**

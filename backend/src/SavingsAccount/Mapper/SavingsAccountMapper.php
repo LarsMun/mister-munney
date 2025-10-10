@@ -65,4 +65,25 @@ class SavingsAccountMapper
     {
         return $this->payloadMapper->map($payload, new UpdateSavingsAccountDTO(), strict: true);
     }
+
+    public function toWithPatternsAndAccountDto(SavingsAccount $entity): SavingsAccountDTO
+    {
+        $dto = $this->toSimpleDto($entity);
+        
+        // Add account information
+        $dto->account = $this->accountMapper->toSimpleDto($entity->getAccount());
+        
+        // Add patterns (empty array for now, can be expanded later)
+        $dto->patterns = [];
+        
+        return $dto;
+    }
+
+    public function toDetailedDtoList(array $entities): array
+    {
+        return array_map(
+            fn(SavingsAccount $entity) => $this->toWithPatternsAndAccountDto($entity),
+            $entities
+        );
+    }
 }
