@@ -18,7 +18,7 @@ services:
       APP_ENV: dev
       APP_DEBUG: "true"
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_DEV}@database-dev:3306/money_db_dev?serverVersion=8.0&charset=utf8mb4"
-      CORS_ALLOW_ORIGIN: "^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$$"
+      CORS_ALLOW_ORIGIN: '^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$$'
     volumes:
       - ./backend:/var/www/html
       - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
