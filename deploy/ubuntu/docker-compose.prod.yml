@@ -1,0 +1,100 @@
+# Munney Production Environment
+# Usage: docker compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.prod.yml up -d
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: munney-backend-prod
+    restart: unless-stopped
+    networks:
+      - proxy
+      - munney-prod-internal
+    depends_on:
+      database-prod:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "false"
+      DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_PROD}@database-prod:3306/money_db_prod?serverVersion=8.0&charset=utf8mb4"
+      CORS_ALLOW_ORIGIN: "^https://munney\.home\.munne\.me$$"
+      APP_SECRET: ${APP_SECRET_PROD}
+    volumes:
+      - ./backend:/var/www/html:ro  # Read-only in production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      # HTTP Router
+      - "traefik.http.routers.munney-backend-prod.rule=Host(`munney.home.munne.me`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.munney-backend-prod.entrypoints=websecure"
+      - "traefik.http.routers.munney-backend-prod.tls=true"
+      - "traefik.http.routers.munney-backend-prod.tls.certresolver=le"
+      - "traefik.http.routers.munney-backend-prod.service=munney-backend-prod"
+      - "traefik.http.services.munney-backend-prod.loadbalancer.server.port=80"
+      # Security Headers
+      - "traefik.http.middlewares.munney-security.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.munney-security.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.munney-security.headers.stsPreload=true"
+      - "traefik.http.routers.munney-backend-prod.middlewares=munney-security"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: "https://munney.home.munne.me/api"
+    container_name: munney-frontend-prod
+    restart: unless-stopped
+    networks:
+      - proxy
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      # HTTP Router
+      - "traefik.http.routers.munney-frontend-prod.rule=Host(`munney.home.munne.me`)"
+      - "traefik.http.routers.munney-frontend-prod.entrypoints=websecure"
+      - "traefik.http.routers.munney-frontend-prod.tls=true"
+      - "traefik.http.routers.munney-frontend-prod.tls.certresolver=le"
+      - "traefik.http.routers.munney-frontend-prod.service=munney-frontend-prod"
+      - "traefik.http.services.munney-frontend-prod.loadbalancer.server.port=80"
+      # Security Headers
+      - "traefik.http.routers.munney-frontend-prod.middlewares=munney-security"
+
+  database-prod:
+    image: mysql:8.0
+    container_name: munney-mysql-prod
+    restart: unless-stopped
+    networks:
+      - munney-prod-internal
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD_PROD}
+      MYSQL_DATABASE: money_db_prod
+      MYSQL_USER: money
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD_PROD}
+    volumes:
+      - db_data_prod:/var/lib/mysql
+      - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
+      - ./backups:/backups  # For backup script
+    command: --default-time-zone='+00:00'
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD_PROD}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    # Optional: Expose port for external access
+    ports:
+      - "3333:3306"
+
+networks:
+  proxy:
+    external: true
+  munney-prod-internal:
+    name: munney-prod-internal
+    driver: bridge
+
+volumes:
+  db_data_prod:
+    name: munney_db_data_prod
