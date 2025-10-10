@@ -158,7 +158,7 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
         <div className="my-4">
             <h2 className="text-sm text-gray-500 mb-2">Dagelijkse balans</h2>
 
-            <div className="w-full h-48 bg-white border border-gray-200 rounded-lg h-80">
+            <div className="w-full bg-white border border-gray-200 rounded-lg h-80">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                         data={data}
