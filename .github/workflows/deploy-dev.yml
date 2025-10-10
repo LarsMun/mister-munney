@@ -1,0 +1,25 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    name: Deploy to Dev Server
+    runs-on: self-hosted
+    
+    steps:
+      - name: 📥 Pull latest code
+        run: |
+          cd /srv/munney-dev
+          git pull origin develop
+          
+      - name: 🔄 Restart containers
+        run: |
+          cd /srv/munney-dev
+          docker compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.dev.yml restart frontend backend
+          
+      - name: ✅ Deployment complete
+        run: echo "✅ Dev deployment successful!"
