@@ -125,4 +125,35 @@ class AccountController extends AbstractController
 
         return $this->json($dto);
     }
+
+    #[OA\Put(
+        path: '/api/accounts/{id}/default',
+        summary: 'Markeer een account als default',
+        tags: ['Accounts'],
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 1)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Account succesvol als default ingesteld',
+                content: new OA\JsonContent(ref: new Model(type: AccountDTO::class))
+            ),
+            new OA\Response(response: 404, description: 'Account niet gevonden')
+        ]
+    )]
+    #[Route('/{id}/default', name: 'set_default_account', methods: ['PUT'])]
+    public function setDefault(int $id): JsonResponse
+    {
+        $account = $this->accountService->setDefault($id);
+        $dto = $this->accountMapper->toSimpleDto($account);
+
+        return $this->json($dto);
+    }
 }

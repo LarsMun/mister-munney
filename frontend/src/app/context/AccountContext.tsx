@@ -1,12 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import api from '../../lib/axios';
-
-type Account = {
-    id: number;
-    name: string;
-    accountNumber: string;
-    isDefault?: boolean; // zorg dat backend dit meestuurt
-};
+import type { Account } from '../../domains/accounts/models/Account';
 
 type AccountContextType = {
     accounts: Account[];
@@ -15,6 +9,7 @@ type AccountContextType = {
     hasAccounts: boolean;
     isLoading: boolean;
     refreshAccounts: () => Promise<void>;
+    updateAccountInContext: (updatedAccount: Account) => void;
 };
 
 const AccountContext = createContext<AccountContextType | undefined>(undefined);
@@ -65,6 +60,13 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
     const hasAccounts = accounts.length > 0;
 
+    // Update a single account in the context without refetching all
+    const updateAccountInContext = useCallback((updatedAccount: Account) => {
+        setAccounts(prev => 
+            prev.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)
+        );
+    }, []);
+
     return (
         <AccountContext.Provider value={{
             accounts,
@@ -72,7 +74,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             setAccountId,
             hasAccounts,
             isLoading,
-            refreshAccounts
+            refreshAccounts,
+            updateAccountInContext
         }}>
             {children}
         </AccountContext.Provider>

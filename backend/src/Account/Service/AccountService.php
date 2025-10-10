@@ -105,4 +105,22 @@ class AccountService
 
         return $account;
     }
+
+    /**
+     * Stelt een account in als default account.
+     * De EventListener zorgt ervoor dat andere accounts automatisch niet meer default zijn.
+     *
+     * @param int $id Het ID van het account dat default moet worden
+     * @return Account Het bijgewerkte account
+     *
+     * @throws NotFoundHttpException Als account niet bestaat
+     */
+    public function setDefault(int $id): Account
+    {
+        $account = $this->getById($id);
+        $account->setIsDefault(true);
+        $this->accountRepository->save($account);
+
+        return $account;
+    }
 }
