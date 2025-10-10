@@ -11,7 +11,6 @@ export default function AccountSelector({
     selectedAccountId, 
     onAccountChange 
 }: AccountSelectorProps) {
-    const selectedAccount = accounts.find(a => a.id === selectedAccountId);
 
     const getDisplayName = (account: Account) => {
         return account.name || account.accountNumber;

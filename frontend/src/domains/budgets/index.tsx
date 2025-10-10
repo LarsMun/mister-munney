@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
 import BudgetsPage from './BudgetsPage';
-import React from 'react';
 
 export default function BudgetsModule() {
     return (

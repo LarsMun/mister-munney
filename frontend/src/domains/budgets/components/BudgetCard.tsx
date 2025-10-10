@@ -1,7 +1,7 @@
 // frontend/src/domains/budgets/components/BudgetCard.tsx
 
 import React, { useState } from 'react';
-import type { Budget, CreateBudgetVersion } from '../models/Budget';
+import type { Budget, CreateBudgetVersion, UpdateBudgetVersion } from '../models/Budget';
 import { CategoryStatistics } from '../../categories/models/CategoryStatistics';
 import { InlineBudgetEditor } from './InlineBudgetEditor';
 import { AddBudgetVersionModal } from './AddBudgetVersionModal';
@@ -11,12 +11,12 @@ import { formatMoney } from '../../../shared/utils/MoneyFormat';
 interface BudgetCardProps {
     budget: Budget;
     categoryStats: CategoryStatistics | null;
-    onUpdate: (budgetId: number, updates: any) => void;
+    onUpdate: (budgetId: number, updates: any) => Promise<void>;
     onDelete: (budgetId: number) => void;
     onDrop: (budgetId: number, categoryIds: number[]) => void;
     onRemoveCategory: (budgetId: number, categoryId: number) => void;
     onCreateVersion: (budgetId: number, version: CreateBudgetVersion) => Promise<void>;
-    onUpdateVersion?: (budgetId: number, versionId: number, version: any) => Promise<void>;
+    onUpdateVersion?: (budgetId: number, versionId: number, version: UpdateBudgetVersion) => Promise<void>;
     onDeleteVersion: (budgetId: number, versionId: number) => Promise<void>;
 }
 

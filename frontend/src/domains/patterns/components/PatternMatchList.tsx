@@ -1,17 +1,35 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PatternInput } from "../models/PatternInput";
 import type { Transaction } from "../../transactions/models/Transaction";
 import { fetchPatternMatches } from "../services/PatternService";
 import { toast } from "react-hot-toast";
-import { matchesPattern, getPatternMatchResult } from "../utils/matchesPattern";
+import { matchesPattern } from "../utils/matchesPattern";
 import { formatMoney } from "../../../shared/utils/MoneyFormat";
-import debounce from "lodash.debounce";
 import { useRequiredAccount } from "../../../app/context/AccountContext";
 import TransactionDrawer from "../../transactions/components/TransactionDrawer";
 
 interface Props {
     pattern: PatternInput;
     resetSignal?: number;
+}
+
+// Simple debounce implementation to avoid lodash dependency issues
+function debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+): T & { cancel: () => void } {
+    let timeout: NodeJS.Timeout | null = null;
+    
+    const debounced = function(this: any, ...args: Parameters<T>) {
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    } as T & { cancel: () => void };
+    
+    debounced.cancel = () => {
+        if (timeout) clearTimeout(timeout);
+    };
+    
+    return debounced;
 }
 
 function FeedbackBox({ type, children }: { type: "error" | "success" | "new"; children: React.ReactNode }) {
@@ -60,8 +78,6 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
     const withoutSavingsAccount = pattern.savingsAccountId != null
         ? relevantMatches.length - matchingSavings.length - conflictingSavings.length
         : 0;
-
-    const matchResult = useMemo(() => getPatternMatchResult(relevantMatches, pattern), [relevantMatches, pattern]);
 
     const handleFetch = async () => {
         setError(null);
@@ -143,7 +159,7 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
 
             {error && <div className="p-2 text-xs text-red-600">{error}</div>}
             {(pattern.categoryId != null || pattern.savingsAccountId != null) && relevantMatches.length > 0 && (
-                <div className="h-5" /> // Extra ruimte voor ademruimte
+                <div className="h-5" />
             )}
             {relevantMatches.map((m) => {
                 const isMismatch = pattern.categoryId != null && m.category?.id && m.category.id !== pattern.categoryId;

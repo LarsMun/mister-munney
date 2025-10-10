@@ -40,11 +40,16 @@ class AccountRepository extends ServiceEntityRepository
 
     /**
      * Slaat een account op in de database.
+     * 
+     * @param Account $account Het account om op te slaan
+     * @param bool $flush Of de wijzigingen direct naar de database geschreven moeten worden
      */
-    public function save(Account $account): void
+    public function save(Account $account, bool $flush = true): void
     {
         $this->em->persist($account);
-        $this->em->flush();
+        if ($flush) {
+            $this->em->flush();
+        }
     }
 
     /**
@@ -53,5 +58,13 @@ class AccountRepository extends ServiceEntityRepository
     public function findByAccountNumber(string $accountNumber): ?Account
     {
         return $this->findOneBy(['accountNumber' => $accountNumber]);
+    }
+    
+    /**
+     * Ververs een account entity vanuit de database.
+     */
+    public function refresh(Account $account): void
+    {
+        $this->em->refresh($account);
     }
 }

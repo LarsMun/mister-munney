@@ -17,7 +17,6 @@ export default function TransactionPage() {
     const {
         months,
         startDate,
-        endDate,
         setStartDate,
         setEndDate,
         summary,
@@ -126,9 +125,9 @@ export default function TransactionPage() {
                             onSelectCategory={handleToggleCategory}
                         />
                     )}
-                    {chartType === 'treeMapCredit' && (
+                    {chartType === 'treeMapCredit' && treeMapData && (
                         <TreeMapChartIncome
-                            transactions={treeMapData?.credit || []}
+                            categoryData={treeMapData.credit}
                         />
                     )}
                 </div>

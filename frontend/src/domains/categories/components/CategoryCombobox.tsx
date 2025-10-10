@@ -1,6 +1,6 @@
 // src/domains/categories/components/CategoryCombobox.tsx
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 import type { Category } from "../models/Category";
 import { useAccount } from "../../../app/context/AccountContext";
 import { handleAddCategory } from "../services/CategoryActions";
@@ -14,7 +14,7 @@ interface Props {
     onChange?: (category: Category | null) => void;
     refresh?: () => void;
     categories: Category[];
-    setCategories: (cats: Category[]) => void;
+    setCategories: Dispatch<SetStateAction<Category[]>>;
     transactionType?: 'debit' | 'credit';
 }
 
@@ -25,7 +25,7 @@ export default function CategoryCombobox({
     refresh,
     categories,
     setCategories,
-    transactionType  // <-- NIEUW
+    transactionType
 }: Props) {
     const { accountId } = useAccount();
     const inputRef = useRef<HTMLInputElement>(null);
@@ -124,7 +124,7 @@ export default function CategoryCombobox({
                     name: input.trim(),
                     color: getRandomPastelHex(),
                     icon: "tag",
-                    transactionType  // <-- NIEUW
+                    transactionType
                 },
                 accountId,
                 setCategories
