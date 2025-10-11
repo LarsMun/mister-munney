@@ -5,7 +5,7 @@
 services:
   munney-prod-backend:
     build:
-      context: ./backend
+      context: ../../backend
       dockerfile: Dockerfile.prod
     container_name: munney-prod-backend
     restart: unless-stopped
@@ -22,7 +22,7 @@ services:
       CORS_ALLOW_ORIGIN: '^https://munney\.home\.munne\.me$'
       APP_SECRET: ${APP_SECRET_PROD}
     volumes:
-      - ./backend:/var/www/html:ro  # Read-only in production
+      - ../../backend:/var/www/html:ro  # Read-only in production
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
@@ -42,7 +42,7 @@ services:
 
   munney-prod-frontend:
     build:
-      context: ./frontend
+      context: ../../frontend
       dockerfile: Dockerfile.prod
       args:
         VITE_API_URL: "https://munney.home.munne.me/api"
@@ -79,8 +79,8 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD_PROD}
     volumes:
       - munney-prod-mysql-data:/var/lib/mysql
-      - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
-      - ./backups:/backups
+      - ../../backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
+      - ../../backups:/backups
     command: --default-time-zone='+00:00'
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD_PROD}"]

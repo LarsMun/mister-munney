@@ -5,7 +5,7 @@
 services:
   munney-dev-backend:
     build:
-      context: ./backend
+      context: ../../backend
       dockerfile: Dockerfile
     container_name: munney-dev-backend
     restart: unless-stopped
@@ -21,8 +21,8 @@ services:
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_DEV}@munney-dev-mysql:3306/money_db_dev?serverVersion=8.0&charset=utf8mb4"
       CORS_ALLOW_ORIGIN: '^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$'
     volumes:
-      - ./backend:/var/www/html
-      - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ../../backend:/var/www/html
+      - ../../backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
       - ~/.composer:/home/symfony/.composer:cached
     labels:
       - "traefik.enable=true"
@@ -39,7 +39,7 @@ services:
 
   munney-dev-frontend:
     build:
-      context: ./frontend
+      context: ../../frontend
       dockerfile: Dockerfile
     container_name: munney-dev-frontend
     restart: unless-stopped
@@ -48,7 +48,7 @@ services:
     depends_on:
       - munney-dev-backend
     volumes:
-      - ./frontend:/app
+      - ../../frontend:/app
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
@@ -80,7 +80,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD_DEV}
     volumes:
       - munney-dev-mysql-data:/var/lib/mysql
-      - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
+      - ../../backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
     command: --default-time-zone='+00:00'
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD_DEV}"]
