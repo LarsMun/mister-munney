@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Manual trigger optie
+  workflow_dispatch:  # Manual trigger option
 
 jobs:
   deploy:
@@ -21,10 +21,11 @@ jobs:
       - name: 💾 Create database backup
         run: |
           cd /srv/munney-prod
+          source .env
           BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
           echo "Creating backup: munney_prod_${BACKUP_DATE}.sql"
-          if docker ps | grep -q munney-mysql-prod; then
-            docker exec munney-mysql-prod mysqldump -u root -p${MYSQL_ROOT_PASSWORD_PROD} money_db_prod > /srv/munney-prod/backups/munney_prod_${BACKUP_DATE}.sql 2>/dev/null || true
+          if docker ps | grep -q munney-prod-mysql; then
+            docker exec munney-prod-mysql mysqldump -u root -p${MYSQL_ROOT_PASSWORD_PROD} money_db_prod > /srv/munney-prod/backups/munney_prod_${BACKUP_DATE}.sql 2>/dev/null || true
             echo "✅ Backup created"
           else
             echo "⚠️  Database not running, skipping backup"
@@ -42,14 +43,14 @@ jobs:
         run: |
           cd /srv/munney-prod
           echo "Building with no-cache for clean build..."
-          docker compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.prod.yml build --no-cache
+          docker compose -f deploy/ubuntu/docker-compose.prod.yml build --no-cache
           echo "✅ Images built"
           
       - name: 🔄 Deploy containers
         run: |
           cd /srv/munney-prod
-          docker compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.prod.yml down
-          docker compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.prod.yml up -d
+          docker compose -f deploy/ubuntu/docker-compose.prod.yml down
+          docker compose -f deploy/ubuntu/docker-compose.prod.yml up -d
           echo "✅ Containers deployed"
           
       - name: ⏳ Wait for services
@@ -60,14 +61,14 @@ jobs:
       - name: 🗄️ Run database migrations
         run: |
           cd /srv/munney-prod
-          docker exec munney-backend-prod php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+          docker exec munney-prod-backend php bin/console doctrine:migrations:migrate --no-interaction --env=prod
           echo "✅ Migrations complete"
           
       - name: 🧹 Clear and warm cache
         run: |
           cd /srv/munney-prod
-          docker exec munney-backend-prod php bin/console cache:clear --env=prod
-          docker exec munney-backend-prod php bin/console cache:warmup --env=prod
+          docker exec munney-prod-backend php bin/console cache:clear --env=prod
+          docker exec munney-prod-backend php bin/console cache:warmup --env=prod
           echo "✅ Cache refreshed"
           
       - name: 🏥 Health check
@@ -93,4 +94,4 @@ jobs:
           echo "✅ Production deployment successful!"
           echo "========================================"
           echo "🌐 URL: https://munney.home.munne.me"
-          echo "📊 View logs: docker logs munney-backend-prod -f"
+          docker ps --filter 'label=project=munney' --filter 'label=environment=production'
