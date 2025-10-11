@@ -2,7 +2,6 @@
 
 namespace App\Pattern\DTO;
 
-use App\Enum\TransactionType;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 

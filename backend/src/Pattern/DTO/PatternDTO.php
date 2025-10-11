@@ -2,7 +2,6 @@
 
 namespace App\Pattern\DTO;
 
-use App\Enum\TransactionType;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: 'PatternDTO')]
@@ -27,7 +26,7 @@ class PatternDTO
     public ?float $maxAmount = null;
 
     #[OA\Property(type: 'string', example: 'credit')]
-    public ?TransactionType $transactionType = null;
+    public ?string $transactionType = null;
 
     #[OA\Property(type: 'string', example: 'Albert Heijn')]
     public ?string $description = null;

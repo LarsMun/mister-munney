@@ -1,4 +1,4 @@
-import { api } from "../../../lib/axios";
+import api from "../../../lib/axios";
 import type { Transaction } from "../models/Transaction";
 import type { SummaryType } from "../models/SummaryType";
 import type { TreeMapDataType } from "../models/TreeMapDataType";

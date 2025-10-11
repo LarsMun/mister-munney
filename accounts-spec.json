@@ -1,0 +1,164 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Mr Munney API",
+    "description": "Documentatie",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/accounts": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Toon alle accounts",
+        "operationId": "get_api_accounts_get_all_accounts",
+        "responses": {
+          "200": {
+            "description": "Lijst van accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{id}": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Haal een specifiek account op",
+        "operationId": "get_api_accounts_get_account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accountgegevens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account niet gevonden"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Wijzig een accountnaam",
+        "operationId": "put_api_accounts_update_account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Nieuwe naam van het account",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Dhr. Piet Jansen"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account succesvol bijgewerkt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ongeldige input"
+          },
+          "404": {
+            "description": "Account niet gevonden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountDTO": {
+        "required": [
+          "id",
+          "accountNumber",
+          "isDefault"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountNumber": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Accounts",
+      "description": "Beheer van bankrekeningen en hun basisgegevens"
+    }
+  ]
+}

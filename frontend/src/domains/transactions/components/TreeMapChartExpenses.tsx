@@ -1,5 +1,5 @@
-import React from "react";
 import { Treemap, Tooltip, ResponsiveContainer } from "recharts";
+import type { TooltipProps } from "recharts";
 
 interface Props {
     treeMapData: {
@@ -13,6 +13,22 @@ interface Props {
     onSelectCategory: (categoryName: string) => void;
 }
 
+interface TreeMapDataItem {
+    name: string;
+    value: number;
+    transactionCount: number;
+    fill: string;
+}
+
+interface ContentProps {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    name?: string;
+    value?: number;
+}
+
 export default function TreeMapChartExpenses({ treeMapData, onSelectCategory }: Props) {
     const treeData = {
         children: treeMapData.debit.map((item) => ({
@@ -21,6 +37,57 @@ export default function TreeMapChartExpenses({ treeMapData, onSelectCategory }: 
             transactionCount: item.transactionCount,
             fill: item.categoryColor,
         })),
+    };
+
+    const CustomTooltip = ({ payload }: TooltipProps<number, string>) => {
+        if (!payload || !payload.length) return null;
+        const data = payload[0].payload as TreeMapDataItem;
+        return (
+            <div className="bg-white p-2 rounded shadow text-xs text-gray-700">
+                <div className="font-semibold mb-1">{data.name}</div>
+                <div>Bedrag: <span className="font-medium">€ {data.value.toFixed(2)}</span></div>
+                <div>Aantal transacties: <span className="font-medium">{data.transactionCount}</span></div>
+            </div>
+        );
+    };
+
+    const renderContent = (props: ContentProps) => {
+        const { x = 0, y = 0, width = 0, height = 0, name = '' } = props;
+        
+        if (!width || !height || width < 10 || height < 10) return null;
+        
+        const data = treeData.children.find(item => item.name === name);
+        if (!data) return null;
+
+        return (
+            <g>
+                <rect
+                    x={x}
+                    y={y}
+                    width={width}
+                    height={height}
+                    style={{
+                        fill: data.fill,
+                        stroke: '#fff',
+                        strokeWidth: 2,
+                        cursor: 'pointer',
+                    }}
+                    onClick={() => onSelectCategory(name)}
+                />
+                {width > 50 && height > 30 && (
+                    <text
+                        x={x + width / 2}
+                        y={y + height / 2}
+                        textAnchor="middle"
+                        fill="#000"
+                        fontSize={12}
+                        fontWeight="bold"
+                    >
+                        {name}
+                    </text>
+                )}
+            </g>
+        );
     };
 
     return (
@@ -33,26 +100,9 @@ export default function TreeMapChartExpenses({ treeMapData, onSelectCategory }: 
                     nameKey="name"
                     aspectRatio={16 / 9}
                     animationDuration={250}
-                    cursor="pointer"
-                    onClick={(node) => {
-                        if (node && node.name) {
-                            onSelectCategory(node.name);
-                        }
-                    }}
+                    content={renderContent as any}
                 >
-                    <Tooltip
-                        content={({ payload }: any) => {
-                            if (!payload || !payload.length) return null;
-                            const data = payload[0].payload;
-                            return (
-                                <div className="bg-white p-2 rounded shadow text-xs text-gray-700">
-                                    <div className="font-semibold mb-1">{data.name}</div>
-                                    <div>Bedrag: <span className="font-medium">€ {data.value.toFixed(2)}</span></div>
-                                    <div>Aantal transacties: <span className="font-medium">{data.transactionCount}</span></div>
-                                </div>
-                            );
-                        }}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                 </Treemap>
             </ResponsiveContainer>
         </div>

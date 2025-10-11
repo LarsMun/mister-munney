@@ -1,37 +1,30 @@
-monolog:
-    handlers:
-        main:
-            type: rotating_file
-            path: "%kernel.logs_dir%/app.log"
-            level: info
-            max_files: 5   # Houdt maximaal 5 logbestanden bij
-            formatter: monolog.formatter.json
-
-        console:
-            type: console
-            process_psr_3_messages: false
-            channels: ["!event", "!doctrine"]
-
-when@test:
-    monolog:
-        handlers:
-            test:
-                type: null   # Zet logging uit in testmodus voor snellere tests
-
 when@dev:
-    monolog:
-        handlers:
-            file_log:
-                type: rotating_file
-                path: "%kernel.logs_dir%/dev.log"
-                level: debug  # Meer logging in dev
-                max_files: 10 # Houdt max 10 dev-logs bij
+  monolog:
+    handlers:
+      main:
+        type: rotating_file
+        path: "%kernel.logs_dir%/dev.log"
+        level: debug
+        max_files: 10
+
+      console:
+        type: console
+        process_psr_3_messages: false
+        channels: ["!event", "!doctrine"]
 
 when@prod:
-    monolog:
-        handlers:
-            prod_log:
-                type: rotating_file
-                path: "%kernel.logs_dir%/prod.log"
-                level: error  # Alleen errors loggen in productie
-                max_files: 3  # Max 3 logbestanden behouden
+  monolog:
+    handlers:
+      main:
+        type: rotating_file
+        path: "%kernel.logs_dir%/prod.log"
+        level: error
+        max_files: 3
+        formatter: monolog.formatter.json
+
+when@test:
+  monolog:
+    handlers:
+      main:
+        type: null
+        level: debug

@@ -68,8 +68,9 @@ class MatchingPatternService
                 'REGEX', 'regex' => 'REGEXP(t.description, :desc)',
                 'EXACT', 'exact' => 't.description = :desc',
             };
+            $matchType = strtoupper($pattern->matchTypeDescription ?? 'LIKE');
             $qb->andWhere($expr)
-                ->setParameter('desc', $pattern->matchTypeDescription === 'LIKE' ? '%' . $pattern->description . '%' : $pattern->description);
+                ->setParameter('desc', $matchType === 'LIKE' ? '%' . $pattern->description . '%' : $pattern->description);
         }
 
         // Filter op notes
@@ -79,8 +80,9 @@ class MatchingPatternService
                 'REGEX', 'regex' => 'REGEXP(t.notes, :notes)',
                 'EXACT', 'exact' => 't.notes = :notes',
             };
+            $matchType = strtoupper($pattern->matchTypeNotes ?? 'LIKE');
             $qb->andWhere($expr)
-                ->setParameter('notes', $pattern->matchTypeNotes === 'LIKE' ? '%' . $pattern->notes . '%' : $pattern->notes);
+                ->setParameter('notes', $matchType === 'LIKE' ? '%' . $pattern->notes . '%' : $pattern->notes);
         }
 
         // Filter op tag

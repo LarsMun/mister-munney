@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
     LineChart,
     Line,
@@ -14,8 +14,19 @@ import { formatDate } from "../../../shared/utils/DateFormat";
 import { formatMoney } from "../../../shared/utils/MoneyFormat";
 
 // Labelen en kleuren van de grafieklijnen
-const CHART_LABELS = { value: "Balans", debitTotal: "Uitgaven", creditTotal: "Inkomsten" };
-const CHART_COLORS = { value: "#3b82f6", debitTotal: "#ef4444", creditTotal: "#22c55e" };
+type ChartKey = 'value' | 'debitTotal' | 'creditTotal';
+
+const CHART_LABELS: Record<ChartKey, string> = { 
+    value: "Balans", 
+    debitTotal: "Uitgaven", 
+    creditTotal: "Inkomsten" 
+};
+
+const CHART_COLORS: Record<ChartKey, string> = { 
+    value: "#3b82f6", 
+    debitTotal: "#ef4444", 
+    creditTotal: "#22c55e" 
+};
 
 interface DataPoint {
     date: string;
@@ -29,7 +40,7 @@ interface Props {
     onSelectRange?: (start: string | null, end: string | null) => void;
 }
 
-interface CustomTooltipProps extends TooltipProps<any, any> {
+interface CustomTooltipProps extends TooltipProps<number, string> {
     isSelecting: boolean;
     startDate: string | null;
     endDate: string | null;
@@ -37,8 +48,12 @@ interface CustomTooltipProps extends TooltipProps<any, any> {
     data: DataPoint[];
 }
 
+interface ChartMouseEvent {
+    activeLabel?: string;
+}
+
 export default function TransactionChart({ data, onSelectRange }: Props) {
-    const [visibleLines, setVisibleLines] = useState({
+    const [visibleLines, setVisibleLines] = useState<Record<ChartKey, boolean>>({
         value: true,
         debitTotal: true,
         creditTotal: true,
@@ -49,11 +64,11 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
     const [endDate, setEndDate] = useState<string | null>(null);
     const [finalSelection, setFinalSelection] = useState<{ start: string; end: string } | null>(null);
 
-    const toggleLine = (key: keyof typeof visibleLines) => {
+    const toggleLine = (key: ChartKey) => {
         setVisibleLines((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const handleMouseDown = (e: any) => {
+    const handleMouseDown = (e: ChartMouseEvent) => {
         if (e && e.activeLabel) {
             setIsSelecting(true);
             setStartDate(e.activeLabel);
@@ -61,7 +76,7 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
         }
     };
 
-    const handleMouseMove = (e: any) => {
+    const handleMouseMove = (e: ChartMouseEvent) => {
         if (!isSelecting || !startDate) return;
         if (e && e.activeLabel) {
             setEndDate(e.activeLabel);
@@ -84,13 +99,6 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
         setIsSelecting(false);
         setStartDate(null);
         setEndDate(null);
-    };
-
-    const clearSelection = () => {
-        setFinalSelection(null);
-        if (onSelectRange) {
-            onSelectRange(null, null);
-        }
     };
 
     function CustomTooltip({
@@ -131,11 +139,14 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white p-2 border rounded shadow text-xs">
-                    {payload.map((entry, index) => (
-                        <div key={index}>
-                            <span className="font-semibold">{CHART_LABELS[entry.name]}</span>: {formatMoney(entry.value)}
-                        </div>
-                    ))}
+                    {payload.map((entry, index) => {
+                        const key = entry.name as ChartKey;
+                        return (
+                            <div key={index}>
+                                <span className="font-semibold">{CHART_LABELS[key]}</span>: {formatMoney(entry.value as number)}
+                            </div>
+                        );
+                    })}
                 </div>
             );
         }
@@ -147,7 +158,7 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
         <div className="my-4">
             <h2 className="text-sm text-gray-500 mb-2">Dagelijkse balans</h2>
 
-            <div className="w-full h-48 bg-white border border-gray-200 rounded-lg h-80">
+            <div className="w-full bg-white border border-gray-200 rounded-lg h-80">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                         data={data}
@@ -157,7 +168,7 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
                         margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
                         <XAxis dataKey="date" tickFormatter={formatDate} fontSize={10} fontWeight={600} />
-                        <YAxis fontSize={10} domain={['auto', 'auto']} includeZero tickFormatter={(value) => formatMoney(value)} />
+                        <YAxis fontSize={10} domain={['auto', 'auto']} tickFormatter={(value) => formatMoney(value)} />
                         <ReferenceLine y={0} stroke="#999" strokeDasharray="3 3" />
                         <Tooltip
                             content={
@@ -195,12 +206,12 @@ export default function TransactionChart({ data, onSelectRange }: Props) {
 
                 {/* ✨ Legenda */}
                 <div className="flex gap-4 mt-2 text-sm text-gray-600 justify-end">
-                    {Object.keys(CHART_LABELS).map((key) => (
+                    {(Object.keys(CHART_LABELS) as ChartKey[]).map((key) => (
                         <button
                             key={key}
-                            onClick={() => toggleLine(key as keyof typeof visibleLines)}
+                            onClick={() => toggleLine(key)}
                             className={`flex items-center gap-1 px-2 py-1 rounded border ${
-                                visibleLines[key as keyof typeof visibleLines]
+                                visibleLines[key]
                                     ? "bg-white border-gray-300"
                                     : "bg-gray-300 border-gray-200 text-gray-400"
                             }`}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../lib/axios";
+import api from "../lib/axios";
 import toast from "react-hot-toast";
 
 interface WelcomeScreenProps {
@@ -52,7 +52,7 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
 
         try {
             // FIXED: Use the correct URL that matches the backend route
-            const response = await api.post('/transactions/import_transactions', formData, {
+            const response = await api.post('/transactions/import', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

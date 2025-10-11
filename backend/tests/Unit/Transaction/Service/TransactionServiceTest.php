@@ -3,8 +3,10 @@
 namespace App\Tests\Unit\Transaction\Service;
 
 use App\Category\Repository\CategoryRepository;
+use App\Entity\Account;
 use App\Entity\Category;
 use App\Entity\Transaction;
+use App\Enum\TransactionType;
 use App\Money\MoneyFactory;
 use App\SavingsAccount\Repository\SavingsAccountRepository;
 use App\Transaction\Repository\TransactionRepository;
@@ -13,6 +15,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Money\Money;
 
 class TransactionServiceTest extends TestCase
 {
@@ -21,6 +24,7 @@ class TransactionServiceTest extends TestCase
     private MockObject $transactionRepository;
     private MockObject $categoryRepository;
     private MockObject $savingsAccountRepository;
+    private MockObject $accountRepository;
     private MoneyFactory $moneyFactory;
 
     protected function setUp(): void
@@ -29,6 +33,7 @@ class TransactionServiceTest extends TestCase
         $this->transactionRepository = $this->createMock(TransactionRepository::class);
         $this->categoryRepository = $this->createMock(CategoryRepository::class);
         $this->savingsAccountRepository = $this->createMock(SavingsAccountRepository::class);
+        $this->accountRepository = $this->createMock(\App\Account\Repository\AccountRepository::class);
         $this->moneyFactory = new MoneyFactory();
 
         $this->transactionService = new TransactionService(
@@ -36,7 +41,7 @@ class TransactionServiceTest extends TestCase
             $this->transactionRepository,
             $this->savingsAccountRepository,
             $this->categoryRepository,
-            $this->createMock(\App\Account\Repository\AccountRepository::class),
+            $this->accountRepository,
             $this->moneyFactory
         );
     }
@@ -47,8 +52,27 @@ class TransactionServiceTest extends TestCase
         $transactionId = 1;
         $categoryId = 2;
 
-        $transaction = $this->createMock(Transaction::class);
-        $category = $this->createMock(Category::class);
+        // Create real objects instead of mocks (enums can't be mocked)
+        $account = new Account();
+        $account->setName('Test Account')
+            ->setAccountNumber('NL91TEST')
+            ->setIsDefault(true);
+
+        $transaction = new Transaction();
+        $transaction->setHash('test-hash')
+            ->setDate(new \DateTime())
+            ->setDescription('Test Transaction')
+            ->setAccount($account)
+            ->setTransactionType(TransactionType::DEBIT)
+            ->setAmount(Money::EUR(1000))
+            ->setMutationType('Test')
+            ->setNotes('Test')
+            ->setBalanceAfter(Money::EUR(1000));
+
+        $category = new Category();
+        $category->setName('Test Category')
+            ->setAccount($account)
+            ->setTransactionType(TransactionType::DEBIT);
 
         $this->transactionRepository->expects($this->once())
             ->method('find')
@@ -60,10 +84,6 @@ class TransactionServiceTest extends TestCase
             ->with($categoryId)
             ->willReturn($category);
 
-        $transaction->expects($this->once())
-            ->method('setCategory')
-            ->with($category);
-
         $this->entityManager->expects($this->once())
             ->method('flush');
 
@@ -72,6 +92,7 @@ class TransactionServiceTest extends TestCase
 
         // Then
         $this->assertSame($transaction, $result);
+        $this->assertSame($category, $transaction->getCategory());
     }
 
     public function testSetCategoryThrowsExceptionWhenTransactionNotFound(): void
@@ -99,7 +120,21 @@ class TransactionServiceTest extends TestCase
         $transactionId = 1;
         $categoryId = 999;
 
-        $transaction = $this->createMock(Transaction::class);
+        $account = new Account();
+        $account->setName('Test Account')
+            ->setAccountNumber('NL91TEST')
+            ->setIsDefault(true);
+
+        $transaction = new Transaction();
+        $transaction->setHash('test-hash')
+            ->setDate(new \DateTime())
+            ->setDescription('Test Transaction')
+            ->setAccount($account)
+            ->setTransactionType(TransactionType::DEBIT)
+            ->setAmount(Money::EUR(1000))
+            ->setMutationType('Test')
+            ->setNotes('Test')
+            ->setBalanceAfter(Money::EUR(1000));
 
         $this->transactionRepository->expects($this->once())
             ->method('find')

@@ -1,5 +1,5 @@
 // src/domains/transactions/components/PeriodPicker.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {formatDateToLocalString, formatMonthFull} from "../../../shared/utils/DateFormat";
 
 interface Props {
@@ -25,11 +25,13 @@ export default function PeriodPicker({ months, onChange }: Props) {
             .sort((a, b) => Number(a) - Number(b))
         : [];
     const availableQuarters = ["1", "2", "3", "4"].filter((quarter) => {
+        if (!lastDate) return false;
         const quarterStartMonth = (Number(quarter) - 1) * 3;
         const start = new Date(Number(selectedYear), quarterStartMonth);
         return start <= lastDate;
     });
     const availableHalves = ["1", "2"].filter((half) => {
+        if (!lastDate) return false;
         const halfStartMonth = half === "1" ? 0 : 6;
         const start = new Date(Number(selectedYear), halfStartMonth);
         return start <= lastDate;

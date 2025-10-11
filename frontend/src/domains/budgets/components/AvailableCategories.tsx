@@ -145,7 +145,7 @@ export function AvailableCategories({ categories, categoryStats, onRefresh }: Av
 
                                         {stats && (
                                             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                                {formatMoney(stats.averagePerMonth)}/mnd
+                                                {formatMoney(Math.abs(stats.averagePerMonth))}/mnd
                                             </span>
                                         )}
 

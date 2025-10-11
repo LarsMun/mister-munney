@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { SavingsAccount } from "../models/SavingsAccount";
 import toast from "react-hot-toast";
 import { assignSavingsAccountToTransaction } from "../services/SavingsAccountService.ts";
@@ -10,7 +10,7 @@ interface Props {
     onChange?: (sa: SavingsAccount | null) => void;
     refresh?: () => void;
     savingsAccounts: SavingsAccount[];
-    onCreate: (input: string) => Promise<SavingsAccount>;
+    onCreate: (newSavingsAccount: Partial<SavingsAccount>) => Promise<SavingsAccount>;
 }
 
 export default function SavingsAccountCombobox({
@@ -88,7 +88,10 @@ export default function SavingsAccountCombobox({
     const handleCreate = async () => {
         try {
             if (!input.trim()) return;
-            const newSA = await onCreate(input.trim());
+            const newSA = await onCreate({
+                name: input.trim(),
+                color: "#CCCCCC"
+            });
             if (newSA) {
                 await handleSelect(newSA);
             }
