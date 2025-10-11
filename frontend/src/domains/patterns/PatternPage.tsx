@@ -19,27 +19,24 @@ export default function PatternPage() {
             notes: transaction.notes,
             categoryId: transaction.category?.id ?? null,
             savingsAccountId: transaction.savingsAccount?.id ?? null,
+            transactionType: transaction.type,
         }
         : undefined;
 
-    const [patterns, setPatterns] = useState<PatternDTO[]>([]);
-    const [loading, setLoading] = useState(true);
     const [resetSignal, setResetSignal] = useState(0);
-    const [editingPattern, setEditingPattern] = useState<PatternDTO | undefined>(undefined); // 🆕
+    const [editingPattern, setEditingPattern] = useState<PatternDTO | undefined>(undefined);
 
     const handleSuccess = () => {
         setResetSignal(prev => prev + 1);
-        setEditingPattern(undefined); // 🆕 Clear edit mode
+        setEditingPattern(undefined);
         refresh();
     };
 
     const refresh = useCallback(async () => {
-        setLoading(true);
         try {
-            const result = await getPatternsForAccount(accountId);
-            setPatterns(result);
-        } finally {
-            setLoading(false);
+            await getPatternsForAccount(accountId);
+        } catch (error) {
+            console.error('Error refreshing patterns:', error);
         }
     }, [accountId]);
 
@@ -68,7 +65,7 @@ export default function PatternPage() {
             <h2 className="text-xl font-semibold">Patronen beheren</h2>
             <PatternList
                 resetSignal={resetSignal}
-                onEdit={setEditingPattern} // 🆕 Pass edit handler
+                onEdit={setEditingPattern}
             />
         </div>
     );

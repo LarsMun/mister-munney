@@ -41,6 +41,9 @@ class SavingsAccount
     #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'savingsAccount')]
     private Collection $transactions;
 
+    #[ORM\OneToMany(targetEntity: Pattern::class, mappedBy: 'savingsAccount')]
+    private Collection $patterns;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -112,6 +115,33 @@ class SavingsAccount
         if ($this->transactions->removeElement($transaction)) {
             if ($transaction->getSavingsAccount() === $this) {
                 $transaction->setSavingsAccount(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Pattern>
+     */
+    public function getPatterns(): Collection
+    {
+        return $this->patterns;
+    }
+
+    public function addPattern(Pattern $pattern): static
+    {
+        if (!$this->patterns->contains($pattern)) {
+            $this->patterns->add($pattern);
+            $pattern->setSavingsAccount($this);
+        }
+        return $this;
+    }
+
+    public function removePattern(Pattern $pattern): static
+    {
+        if ($this->patterns->removeElement($pattern)) {
+            if ($pattern->getSavingsAccount() === $this) {
+                $pattern->setSavingsAccount(null);
             }
         }
         return $this;

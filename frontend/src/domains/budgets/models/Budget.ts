@@ -59,7 +59,6 @@ export interface CreateBudgetVersion {
 }
 
 export interface AssignCategories {
-    budgetId: number;
     categoryIds: number[];
 }
 

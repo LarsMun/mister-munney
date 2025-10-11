@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTransactions } from './hooks/useTransactions';
 import TransactionTable from './components/TransactionTable';
-import TransactionChart from './components/TransactionChart';
 import { Toaster } from 'react-hot-toast';
 import { useAccount } from "../../app/context/AccountContext.tsx";
 import SummaryBar from "./components/SummaryBar.tsx";
@@ -9,15 +8,12 @@ import TreeMapChartIncome from "./components/TreeMapChartIncome.tsx";
 import TreeMapChartExpenses from "./components/TreeMapChartExpenses.tsx";
 import FilterBar from "./components/FilterBar.tsx";
 import PeriodPicker from "./components/PeriodPicker.tsx";
-import { useMonthlyStatistics } from './hooks/useMonthlyStatistics';
-import MonthlyStatisticsCard from './components/MonthlyStatisticsCard';
 
 export default function TransactionPage() {
     const { accountId } = useAccount();
     const {
         months,
         startDate,
-        endDate,
         setStartDate,
         setEndDate,
         summary,
@@ -29,12 +25,6 @@ export default function TransactionPage() {
 
     const [selection, setSelection] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
     const [finalSelection, setFinalSelection] = useState<{ start: string; end: string } | null>(null);
-
-    const [statisticsMonths, setStatisticsMonths] = useState<string | number>('all');
-    const { statistics, isLoading: statsLoading, error: statsError } = useMonthlyStatistics(
-        accountId || null,
-        statisticsMonths
-    );
 
     const clearSelection = () => {
         setFinalSelection(null);
@@ -64,7 +54,7 @@ export default function TransactionPage() {
     });
 
     // Keuze welke grafiek actief is
-    const [chartType, setChartType] = useState<'line' | 'treeMapDebit' | 'treeMapCredit'>('line');
+    const [chartType, setChartType] = useState<'treeMapDebit' | 'treeMapCredit'>('treeMapDebit');
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -85,12 +75,6 @@ export default function TransactionPage() {
                 {/* Toggle knoppen voor grafieksoorten */}
                 <div className="flex justify-start mb-4">
                     <button
-                        className={`px-3 py-1 mx-2 text-xs ${chartType === 'line' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                        onClick={() => setChartType('line')}
-                    >
-                        Verloop
-                    </button>
-                    <button
                         className={`px-3 py-1 mx-2 text-xs ${chartType === 'treeMapDebit' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
                         onClick={() => setChartType('treeMapDebit')}
                     >
@@ -105,30 +89,15 @@ export default function TransactionPage() {
                 </div>
 
                 <div className="h-96">
-                    {chartType === 'line' && (
-                        <TransactionChart
-                            data={summary?.daily || []}
-                            onSelectRange={(start, end) => {
-                                setSelection({ start, end });
-                                if (start && end) {
-                                    const s = start < end ? start : end;
-                                    const e = start > end ? start : end;
-                                    setFinalSelection({ start: s, end: e });
-                                } else {
-                                    setFinalSelection(null);
-                                }
-                            }}
-                        />
-                    )}
                     {chartType === 'treeMapDebit' && treeMapData && (
                         <TreeMapChartExpenses
                             treeMapData={treeMapData}
                             onSelectCategory={handleToggleCategory}
                         />
                     )}
-                    {chartType === 'treeMapCredit' && (
+                    {chartType === 'treeMapCredit' && treeMapData && (
                         <TreeMapChartIncome
-                            transactions={treeMapData?.credit || []}
+                            categoryData={treeMapData.credit}
                         />
                     )}
                 </div>
@@ -141,15 +110,6 @@ export default function TransactionPage() {
                     handleFileUpload={importTransactions}
                 />
             )}
-
-            <div className="my-6">
-                <MonthlyStatisticsCard
-                    statistics={statistics}
-                    isLoading={statsLoading}
-                    error={statsError}
-                    onMonthsChange={setStatisticsMonths}
-                />
-            </div>
 
             {transactions.length === 0 ? (
                 <p className="text-gray-500">Geen transacties gevonden.</p>

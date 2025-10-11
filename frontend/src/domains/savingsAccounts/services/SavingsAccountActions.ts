@@ -1,6 +1,6 @@
 // SavingsAccountActions.ts
 
-import { createSavingsAccount } from "./SavingsAccountService";
+import {assignSavingsAccountToTransaction, createSavingsAccount} from "./SavingsAccountService";
 import { SavingsAccount } from "../models/SavingsAccount";
 import toast from "react-hot-toast";
 import React from "react";

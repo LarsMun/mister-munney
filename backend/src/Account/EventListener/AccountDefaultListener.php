@@ -16,7 +16,13 @@ readonly class AccountDefaultListener
     {
         $uow = $this->em->getUnitOfWork();
 
-        foreach ($uow->getScheduledEntityUpdates() as $entity) {
+        // Check zowel updates als inserts
+        $entitiesToCheck = array_merge(
+            $uow->getScheduledEntityUpdates(),
+            $uow->getScheduledEntityInsertions()
+        );
+
+        foreach ($entitiesToCheck as $entity) {
             if (!$entity instanceof Account) {
                 continue;
             }

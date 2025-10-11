@@ -1,0 +1,50 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    name: Deploy to Dev Server
+    runs-on: self-hosted
+    
+    steps:
+      - name: 📥 Pull latest code
+        run: |
+          cd /srv/munney-dev
+          git pull origin develop
+          
+      - name: 📦 Install backend dependencies (if composer changed)
+        run: |
+          cd /srv/munney-dev
+          if git diff HEAD@{1} --name-only | grep -q "composer.lock"; then
+            echo "Composer dependencies changed, installing..."
+            docker exec munney-backend-dev composer install --no-interaction
+          else
+            echo "No composer changes detected, skipping..."
+          fi
+          
+      - name: 🗄️ Run database migrations (if migrations exist)
+        run: |
+          cd /srv/munney-dev
+          if git diff HEAD@{1} --name-only | grep -q "backend/migrations/"; then
+            echo "Migrations detected, running..."
+            docker exec munney-backend-dev php bin/console doctrine:migrations:migrate --no-interaction --env=dev
+          else
+            echo "No migrations detected, skipping..."
+          fi
+          
+      - name: 🔄 Restart containers (only if needed)
+        run: |
+          cd /srv/munney-dev
+          if git diff HEAD@{1} --name-only | grep -qE "(backend/|frontend/)"; then
+            echo "Code changes detected, restarting containers..."
+            docker compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.dev.yml restart frontend backend
+          else
+            echo "No code changes, skipping restart..."
+          fi
+          
+      - name: ✅ Deployment complete
+        run: echo "✅ Dev deployment successful!"

@@ -1,45 +1,7 @@
-const handleFromDateChange = async (newDate: string) => {
-    setTempFromDate(newDate);
+// frontend/src/domains/budgets/components/InlineBudgetEditor.tsx
 
-    if (!activeVersion || !onUpdateVersion) return;
-
-    // Validate and save immediately
-    if (newDate && newDate !== activeVersion.effectiveFromMonth && /^\d{4}-\d{2}$/.test(newDate)) {
-        try {
-            await onUpdateVersion(budget.id, activeVersion.id, {
-                effectiveFromMonth: newDate
-            });
-            setIsEditingFromDate(false);
-        } catch (error) {
-            console.error('Error updating from date:', error);
-        }
-    }
-};
-
-const handleUntilDateChange = async (newDate: string) => {
-    setTempUntilDate(newDate);
-
-    if (!activeVersion || !onUpdateVersion) return;
-
-    const newUntilDate = newDate.trim() === '' ? null : newDate;
-
-    // Save immediately if valid
-    if (newUntilDate !== activeVersion.effectiveUntilMonth) {
-        if (!newUntilDate || /^\d{4}-\d{2}$/.test(newUntilDate)) {
-            try {
-                await onUpdateVersion(budget.id, activeVersion.id, {
-                    effectiveUntilMonth: newUntilDate || undefined
-                });
-                setIsEditingUntilDate(false);
-            } catch (error) {
-                console.error('Error updating until date:', error);
-            }
-        }
-    }
-};// frontend/src/domains/budgets/components/InlineBudgetEditor.tsx
-
-import React, { useState, useEffect, useRef } from 'react';
-import type { Budget, BudgetVersion, UpdateBudgetVersion } from '../models/Budget';
+import React, { useState, useEffect } from 'react';
+import type { Budget, UpdateBudgetVersion } from '../models/Budget';
 import { MonthPicker } from '../../../shared/components/MonthPicker';
 
 interface InlineBudgetEditorProps {
@@ -57,10 +19,6 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
     const [tempFromDate, setTempFromDate] = useState('');
     const [tempUntilDate, setTempUntilDate] = useState('');
 
-    const nameInputRef = useRef<HTMLInputElement>(null);
-    const fromDateInputRef = useRef<HTMLInputElement>(null);
-    const untilDateInputRef = useRef<HTMLInputElement>(null);
-
     // Get the currently active version, or fallback to the newest version
     const activeVersion = budget.versions.find(v => v.isCurrent) ||
         budget.versions.sort((a, b) =>
@@ -68,23 +26,8 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
         )[0];
 
     useEffect(() => {
-        if (isEditingName && nameInputRef.current) {
-            nameInputRef.current.focus();
-            nameInputRef.current.select();
-        }
-    }, [isEditingName]);
-
-    useEffect(() => {
-        if (isEditingFromDate && fromDateInputRef.current) {
-            fromDateInputRef.current.focus();
-        }
-    }, [isEditingFromDate]);
-
-    useEffect(() => {
-        if (isEditingUntilDate && untilDateInputRef.current) {
-            untilDateInputRef.current.focus();
-        }
-    }, [isEditingUntilDate]);
+        setTempName(budget.name);
+    }, [budget.name]);
 
     const startNameEdit = () => {
         setIsEditingName(true);
@@ -178,22 +121,6 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
         }
     };
 
-    const handleFromDateKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            saveFromDate();
-        } else if (e.key === 'Escape') {
-            cancelFromDateEdit();
-        }
-    };
-
-    const handleUntilDateKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            saveUntilDate();
-        } else if (e.key === 'Escape') {
-            cancelUntilDateEdit();
-        }
-    };
-
     const formatMoney = (amount: number): string => {
         return new Intl.NumberFormat('nl-NL', {
             style: 'currency',
@@ -208,12 +135,12 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
                 {isEditingName ? (
                     <div className="flex items-center space-x-2">
                         <input
-                            ref={nameInputRef}
                             type="text"
                             value={tempName}
                             onChange={(e) => setTempName(e.target.value)}
                             onKeyDown={handleNameKeyDown}
                             onBlur={cancelNameEdit}
+                            autoFocus
                             className="text-xl font-bold bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
                         />
                         <button
@@ -247,7 +174,7 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
 
             {/* Current Budget Info */}
             <div className="text-2xl font-bold text-gray-900">
-                {activeVersion ? formatMoney(activeVersion.monthlyAmount) : '€ 0,00'}
+                {activeVersion ? formatMoney(Math.abs(activeVersion.monthlyAmount)) : '€ 0,00'}
             </div>
 
             {/* Editable Date Range */}

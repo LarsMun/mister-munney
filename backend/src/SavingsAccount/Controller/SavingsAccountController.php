@@ -294,4 +294,108 @@ class SavingsAccountController extends AbstractController
         $this->savingsAccountService->deleteSavingsAccount($savingsAccount);
         return $this->json(['message' => 'Spaarrekening verwijderd'], Response::HTTP_NO_CONTENT);
     }
+
+    #[OA\Get(
+        path: '/api/account/{accountId}/savings-accounts/details',
+        summary: 'Toon alle spaarrekeningen met details (account en patterns)',
+        tags: ['Savings Accounts'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account waarvan de spaarrekeningen worden opgehaald',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 1)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Lijst van spaarrekeningen met details',
+                content: new OA\JsonContent(
+                    type: 'array',
+                    items: new OA\Items(ref: new Model(type: SavingsAccountDTO::class))
+                )
+            )
+        ]
+    )]
+    #[Route('/details', name: 'savings_accounts_list_details', methods: ['GET'], priority: 10)]
+    public function listWithDetails(int $accountId): JsonResponse
+    {
+        $savingsAccounts = $this->savingsAccountService->getAllSavingsAccounts($accountId);
+        $dto = $this->savingsAccountMapper->toDetailedDtoList($savingsAccounts);
+        return $this->json($dto);
+    }
+
+    #[OA\Post(
+        path: '/api/account/{accountId}/savings-accounts/assign-by-pattern',
+        summary: 'Wijs transacties toe aan spaarrekeningen op basis van patronen',
+        requestBody: new OA\RequestBody(
+            description: 'Datum range voor toewijzing',
+            required: true,
+            content: new OA\JsonContent(
+                required: ['startDate', 'endDate'],
+                properties: [
+                    new OA\Property(
+                        property: 'startDate',
+                        description: 'Startdatum (YYYY-MM-DD)',
+                        type: 'string',
+                        format: 'date',
+                        example: '2024-01-01'
+                    ),
+                    new OA\Property(
+                        property: 'endDate',
+                        description: 'Einddatum (YYYY-MM-DD)',
+                        type: 'string',
+                        format: 'date',
+                        example: '2024-01-31'
+                    )
+                ]
+            )
+        ),
+        tags: ['Savings Accounts'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 1)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Toewijzing voltooid',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string'),
+                        new OA\Property(property: 'matched', type: 'integer'),
+                        new OA\Property(property: 'conflicts', type: 'integer'),
+                        new OA\Property(property: 'skipped_no_match', type: 'integer')
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: 'Ongeldige invoer')
+        ]
+    )]
+    #[Route('/assign-by-pattern', name: 'savings_accounts_assign_by_pattern', methods: ['POST'])]
+    public function assignByPattern(
+        int $accountId,
+        Request $request
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+        
+        if (!isset($data['startDate']) || !isset($data['endDate'])) {
+            throw new BadRequestHttpException('startDate en endDate zijn verplicht');
+        }
+
+        // Basic implementation - can be expanded with actual pattern matching logic
+        return $this->json([
+            'message' => 'Pattern matching not yet fully implemented',
+            'matched' => 0,
+            'conflicts' => 0,
+            'skipped_no_match' => 0
+        ]);
+    }
 }

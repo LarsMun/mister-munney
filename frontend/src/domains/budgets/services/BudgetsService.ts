@@ -1,6 +1,6 @@
 // frontend/src/domains/budgets/services/BudgetsService.ts
 
-import { api } from "../../../lib/axios";
+import api from "../../../lib/axios";
 import type {
     Budget,
     CreateBudget,
@@ -136,18 +136,6 @@ export function getNextMonth(): string {
  */
 function getActiveVersion(budget: Budget): BudgetVersion | undefined {
     return budget.versions.find(v => v.isCurrent);
-}
-
-/**
- * Get the earliest future version (starts after current month)
- */
-function getEarliestFutureVersion(budget: Budget): BudgetVersion | undefined {
-    const currentMonth = getCurrentMonth();
-    const futureVersions = budget.versions
-        .filter(v => v.effectiveFromMonth > currentMonth)
-        .sort((a, b) => a.effectiveFromMonth.localeCompare(b.effectiveFromMonth));
-
-    return futureVersions[0];
 }
 
 /**

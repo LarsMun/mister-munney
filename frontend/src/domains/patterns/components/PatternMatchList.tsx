@@ -1,17 +1,35 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PatternInput } from "../models/PatternInput";
 import type { Transaction } from "../../transactions/models/Transaction";
 import { fetchPatternMatches } from "../services/PatternService";
 import { toast } from "react-hot-toast";
-import { matchesPattern, getPatternMatchResult } from "../utils/matchesPattern";
+import { matchesPattern } from "../utils/matchesPattern";
 import { formatMoney } from "../../../shared/utils/MoneyFormat";
-import debounce from "lodash.debounce";
 import { useRequiredAccount } from "../../../app/context/AccountContext";
 import TransactionDrawer from "../../transactions/components/TransactionDrawer";
 
 interface Props {
     pattern: PatternInput;
     resetSignal?: number;
+}
+
+// Simple debounce implementation to avoid lodash dependency issues
+function debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+): T & { cancel: () => void } {
+    let timeout: NodeJS.Timeout | null = null;
+    
+    const debounced = function(this: any, ...args: Parameters<T>) {
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    } as T & { cancel: () => void };
+    
+    debounced.cancel = () => {
+        if (timeout) clearTimeout(timeout);
+    };
+    
+    return debounced;
 }
 
 function FeedbackBox({ type, children }: { type: "error" | "success" | "new"; children: React.ReactNode }) {
@@ -61,8 +79,6 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
         ? relevantMatches.length - matchingSavings.length - conflictingSavings.length
         : 0;
 
-    const matchResult = useMemo(() => getPatternMatchResult(relevantMatches, pattern), [relevantMatches, pattern]);
-
     const handleFetch = async () => {
         setError(null);
         try {
@@ -76,15 +92,26 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
     };
 
     useEffect(() => {
-        const hasRelevantFields =
-            !!pattern.description?.trim() ||
-            !!pattern.notes?.trim() ||
-            !!pattern.tag?.trim() ||
-            pattern.minAmount !== undefined ||
-            pattern.maxAmount !== undefined ||
-            !!pattern.transactionType;
+        // Check voor minimaal 2 karakters in description of notes
+        const hasMinDescription = (pattern.description?.trim()?.length ?? 0) >= 2;
+        const hasMinNotes = (pattern.notes?.trim()?.length ?? 0) >= 2;
+        
+        // Check voor andere velden
+        const hasTag = !!pattern.tag?.trim();
+        const hasAmountFilter = pattern.minAmount !== undefined || pattern.maxAmount !== undefined;
+        const hasDateFilter = !!pattern.startDate || !!pattern.endDate;
+        
+        // Er moet minimaal één zinvol filter zijn:
+        // - Minimaal 2 karakters in description of notes, OF
+        // - Tag, bedrag-filter of datum-filter ingevuld
+        // (transactionType alleen is te breed)
+        const hasRelevantFields = hasMinDescription || hasMinNotes || hasTag || hasAmountFilter || hasDateFilter;
 
-        if (!hasRelevantFields) return;
+        if (!hasRelevantFields) {
+            // Clear de lijst als er geen relevante velden zijn
+            setMatchesFromBackend([]);
+            return;
+        }
 
         const debounced = debounce(handleFetch, 600);
         debounced();
@@ -143,7 +170,7 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
 
             {error && <div className="p-2 text-xs text-red-600">{error}</div>}
             {(pattern.categoryId != null || pattern.savingsAccountId != null) && relevantMatches.length > 0 && (
-                <div className="h-5" /> // Extra ruimte voor ademruimte
+                <div className="h-5" />
             )}
             {relevantMatches.map((m) => {
                 const isMismatch = pattern.categoryId != null && m.category?.id && m.category.id !== pattern.categoryId;

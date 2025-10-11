@@ -1,7 +1,5 @@
 // Nieuwe component: frontend/src/domains/budgets/components/VersionChangePreview.tsx
-
-import React from 'react';
-import type { VersionChangePreview, VersionAction } from '../services/BudgetsService';
+import type { VersionChangePreview, VersionAction } from '../models/Budget';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 
 interface VersionChangePreviewProps {
