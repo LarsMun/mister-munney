@@ -1,35 +1,38 @@
-# Munney Base Docker Compose
-# 
-# ⚠️ DO NOT USE THIS FILE STANDALONE ON SERVERS ⚠️
-# This is for local development only (WSL/Docker Desktop)
-#
-# On servers, always use with environment-specific override:
-# - Development: docker-compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.dev.yml
-# - Production: docker-compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.prod.yml
+# Munney Local Development (WSL/Docker Desktop)
+# Usage: docker compose up -d
 
 services:
-  backend:
+  munney-local-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: money-backend-local
+    container_name: munney-local-backend
     restart: unless-stopped
+    depends_on:
+      munney-local-mysql:
+        condition: service_healthy
     environment:
-      DATABASE_URL: "mysql://money:***REMOVED***@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
+      APP_ENV: dev
+      APP_DEBUG: "true"
+      DATABASE_URL: "mysql://money:***REMOVED***@munney-local-mysql:3306/money_db?serverVersion=8.0&charset=utf8mb4"
+      CORS_ALLOW_ORIGIN: '^https?://localhost(:[0-9]+)?$'
     ports:
       - "8686:80"
     volumes:
       - ./backend:/var/www/html
       - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    labels:
+      - "project=munney"
+      - "environment=local"
 
-  frontend:
+  munney-local-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: money-frontend-local
+    container_name: munney-local-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      - munney-local-backend
     ports:
       - "5173:5173"
     volumes:
@@ -37,11 +40,15 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=http://localhost:8686/api
     command: ["npm", "run", "dev", "--", "--host"]
+    labels:
+      - "project=munney"
+      - "environment=local"
 
-  database:
+  munney-local-mysql:
     image: mysql:8.0
-    container_name: money-mysql-local
+    container_name: munney-local-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ***REMOVED***
@@ -49,16 +56,20 @@ services:
       MYSQL_USER: money
       MYSQL_PASSWORD: ***REMOVED***
     ports:
-      - "3330:3306"  # Changed to 3330 to avoid conflicts
+      - "3330:3306"
     volumes:
-      - db_data_local:/var/lib/mysql
+      - munney-local-mysql-data:/var/lib/mysql
       - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
     command: --default-time-zone='+00:00'
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p***REMOVED***"]
       interval: 10s
       retries: 5
       start_period: 30s
+    labels:
+      - "project=munney"
+      - "environment=local"
 
 volumes:
-  db_data_local:
+  munney-local-mysql-data:
+    name: munney_local_mysql_data
