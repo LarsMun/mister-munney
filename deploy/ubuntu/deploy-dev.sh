@@ -41,15 +41,15 @@ echo ""
 
 # Restart containers
 echo -e "${BLUE}🔄 Restarting development containers...${NC}"
-docker compose -f deploy/ubuntu/docker-compose.dev.yml down
-docker compose -f deploy/ubuntu/docker-compose.dev.yml up -d --build
+docker compose --env-file .env -f deploy/ubuntu/docker-compose.dev.yml down
+docker compose --env-file .env -f deploy/ubuntu/docker-compose.dev.yml up -d --build
 echo -e "${GREEN}✅ Containers restarted${NC}"
 echo ""
 
 # Container status
 echo ""
 echo -e "${GREEN}📊 Container Status:${NC}"
-docker compose -f deploy/ubuntu/docker-compose.dev.yml ps
+docker compose --env-file .env -f deploy/ubuntu/docker-compose.dev.yml ps
 echo ""
 
 # Final summary
