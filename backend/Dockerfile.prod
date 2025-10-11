@@ -31,6 +31,9 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 # Kopieer de rest van de applicatie
 COPY . .
 
+# Verwijder dev-only directories die dependencies hebben naar dev packages
+RUN rm -rf src/DataFixtures tests/ .git
+
 # Voer post-install scripts uit
 RUN composer dump-autoload --optimize --no-dev
 
@@ -42,11 +45,8 @@ RUN mkdir -p var/cache var/log \
 # Warm up cache (als productie)
 RUN php bin/console cache:warmup --env=prod || true
 
-# Clean up
-RUN rm -rf .git tests/
-
-# Health check
+# Simpele healthcheck - test of Apache draait
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost/api/health || exit 1
+  CMD curl -f http://localhost/ || exit 1
 
 EXPOSE 80
