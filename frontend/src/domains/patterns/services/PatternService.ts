@@ -2,15 +2,15 @@
 
 import {PatternInput} from "../models/PatternInput.ts";
 import {Transaction} from "../../../types.tsx";
-import {api} from "../../../lib/axios.ts";
+import api from "../../../lib/axios.ts";
 import {PatternDTO} from "../models/PatternDTO.ts";
 
 export async function fetchPatternMatches(accountId: number, pattern: PatternInput): Promise<{ total: number, data: Transaction[] }> {
-    pattern = sanitizePattern(pattern);
-    console.log(pattern);
+    const sanitized = sanitizePattern(pattern);
+    console.log(sanitized);
     const response = await api.post(
         `/account/${accountId}/patterns/match`,
-        pattern
+        sanitized
     );
     return response.data;
 }
@@ -18,8 +18,6 @@ export async function fetchPatternMatches(accountId: number, pattern: PatternInp
 export function sanitizePattern(p: PatternInput): Record<string, any> {
     const clean: Record<string, any> = {
         accountId: p.accountId,
-        //patternType: p.patternType,
-        //strict: p.strict ?? false,
     };
 
     if (p.description?.trim()) {

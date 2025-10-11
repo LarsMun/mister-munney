@@ -15,6 +15,7 @@ interface Props {
         notes?: string;
         categoryId?: number | null;
         savingsAccountId?: number | null;
+        transactionType?: 'debit' | 'credit';
     };
     editPattern?: PatternDTO;
     onSuccess: () => void;
@@ -34,7 +35,7 @@ export default function PatternForm({ prefill, editPattern, onSuccess }: Props) 
         savingsAccountId: editPattern.savingsAccount?.id ?? undefined,
         notes: editPattern.notes ?? "",
         tag: editPattern.tag ?? "",
-        transactionType: editPattern.transactionType ?? undefined,
+        transactionType: editPattern.transactionType ?? "debit",
         minAmount: editPattern.minAmount ?? undefined,
         maxAmount: editPattern.maxAmount ?? undefined,
         startDate: editPattern.startDate ?? undefined,
@@ -51,7 +52,7 @@ export default function PatternForm({ prefill, editPattern, onSuccess }: Props) 
         savingsAccountId: prefill?.savingsAccountId ?? undefined,
         notes: "",
         tag: "",
-        transactionType: undefined,
+        transactionType: prefill?.transactionType ?? "debit",
         minAmount: undefined,
         maxAmount: undefined,
         startDate: undefined,
@@ -75,7 +76,7 @@ export default function PatternForm({ prefill, editPattern, onSuccess }: Props) 
                 savingsAccountId: editPattern.savingsAccount?.id ?? undefined,
                 notes: editPattern.notes ?? "",
                 tag: editPattern.tag ?? "",
-                transactionType: editPattern.transactionType ?? undefined,
+                transactionType: editPattern.transactionType ?? "debit",
                 minAmount: editPattern.minAmount ?? undefined,
                 maxAmount: editPattern.maxAmount ?? undefined,
                 startDate: editPattern.startDate ?? undefined,

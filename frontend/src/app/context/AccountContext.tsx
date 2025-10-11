@@ -1,12 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { api } from '../../lib/axios';
-
-type Account = {
-    id: number;
-    name: string;
-    accountNumber: string;
-    isDefault?: boolean; // zorg dat backend dit meestuurt
-};
+import api from '../../lib/axios';
+import type { Account } from '../../domains/accounts/models/Account';
 
 type AccountContextType = {
     accounts: Account[];
@@ -15,31 +9,46 @@ type AccountContextType = {
     hasAccounts: boolean;
     isLoading: boolean;
     refreshAccounts: () => Promise<void>;
+    updateAccountInContext: (updatedAccount: Account) => void;
 };
 
 const AccountContext = createContext<AccountContextType | undefined>(undefined);
 
 export function AccountProvider({ children }: { children: ReactNode }) {
     const [accounts, setAccounts] = useState<Account[]>([]);
-    const [accountId, setAccountId] = useState<number | null>(() => {
-        const stored = sessionStorage.getItem('accountId');
-        const parsed = stored ? Number(stored) : null;
-        return isNaN(parsed) ? null : parsed;
-    });
+    const [accountId, setAccountId] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     const refreshAccounts = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await api.get('/accounts');
-            const data = res.data;
+            const data: Account[] = res.data;
             setAccounts(data);
 
-            // Only set default account if no account is currently selected
-            if (!accountId && data.length > 0) {
+            if (data.length > 0) {
+                // Find default account
                 const defaultAccount = data.find(a => a.isDefault);
-                const newAccountId = defaultAccount?.id ?? data[0]?.id ?? null;
-                setAccountId(newAccountId);
+                
+                // If there's a default account, always use it
+                if (defaultAccount) {
+                    setAccountId(defaultAccount.id);
+                } else {
+                    // No default account exists
+                    // Check if current selected account still exists
+                    const currentAccountExists = accountId && data.find(a => a.id === accountId);
+                    
+                    if (!currentAccountExists) {
+                        // Fall back to stored or lowest ID
+                        const storedId = sessionStorage.getItem('accountId');
+                        const storedAccountId = storedId ? Number(storedId) : null;
+                        const storedAccount = storedAccountId ? data.find(a => a.id === storedAccountId) : null;
+                        
+                        const sortedAccounts = [...data].sort((a, b) => a.id - b.id);
+                        const newAccountId = storedAccount?.id ?? sortedAccounts[0]?.id ?? null;
+                        setAccountId(newAccountId);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error loading accounts:', error);
@@ -52,6 +61,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     // Initial load
     useEffect(() => {
         refreshAccounts();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Save accountId to sessionStorage when it changes
@@ -65,6 +75,13 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
     const hasAccounts = accounts.length > 0;
 
+    // Update a single account in the context without refetching all
+    const updateAccountInContext = useCallback((updatedAccount: Account) => {
+        setAccounts(prev => 
+            prev.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)
+        );
+    }, []);
+
     return (
         <AccountContext.Provider value={{
             accounts,
@@ -72,7 +89,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             setAccountId,
             hasAccounts,
             isLoading,
-            refreshAccounts
+            refreshAccounts,
+            updateAccountInContext
         }}>
             {children}
         </AccountContext.Provider>

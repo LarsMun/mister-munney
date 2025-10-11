@@ -71,7 +71,7 @@ readonly class PatternService
         }
 
         // Valideer dat category's transactionType matcht met pattern's transactionType
-        if ($dto->transactionType !== null && $category->getTransactionType() !== $dto->transactionType) {
+        if ($dto->transactionType !== null && $category->getTransactionType()->value !== $dto->transactionType) {
             $patternTypeNL = $dto->transactionType === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
             $categoryTypeNL = $category->getTransactionType() === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
 
@@ -117,7 +117,7 @@ readonly class PatternService
             }
 
             // Valideer dat category's transactionType matcht met pattern's transactionType
-            if ($dto->transactionType !== null && $category->getTransactionType() !== $dto->transactionType) {
+            if ($dto->transactionType !== null && $category->getTransactionType()->value !== $dto->transactionType) {
                 $patternTypeNL = $dto->transactionType === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
                 $categoryTypeNL = $category->getTransactionType() === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
 

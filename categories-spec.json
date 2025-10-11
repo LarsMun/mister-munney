@@ -1,0 +1,848 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Mr Munney API",
+    "description": "Documentatie",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/account/{accountId}/budget/{budgetId}/categories": {
+      "put": {
+        "tags": [
+          "Budgetten"
+        ],
+        "summary": "Wijs categorieën toe aan budget",
+        "description": "Wijs categorieën toe aan een budget. Vervangt alle huidige categorieën.",
+        "operationId": "put_assign_categories_to_budget",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "budgetId",
+            "in": "path",
+            "description": "ID van het budget",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 5
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Category IDs om toe te wijzen",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "categoryIds"
+                ],
+                "properties": {
+                  "categoryIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "example": [
+                      1,
+                      2,
+                      3
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Categorieën succesvol toegewezen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ongeldige invoer"
+          },
+          "404": {
+            "description": "Budget of account niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/budget/{budgetId}/categories/{categoryId}": {
+      "delete": {
+        "tags": [
+          "Budgetten"
+        ],
+        "summary": "Verwijder categorie van budget",
+        "description": "Verwijder een categorie van een budget",
+        "operationId": "delete_remove_category_from_budget",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "budgetId",
+            "in": "path",
+            "description": "ID van het budget",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 5
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "path",
+            "description": "ID van de categorie",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categorie succesvol verwijderd van budget",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Budget, category of account niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/categories": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Haal alle categorieën op voor een account",
+        "operationId": "get_get_all_categories",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lijst van categorieën",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Maak een nieuwe categorie aan",
+        "operationId": "post_create_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account waaraan de categorie wordt gekoppeld",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Categoriegegevens (name en transactionType zijn verplicht, icon en color zijn optioneel)",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "name",
+                  "transactionType"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Boodschappen"
+                  },
+                  "transactionType": {
+                    "type": "string",
+                    "enum": [
+                      "debit",
+                      "credit"
+                    ],
+                    "example": "debit"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "example": "shopping-cart"
+                  },
+                  "color": {
+                    "type": "string",
+                    "example": "#FF9900"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Categorie succesvol aangemaakt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ongeldige invoer"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/categories/{id}": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Haal een specifieke categorie op",
+        "operationId": "get_get_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID van de categorie",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categoriegegevens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categorie niet gevonden"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Werk een categorie bij",
+        "operationId": "put_update_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID van de categorie",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 7
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Bijgewerkte categorienaam en optionele eigenschappen (transactionType kan niet gewijzigd worden)",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Auto"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "example": "car"
+                  },
+                  "color": {
+                    "type": "string",
+                    "example": "#336699"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Categorie succesvol bijgewerkt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ongeldige invoer"
+          },
+          "404": {
+            "description": "Categorie niet gevonden"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Verwijder een categorie",
+        "operationId": "delete_delete_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID van de te verwijderen categorie",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 7
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Categorie succesvol verwijderd"
+          },
+          "404": {
+            "description": "Categorie niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/categories/{id}/with_transactions": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Haal een categorie op inclusief gekoppelde transacties",
+        "operationId": "get_get_category_with_transactions",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID van de categorie",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categorie met gekoppelde transacties",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryWithTransactionsDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categorie niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/categories/statistics/by-category": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "operationId": "get_get_category_statistics",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BudgetVersionDTO": {
+        "required": [
+          "id",
+          "budgetId",
+          "monthlyAmount",
+          "effectiveFromMonth",
+          "createdAt",
+          "isCurrent",
+          "displayName"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "budgetId": {
+            "type": "integer"
+          },
+          "monthlyAmount": {
+            "type": "number",
+            "format": "float"
+          },
+          "effectiveFromMonth": {
+            "type": "string"
+          },
+          "effectiveUntilMonth": {
+            "type": "string",
+            "nullable": true
+          },
+          "changeReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CategoryDTO": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "accountId",
+          "transactionType"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Boodschappen"
+          },
+          "icon": {
+            "type": "string",
+            "example": "shopping-cart",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "example": "#FF9900",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "integer",
+            "example": 1
+          },
+          "transactionType": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ],
+            "example": "debit"
+          },
+          "budgetId": {
+            "type": "integer",
+            "example": 5,
+            "nullable": true
+          },
+          "budgetName": {
+            "type": "string",
+            "example": "Budget 2024",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "BudgetDTO": {
+        "required": [
+          "id",
+          "name",
+          "accountId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetVersionDTO"
+            },
+            "default": []
+          },
+          "categoryIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryDTO"
+            },
+            "default": []
+          },
+          "categories": {
+            "type": "array",
+            "items": {},
+            "default": []
+          },
+          "currentMonthlyAmount": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "currentEffectiveFrom": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentEffectiveUntil": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "SavingsAccountDTO": {
+        "required": [
+          "id",
+          "name",
+          "accountId"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "integer"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "TransactionDTO": {
+        "required": [
+          "id",
+          "hash",
+          "date",
+          "description",
+          "accountId",
+          "transactionType",
+          "amount",
+          "mutationType",
+          "notes",
+          "balanceAfter"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "integer"
+          },
+          "counterpartyAccount": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionType": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float"
+          },
+          "mutationType": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "balanceAfter": {
+            "type": "number",
+            "format": "float"
+          },
+          "tag": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CategoryDTO"
+              }
+            ]
+          },
+          "savingsAccount": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SavingsAccountDTO"
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "CategoryWithTransactionsDTO": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "accountId",
+          "transactionType"
+        ],
+        "properties": {
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionDTO"
+            },
+            "default": []
+          },
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Boodschappen"
+          },
+          "icon": {
+            "type": "string",
+            "example": "shopping-cart",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "example": "#FF9900",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "integer",
+            "example": 1
+          },
+          "transactionType": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ],
+            "example": "debit"
+          },
+          "budgetId": {
+            "type": "integer",
+            "example": 5,
+            "nullable": true
+          },
+          "budgetName": {
+            "type": "string",
+            "example": "Budget 2024",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Budgetten",
+      "description": "Beheer van budgetten"
+    },
+    {
+      "name": "Categories",
+      "description": "Beheer van categorieën"
+    }
+  ]
+}

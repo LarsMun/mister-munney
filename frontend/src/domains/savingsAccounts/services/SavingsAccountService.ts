@@ -1,6 +1,6 @@
 // SavingsAccountService.ts
 
-import { api } from '../../../lib/axios';
+import api from '../../../lib/axios';
 import type { SavingsAccount } from '../models/SavingsAccount';
 import toast from 'react-hot-toast';
 

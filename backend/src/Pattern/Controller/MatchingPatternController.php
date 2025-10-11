@@ -13,9 +13,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use OpenApi\Attributes as OA;
-use App\Enum\TransactionType;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use ValueError;
 
 #[OA\Tag(
     name: 'Patterns',
@@ -84,25 +81,8 @@ class MatchingPatternController extends AbstractController
                 return $this->json(['error' => 'Ongeldige JSON-body'], 400);
             }
 
-            // NIEUW: Converteer transactionType string naar enum VOORDAT we mappen
-            $transactionType = null;
-            if (isset($data['transactionType']) && is_string($data['transactionType'])) {
-                try {
-                    $transactionType = TransactionType::from($data['transactionType']);
-                } catch (ValueError $e) {
-                    throw new BadRequestHttpException('Ongeldige transactionType. Moet "debit" of "credit" zijn.');
-                }
-                // Verwijder uit data array zodat PayloadMapper er niet mee probeert
-                unset($data['transactionType']);
-            }
-
             /** @var CreatePatternDTO $dto */
             $dto = $this->payloadMapper->map($data, new CreatePatternDTO(), true);
-
-            // Zet het geconverteerde enum op de DTO
-            if ($transactionType !== null) {
-                $dto->transactionType = $transactionType;
-            }
 
             $errors = $this->validator->validate($dto);
             if (count($errors) > 0) {

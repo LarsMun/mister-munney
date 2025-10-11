@@ -18,7 +18,7 @@ services:
       APP_ENV: dev
       APP_DEBUG: "true"
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_DEV}@database-dev:3306/money_db_dev?serverVersion=8.0&charset=utf8mb4"
-      CORS_ALLOW_ORIGIN: "^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$$"
+      CORS_ALLOW_ORIGIN: '^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$$'
     volumes:
       - ./backend:/var/www/html
       - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
@@ -26,7 +26,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      # HTTP Router
       - "traefik.http.routers.munney-backend-dev.rule=Host(`devmunney.home.munne.me`) && PathPrefix(`/api`)"
       - "traefik.http.routers.munney-backend-dev.entrypoints=websecure"
       - "traefik.http.routers.munney-backend-dev.tls=true"
@@ -50,11 +49,10 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - VITE_API_URL=https://devmunney.home.munne.me/api
-    command: ["npm", "run", "dev", "--", "--host"]
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      # HTTP Router
       - "traefik.http.routers.munney-frontend-dev.rule=Host(`devmunney.home.munne.me`)"
       - "traefik.http.routers.munney-frontend-dev.entrypoints=websecure"
       - "traefik.http.routers.munney-frontend-dev.tls=true"
@@ -82,7 +80,6 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
-    # Optional: Expose port for external access
     ports:
       - "3334:3306"
 

@@ -48,24 +48,22 @@ export function useBudgets() {
         }
     };
 
-    const createBudget = async (budget: CreateBudget) => {
+    const createBudget = async (budget: CreateBudget): Promise<void> => {
         if (!accountId) return;
 
-        const newBudget = await budgetsActions.createBudget(accountId, budget);
+        await budgetsActions.createBudget(accountId, budget);
         await loadBudgets();
         await loadAvailableCategories();
-        return newBudget;
     };
 
-    const updateBudget = async (budgetId: number, budget: UpdateBudget) => {
+    const updateBudget = async (budgetId: number, budget: UpdateBudget): Promise<void> => {
         if (!accountId) return;
 
-        const updatedBudget = await budgetsActions.updateBudget(accountId, budgetId, budget);
+        await budgetsActions.updateBudget(accountId, budgetId, budget);
         await loadBudgets();
-        return updatedBudget;
     };
 
-    const deleteBudget = async (budgetId: number) => {
+    const deleteBudget = async (budgetId: number): Promise<void> => {
         if (!accountId) return;
 
         await budgetsActions.deleteBudget(accountId, budgetId);
@@ -73,30 +71,28 @@ export function useBudgets() {
         await loadAvailableCategories();
     };
 
-    const createBudgetVersion = async (budgetId: number, version: CreateBudgetVersion) => {
+    const createBudgetVersion = async (budgetId: number, version: CreateBudgetVersion): Promise<void> => {
         if (!accountId) return;
 
-        const newVersion = await budgetsActions.createBudgetVersion(accountId, budgetId, version);
+        await budgetsActions.createBudgetVersion(accountId, budgetId, version);
         await loadBudgets(); // Herlaad budgets om nieuwe versie te tonen
-        return newVersion;
     };
 
-    const updateBudgetVersion = async (budgetId: number, versionId: number, version: UpdateBudgetVersion) => {
+    const updateBudgetVersion = async (budgetId: number, versionId: number, version: UpdateBudgetVersion): Promise<void> => {
         if (!accountId) return;
 
-        const updatedVersion = await budgetsActions.updateBudgetVersion(accountId, budgetId, versionId, version);
+        await budgetsActions.updateBudgetVersion(accountId, budgetId, versionId, version);
         await loadBudgets(); // Herlaad budgets om wijzigingen te tonen
-        return updatedVersion;
     };
 
-    const deleteBudgetVersion = async (budgetId: number, versionId: number) => {
+    const deleteBudgetVersion = async (budgetId: number, versionId: number): Promise<void> => {
         if (!accountId) return;
 
         await budgetsActions.deleteBudgetVersion(accountId, budgetId, versionId);
         await loadBudgets(); // Herlaad budgets
     };
 
-    const assignCategories = async (budgetId: number, data: AssignCategories) => {
+    const assignCategories = async (budgetId: number, data: AssignCategories): Promise<void> => {
         if (!accountId) return;
 
         await budgetsActions.assignCategories(accountId, budgetId, data);
@@ -104,7 +100,7 @@ export function useBudgets() {
         await loadAvailableCategories();
     };
 
-    const removeCategory = async (budgetId: number, categoryId: number) => {
+    const removeCategory = async (budgetId: number, categoryId: number): Promise<void> => {
         if (!accountId) return;
 
         await budgetsActions.removeCategory(accountId, budgetId, categoryId);

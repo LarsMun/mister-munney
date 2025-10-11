@@ -1,0 +1,766 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Mr Munney API",
+    "description": "Documentatie",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/account/{accountId}/transactions": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Haal een lijst van transacties op voor een account",
+        "operationId": "get_get_transactions",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account waarvoor transacties worden opgehaald",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Zoekterm in omschrijving, tegenrekening of notities",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Albert Heijn"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Startdatum in YYYY-MM-DD formaat",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2024-01-01"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Einddatum in YYYY-MM-DD formaat",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2024-01-31"
+            }
+          },
+          {
+            "name": "minAmount",
+            "in": "query",
+            "description": "Minimale transactiebedrag",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 10
+            }
+          },
+          {
+            "name": "maxAmount",
+            "in": "query",
+            "description": "Maximale transactiebedrag",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 100
+            }
+          },
+          {
+            "name": "transactionType",
+            "in": "query",
+            "description": "Type transactie: credit of debit",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "credit",
+                "debit"
+              ],
+              "example": "debit"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Sorteerveld: bijv. date of amount",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "date"
+            }
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Sorteerrichting: ASC of DESC",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ],
+              "example": "DESC"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lijst van transacties",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "summary": {
+                      "type": "object"
+                    },
+                    "treeMapData": {
+                      "type": "object"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TransactionDTO"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/transactions/months": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Beschikbare transactie-maanden per account",
+        "operationId": "get_get_transaction_months",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unieke maanden waarin transacties zijn gedaan (YYYY-MM-formaat)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "2024-03"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/transactions/{id}/category": {
+      "patch": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Koppel een categorie aan een transactie",
+        "operationId": "patch_transaction_set_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCategoryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Categorie succesvol aan transactie verbonden"
+          },
+          "400": {
+            "description": "Ongeldige input"
+          },
+          "404": {
+            "description": "Transactie niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/transactions/bulk-assign-category": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Wijs een categorie toe aan meerdere transacties",
+        "operationId": "post_bulk_assign_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "transactionIds",
+                  "categoryId"
+                ],
+                "properties": {
+                  "transactionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "example": [
+                      1,
+                      2,
+                      3
+                    ]
+                  },
+                  "categoryId": {
+                    "type": "integer",
+                    "example": 5
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Categorieën succesvol toegewezen"
+          },
+          "400": {
+            "description": "Ongeldige input"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/transactions/bulk-remove-category": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Verwijder categorie van meerdere transacties",
+        "operationId": "post_bulk_remove_category",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "transactionIds"
+                ],
+                "properties": {
+                  "transactionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "example": [
+                      1,
+                      2,
+                      3
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Categorieën succesvol verwijderd"
+          },
+          "400": {
+            "description": "Ongeldige input"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/transactions/{id}/assign_savings": {
+      "patch": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Wijs een spaarrekening toe aan een transactie",
+        "operationId": "patch_assign_savings_account",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van de betaalrekening",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID van de transactie",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 2147483647,
+              "minimum": 1,
+              "example": 42
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "savingsAccountId"
+                ],
+                "properties": {
+                  "savingsAccountId": {
+                    "type": "integer",
+                    "maximum": 2147483647,
+                    "minimum": 1,
+                    "example": 2
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "De bijgewerkte transactie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transactie of spaarrekening niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/account/{accountId}/transactions/statistics/monthly-median": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Bereken verschillende statistieken van maandelijkse uitgaven",
+        "operationId": "get_get_monthly_median_statistics",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "description": "ID van het account",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "months",
+            "in": "query",
+            "description": "Aantal maanden terug (bijv. 6) of \"all\" voor alle maanden",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "6"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verschillende statistieken van maandelijkse uitgaven",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "median": {
+                      "description": "Mediaan (middelste waarde)",
+                      "type": "number",
+                      "format": "float",
+                      "example": 1234.56
+                    },
+                    "trimmedMean": {
+                      "description": "Trimmed mean (gemiddelde na verwijderen hoogste/laagste 20%)",
+                      "type": "number",
+                      "format": "float",
+                      "example": 1200
+                    },
+                    "iqrMean": {
+                      "description": "IQR mean (gemiddelde na verwijderen statistische outliers)",
+                      "type": "number",
+                      "format": "float",
+                      "example": 1180
+                    },
+                    "weightedMedian": {
+                      "description": "Gewogen mediaan (recente maanden wegen zwaarder)",
+                      "type": "number",
+                      "format": "float",
+                      "example": 1250
+                    },
+                    "plainAverage": {
+                      "description": "Gewoon gemiddelde van alle maanden",
+                      "type": "number",
+                      "format": "float",
+                      "example": 1300
+                    },
+                    "monthCount": {
+                      "description": "Aantal maanden in de berekening",
+                      "type": "integer",
+                      "example": 6
+                    },
+                    "monthlyTotals": {
+                      "description": "Totale uitgaven per maand",
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "month": {
+                            "type": "string",
+                            "example": "2024-03"
+                          },
+                          "total": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 1500
+                          }
+                        },
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ongeldige months parameter"
+          },
+          "404": {
+            "description": "Account niet gevonden"
+          }
+        }
+      }
+    },
+    "/api/transactions/import": {
+      "post": {
+        "tags": [
+          "Transactions import"
+        ],
+        "summary": "Importeer transacties via CSV",
+        "operationId": "post_import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transacties geïmporteerd"
+          },
+          "400": {
+            "description": "Geen bestand ontvangen"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CategoryDTO": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "accountId",
+          "transactionType"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Boodschappen"
+          },
+          "icon": {
+            "type": "string",
+            "example": "shopping-cart",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "example": "#FF9900",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "integer",
+            "example": 1
+          },
+          "transactionType": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ],
+            "example": "debit"
+          },
+          "budgetId": {
+            "type": "integer",
+            "example": 5,
+            "nullable": true
+          },
+          "budgetName": {
+            "type": "string",
+            "example": "Budget 2024",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "SavingsAccountDTO": {
+        "required": [
+          "id",
+          "name",
+          "accountId"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "integer"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "TransactionDTO": {
+        "required": [
+          "id",
+          "hash",
+          "date",
+          "description",
+          "accountId",
+          "transactionType",
+          "amount",
+          "mutationType",
+          "notes",
+          "balanceAfter"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "integer"
+          },
+          "counterpartyAccount": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionType": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float"
+          },
+          "mutationType": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "balanceAfter": {
+            "type": "number",
+            "format": "float"
+          },
+          "tag": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CategoryDTO"
+              }
+            ]
+          },
+          "savingsAccount": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SavingsAccountDTO"
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "SetCategoryDTO": {
+        "description": "DTO voor het koppelen van een categorie aan een transactie",
+        "required": [
+          "categoryId"
+        ],
+        "properties": {
+          "categoryId": {
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": 1,
+            "example": 42
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Transactions",
+      "description": "Beheer van transactions"
+    },
+    {
+      "name": "Transactions import",
+      "description": "Importeren van transactions via CSV-bestand"
+    }
+  ]
+}

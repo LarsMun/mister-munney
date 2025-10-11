@@ -19,32 +19,40 @@ abstract class DatabaseTestCase extends KernelTestCase
 
         // Clean database before each test
         $this->cleanDatabase();
+
+        // Clear entity manager to avoid cached entities
+        $this->entityManager->clear();
     }
 
     protected function cleanDatabase(): void
     {
-        // Get all table names
         $connection = $this->entityManager->getConnection();
+
+        // Disable foreign key checks
+        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+
+        // Get all table names
         $schemaManager = $connection->createSchemaManager();
         $tables = $schemaManager->listTableNames();
 
-        // Disable foreign key checks
-        $connection->exec('SET FOREIGN_KEY_CHECKS = 0');
-
-        // Truncate all tables
+        // Truncate all tables except migrations
         foreach ($tables as $table) {
             if ($table !== 'doctrine_migration_versions') {
-                $connection->exec("TRUNCATE TABLE `$table`");
+                $connection->executeStatement("TRUNCATE TABLE `$table`");
             }
         }
 
         // Re-enable foreign key checks
-        $connection->exec('SET FOREIGN_KEY_CHECKS = 1');
+        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-        $this->entityManager->close();
+
+        // Properly close entity manager
+        if ($this->entityManager && $this->entityManager->isOpen()) {
+            $this->entityManager->close();
+        }
     }
 }

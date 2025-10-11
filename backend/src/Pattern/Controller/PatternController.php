@@ -17,8 +17,6 @@ use Symfony\Component\PropertyAccess\Exception\InvalidPropertyPathException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
-use App\Enum\TransactionType;
-use ValueError;
 
 #[OA\Tag(
     name: 'Patterns',
@@ -85,14 +83,6 @@ class PatternController extends AbstractController
             throw new BadRequestHttpException('Ongeldige invoervelden gedetecteerd: ' . $e->getMessage());
         }
 
-        if (isset($data['transactionType']) && is_string($data['transactionType'])) {
-            try {
-                $dto->transactionType = TransactionType::from($data['transactionType']);
-            } catch (ValueError $e) {
-                throw new BadRequestHttpException('Ongeldige transactionType. Moet "debit" of "credit" zijn.');
-            }
-        }
-
         $dto->accountId = $accountId;
 
         $errors = $this->validator->validate($dto);
@@ -152,14 +142,6 @@ class PatternController extends AbstractController
             $dto = $this->payloadMapper->map($data, new UpdatePatternDTO(), true);
         } catch (InvalidPropertyPathException $e) {
             throw new BadRequestHttpException('Ongeldige invoervelden gedetecteerd: ' . $e->getMessage());
-        }
-
-        if (isset($data['transactionType']) && is_string($data['transactionType'])) {
-            try {
-                $dto->transactionType = TransactionType::from($data['transactionType']);
-            } catch (ValueError $e) {
-                throw new BadRequestHttpException('Ongeldige transactionType. Moet "debit" of "credit" zijn.');
-            }
         }
 
         $dto->accountId = $accountId;

@@ -11,6 +11,7 @@ import { isCurrentlyActive, isFuture, isExpired } from './services/BudgetsServic
 import { useMonthlyStatistics } from '../transactions/hooks/useMonthlyStatistics';
 import MonthlyStatisticsCard from '../transactions/components/MonthlyStatisticsCard';
 import { useCategoryStatistics } from '../categories/hooks/useCategoryStatistics';
+import type { Budget } from './models/Budget';
 
 export default function BudgetsPage() {
     const { accountId } = useAccount();
@@ -40,12 +41,9 @@ export default function BudgetsPage() {
         statisticsMonths
     );
 
-    const [categoryStatsMonths, setCategoryStatsMonths] = useState<string | number>('all');
     const {
-        statistics: categoryStats,  // <-- Let op: 'categoryStats'
-        isLoading: categoryStatsLoading,
-        error: categoryStatsError
-    } = useCategoryStatistics(accountId || null, categoryStatsMonths);
+        statistics: categoryStats
+    } = useCategoryStatistics(accountId || null, 'all');
 
     // Groepeer budgetten op status
     const { activeBudgets, futureBudgets, expiredBudgets } = useMemo(() => {
@@ -134,12 +132,10 @@ export default function BudgetsPage() {
     const BudgetSection = ({
                                title,
                                budgets,
-                               emptyMessage,
                                statusColor
                            }: {
         title: string;
-        budgets: typeof activeBudgets;
-        emptyMessage: string;
+        budgets: Budget[];
         statusColor: string;
     }) => {
         if (budgets.length === 0) return null;
@@ -171,8 +167,7 @@ export default function BudgetsPage() {
             </div>
         );
     };
-    console.log('Available categories:', availableCategories);
-    console.log('Category stats:', categoryStats?.categories);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -254,7 +249,6 @@ export default function BudgetsPage() {
                             <BudgetSection
                                 title="Lopende Budgetten"
                                 budgets={activeBudgets}
-                                emptyMessage="Geen actieve budgetten"
                                 statusColor="bg-green-100 text-green-800"
                             />
 
@@ -262,7 +256,6 @@ export default function BudgetsPage() {
                             <BudgetSection
                                 title="Toekomstige Budgetten"
                                 budgets={futureBudgets}
-                                emptyMessage="Geen toekomstige budgetten"
                                 statusColor="bg-blue-100 text-blue-800"
                             />
 
@@ -270,7 +263,6 @@ export default function BudgetsPage() {
                             <BudgetSection
                                 title="Verlopen Budgetten"
                                 budgets={expiredBudgets}
-                                emptyMessage="Geen verlopen budgetten"
                                 statusColor="bg-gray-100 text-gray-800"
                             />
                         </div>

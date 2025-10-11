@@ -4,15 +4,8 @@ import React, { useState } from "react";
 import { formatMoney } from "../../../shared/utils/MoneyFormat.tsx";
 import { formatDate } from "../../../shared/utils/DateFormat.tsx";
 import { useCategories } from "../../categories/hooks/useCategories";
-import {
-    assignCategoryToMultipleTransactions,
-    clearSingleTransactionCategory,
-    removeCategoryFromMultipleTransactions,
-    updateSingleTransactionCategory
-} from "../services/TransactionActions.ts";
 import CategoryCombobox from "../../categories/components/CategoryCombobox.tsx";
 import type { Transaction } from "../models/Transaction";
-import type { Category } from "../../categories/models/Category";
 import TransactionDrawer from "./TransactionDrawer.tsx";
 import SavingsAccountCombobox from "../../savingsAccounts/components/SavingsAccountCombobox.tsx";
 import { useSavingsAccounts } from "../../savingsAccounts/hooks/useSavingsAccounts";
@@ -20,7 +13,7 @@ import { useSavingsAccounts } from "../../savingsAccounts/hooks/useSavingsAccoun
 type Props = {
     accountId: number;
     transactions: Transaction[];
-    refresh: () => Promise<void>;
+    refresh: () => void;
 };
 
 export default function TransactionTable({ accountId, transactions, refresh }: Props) {
@@ -84,7 +77,7 @@ export default function TransactionTable({ accountId, transactions, refresh }: P
         );
     };
 
-    const { categories, setCategories, addCategory } = useCategories(accountId);
+    const { categories, setCategories } = useCategories(accountId);
     const [selectedTransactions, setSelectedTransactions] = useState<number[]>([]);
 
     const toggleTransactionSelection = (id: number) => {
@@ -101,41 +94,10 @@ export default function TransactionTable({ accountId, transactions, refresh }: P
         }
     };
 
-    const handleSingleCategorySelect = async (category: Category | null, transactionId: number) => {
-        if (category === null) {
-            // Als je de categorie wilt verwijderen
-            await clearSingleTransactionCategory(accountId, transactionId, refresh);
-        } else {
-            // Als je een nieuwe categorie wilt instellen
-            await updateSingleTransactionCategory(accountId, transactionId, category, refresh);
-        }
-    };
-
-    const handleMassCategorySelect = async (category: Category | null) => {
-        await assignCategoryToMultipleTransactions(accountId, selectedTransactions, category, refresh, () => setSelectedTransactions([]));
-    };
-
-    const handleMassCategoryRemove = async () => {
-        await removeCategoryFromMultipleTransactions(accountId, selectedTransactions, refresh, () => setSelectedTransactions([]));
-    };
-
     return (
         <div className="overflow-x-auto rounded-xl border border-gray-200 shadow">
             {selectedTransactions.length > 0 && (
                 <div className="flex items-center gap-4 mb-4 p-2 bg-blue-50 border border-blue-300 rounded">
-                    <CategoryCombobox
-                        onChange={handleMassCategorySelect}
-                        categoryId={null}
-                        refresh={refresh}
-                        categories={categories}
-                        setCategories={setCategories}
-                    />
-                    <button
-                        className="text-red-600 underline"
-                        onClick={handleMassCategoryRemove}
-                    >
-                        Verwijder categorieën
-                    </button>
                     <span className="text-sm text-gray-600">{selectedTransactions.length} geselecteerd</span>
                 </div>
             )}

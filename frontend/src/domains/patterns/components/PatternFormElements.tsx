@@ -1,4 +1,3 @@
-import React from "react";
 import type { PatternInput } from "../models/PatternInput";
 import SimpleCategoryCombobox from "../../categories/components/SimpleCategoryCombobox";
 import SimpleSavingsAccountCombobox from "../../savingsAccounts/components/SimpleSavingsAccountCombobox";
