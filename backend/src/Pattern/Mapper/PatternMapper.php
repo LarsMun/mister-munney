@@ -34,7 +34,7 @@ class PatternMapper
         $dto->maxAmount = $pattern->getMaxAmount() !== null
             ? $this->moneyFactory->toFloat($pattern->getMaxAmount())
             : null;
-        $dto->transactionType = $pattern->getTransactionType();
+        $dto->transactionType = $pattern->getTransactionType()?->value;
         $dto->description = $pattern->getDescription();
         $dto->notes = $pattern->getNotes();
         $dto->tag = $pattern->getTag();
@@ -121,8 +121,8 @@ class PatternMapper
     ): string {
         $parts = [
             $accountId,
-            trim($description ?? ''),
-            trim($notes ?? ''),
+            strtolower(trim($description ?? '')),
+            strtolower(trim($notes ?? '')),
             $categoryId ?? 0,
             $savingsAccountId ?? 0,
         ];
