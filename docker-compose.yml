@@ -1,13 +1,19 @@
+# Munney Base Docker Compose
+# 
+# ⚠️ DO NOT USE THIS FILE STANDALONE ON SERVERS ⚠️
+# This is for local development only (WSL/Docker Desktop)
+#
+# On servers, always use with environment-specific override:
+# - Development: docker-compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.dev.yml
+# - Production: docker-compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.prod.yml
+
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: money-backend
+    container_name: money-backend-local
     restart: unless-stopped
-    depends_on:
-      database:
-        condition: service_healthy
     environment:
       DATABASE_URL: "mysql://money:moneymakestheworldgoround@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
     ports:
@@ -15,29 +21,27 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
-      - ~/.composer:/home/symfony/.composer:cached
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: money-frontend
+    container_name: money-frontend-local
     restart: unless-stopped
     depends_on:
       - backend
     ports:
       - "5173:5173"
     volumes:
-      # Mount de hele frontend directory maar exclude node_modules
       - ./frontend:/app
-      - /app/node_modules  # Anonymous volume voor node_modules
+      - /app/node_modules
     environment:
-      - CHOKIDAR_USEPOLLING=true  # Voor file watching in WSL
+      - CHOKIDAR_USEPOLLING=true
     command: ["npm", "run", "dev", "--", "--host"]
 
   database:
     image: mysql:8.0
-    container_name: money-mysql
+    container_name: money-mysql-local
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: moneymakestheworldgoround
@@ -45,9 +49,9 @@ services:
       MYSQL_USER: money
       MYSQL_PASSWORD: moneymakestheworldgoround
     ports:
-      - "3333:3306"
+      - "3330:3306"  # Changed to 3330 to avoid conflicts
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data_local:/var/lib/mysql
       - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
     command: --default-time-zone='+00:00'
     healthcheck:
@@ -57,4 +61,4 @@ services:
       start_period: 30s
 
 volumes:
-  db_data:
+  db_data_local:
