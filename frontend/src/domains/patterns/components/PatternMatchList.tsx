@@ -92,15 +92,26 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
     };
 
     useEffect(() => {
-        const hasRelevantFields =
-            !!pattern.description?.trim() ||
-            !!pattern.notes?.trim() ||
-            !!pattern.tag?.trim() ||
-            pattern.minAmount !== undefined ||
-            pattern.maxAmount !== undefined ||
-            !!pattern.transactionType;
+        // Check voor minimaal 2 karakters in description of notes
+        const hasMinDescription = (pattern.description?.trim()?.length ?? 0) >= 2;
+        const hasMinNotes = (pattern.notes?.trim()?.length ?? 0) >= 2;
+        
+        // Check voor andere velden
+        const hasTag = !!pattern.tag?.trim();
+        const hasAmountFilter = pattern.minAmount !== undefined || pattern.maxAmount !== undefined;
+        const hasDateFilter = !!pattern.startDate || !!pattern.endDate;
+        
+        // Er moet minimaal één zinvol filter zijn:
+        // - Minimaal 2 karakters in description of notes, OF
+        // - Tag, bedrag-filter of datum-filter ingevuld
+        // (transactionType alleen is te breed)
+        const hasRelevantFields = hasMinDescription || hasMinNotes || hasTag || hasAmountFilter || hasDateFilter;
 
-        if (!hasRelevantFields) return;
+        if (!hasRelevantFields) {
+            // Clear de lijst als er geen relevante velden zijn
+            setMatchesFromBackend([]);
+            return;
+        }
 
         const debounced = debounce(handleFetch, 600);
         debounced();

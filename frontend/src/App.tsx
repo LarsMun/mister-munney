@@ -5,6 +5,7 @@ import PatternModule from './domains/patterns';
 import WelcomeScreen from './components/WelcomeScreen';
 import BudgetsModule from './domains/budgets';
 import AccountManagement from './domains/accounts';
+import DashboardModule from './domains/dashboard';
 import { useAccount } from './app/context/AccountContext';
 import AccountSelector from './shared/components/AccountSelector';
 import logo from './assets/mister-munney-logo.png';
@@ -57,7 +58,7 @@ export default function App() {
                                     }`
                                 }
                             >
-                                Home
+                                Dashboard
                             </NavLink>
                             <NavLink 
                                 to="/transactions"
@@ -124,36 +125,11 @@ export default function App() {
                 {/* Main Content */}
                 <main className="flex-grow container mx-auto p-6">
                     <Routes>
-                        <Route path="/" element={
-                            <div className="text-center py-12">
-                                <h1 className="text-3xl font-bold text-gray-800 mb-4">
-                                    Welkom bij Mister Munney!
-                                </h1>
-                                <p className="text-gray-600 mb-8">
-                                    Je hebt {accounts.length} rekening{accounts.length !== 1 ? 'en' : ''} gekoppeld.
-                                    Klik op "Transacties" om je financiële overzicht te bekijken.
-                                </p>
-                                <div className="space-x-4">
-                                    <Link
-                                        to="/transactions"
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
-                                    >
-                                        Bekijk Transacties
-                                    </Link>
-                                    <Link
-                                        to="/patterns"
-                                        className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors"
-                                    >
-                                        Beheer Patronen
-                                    </Link>
-                                </div>
-                            </div>
-                        } />
+                        <Route path="/" element={<DashboardModule />} />
                         <Route path="/transactions/*" element={<TransactionsModule />} />
                         <Route path="/patterns/*" element={<PatternModule />} />
                         <Route path="/budgets/*" element={<BudgetsModule />} />
                         <Route path="/accounts" element={<AccountManagement />} />
-                        {/* andere routes kunnen hier */}
                     </Routes>
                 </main>
 
