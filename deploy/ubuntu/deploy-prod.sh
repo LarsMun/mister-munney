@@ -74,19 +74,19 @@ echo ""
 
 # Stop existing containers
 echo -e "${BLUE}🛑 Stopping existing containers...${NC}"
-docker compose -f deploy/ubuntu/docker-compose.prod.yml down || true
+docker compose --env-file .env -f deploy/ubuntu/docker-compose.prod.yml down || true
 echo -e "${GREEN}✅ Containers stopped${NC}"
 echo ""
 
 # Build images (with --no-cache for production)
 echo -e "${BLUE}🏗️  Building production images...${NC}"
-docker compose -f deploy/ubuntu/docker-compose.prod.yml build --no-cache
+docker compose --env-file .env -f deploy/ubuntu/docker-compose.prod.yml build --no-cache
 echo -e "${GREEN}✅ Images built${NC}"
 echo ""
 
 # Start containers
 echo -e "${BLUE}▶️  Starting production containers...${NC}"
-docker compose -f deploy/ubuntu/docker-compose.prod.yml up -d
+docker compose --env-file .env -f deploy/ubuntu/docker-compose.prod.yml up -d
 echo -e "${GREEN}✅ Containers started${NC}"
 echo ""
 
@@ -116,7 +116,7 @@ echo ""
 # Container status
 echo ""
 echo -e "${GREEN}📊 Container Status:${NC}"
-docker compose -f deploy/ubuntu/docker-compose.prod.yml ps
+docker compose --env-file .env -f deploy/ubuntu/docker-compose.prod.yml ps
 echo ""
 
 # Health check
