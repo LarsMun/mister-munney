@@ -251,7 +251,7 @@ export function BudgetCard({
                                 <div className="flex-1">
                                     <div className="flex items-center space-x-2">
                                         <span className="font-medium text-gray-900">
-                                            {formatMoney(version.monthlyAmount)}
+                                            {formatMoney(Math.abs(version.monthlyAmount))}
                                         </span>
                                         {version.isCurrent && (
                                             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">

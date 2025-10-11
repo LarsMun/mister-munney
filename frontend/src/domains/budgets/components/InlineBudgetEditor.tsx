@@ -174,7 +174,7 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
 
             {/* Current Budget Info */}
             <div className="text-2xl font-bold text-gray-900">
-                {activeVersion ? formatMoney(activeVersion.monthlyAmount) : '€ 0,00'}
+                {activeVersion ? formatMoney(Math.abs(activeVersion.monthlyAmount)) : '€ 0,00'}
             </div>
 
             {/* Editable Date Range */}
