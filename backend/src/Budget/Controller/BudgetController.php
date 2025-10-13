@@ -460,7 +460,7 @@ class BudgetController extends AbstractController
                 description: 'Maand en jaar in YYYY-MM formaat',
                 in: 'path',
                 required: true,
-                schema: new OA\Schema(type: 'string', pattern: '^\\d{4}-\\d{2}, example: '2024-12')
+                schema: new OA\Schema(type: 'string', pattern: '^\d{4}-\d{2}$', example: '2024-12')
             )
         ],
         responses: [
