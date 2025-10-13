@@ -106,13 +106,13 @@ export function BudgetCard({
         return categoryStats?.categories.find(stat => stat.categoryId === categoryId);
     };
 
-    // Bereken totaal verwachte uitgaven (mediaan laatste 12 maanden)
+    // Bereken totaal verwachte uitgaven/inkomsten (mediaan laatste 12 maanden)
     const calculateTotalExpected = () => {
         let total = 0;
         budget.categories.forEach(category => {
             const stats = getStatsForCategory(category.id);
             if (stats) {
-                total += Math.abs(stats.medianLast12Months);
+                total += stats.medianLast12Months;
             }
         });
         return total;
@@ -202,7 +202,7 @@ export function BudgetCard({
         Verwacht totaal:
     </span>
                                 <span className={`text-sm font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
-        {formatMoney(totalExpected)}
+        {formatMoney(Math.abs(totalExpected))}
     </span>
                             </div>
                         )}
