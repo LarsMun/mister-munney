@@ -441,4 +441,53 @@ class BudgetController extends AbstractController
         return $this->json($budgetDTO);
     }
 
+    #[Route('/summary/{monthYear}', name: 'get_budget_summaries', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/account/{accountId}/budget/summary/{monthYear}',
+        description: 'Haalt budget summaries op voor een specifieke maand met uitgaveninformatie en trends',
+        summary: 'Toon budget summaries voor maand',
+        tags: ['Budgetten'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+            new OA\Parameter(
+                name: 'monthYear',
+                description: 'Maand en jaar in YYYY-MM formaat',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'string', pattern: '^\\d{4}-\\d{2}, example: '2024-12')
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Budget summaries met uitgaven en trends',
+                content: new OA\JsonContent(
+                    type: 'array',
+                    items: new OA\Items(ref: new Model(type: BudgetSummaryDTO::class))
+                )
+            ),
+            new OA\Response(response: 400, description: 'Ongeldige maand format'),
+            new OA\Response(response: 404, description: 'Account niet gevonden')
+        ]
+    )]
+    public function getBudgetSummaries(int $accountId, string $monthYear): JsonResponse
+    {
+        // Validate monthYear format
+        if (!preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
+            return $this->json([
+                'error' => 'Invalid month format. Use YYYY-MM (e.g., 2024-12)'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $summaries = $this->budgetService->getBudgetSummariesForMonth($accountId, $monthYear);
+
+        return $this->json($summaries);
+    }
+
 }
