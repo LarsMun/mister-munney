@@ -3,6 +3,7 @@ export interface CategoryStatistic {
     categoryName: string;
     categoryColor: string;
     categoryIcon: string;
+    transactionType: 'DEBIT' | 'CREDIT';
     totalAmount: number;
     transactionCount: number;
     averagePerTransaction: number;
