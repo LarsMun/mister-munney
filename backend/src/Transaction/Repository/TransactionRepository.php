@@ -539,4 +539,81 @@ class TransactionRepository extends ServiceEntityRepository
             return $amounts[$middle];
         }
     }
+
+    /**
+     * Haalt de totale DEBIT uitgaven op voor categorieën binnen een specifieke maand.
+     *
+     * @param array $categoryIds Array met categorie IDs
+     * @param string $monthYear Maand in YYYY-MM formaat
+     * @return int Totaal in centen
+     */
+    public function getTotalSpentByCategoriesInMonth(array $categoryIds, string $monthYear): int
+    {
+        if (empty($categoryIds)) {
+            return 0;
+        }
+
+        $result = $this->createQueryBuilder('t')
+            ->select('SUM(ABS(t.amountInCents)) as total')
+            ->where('t.category IN (:categoryIds)')
+            ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
+            ->andWhere('t.transaction_type = :debitType')
+            ->setParameter('categoryIds', $categoryIds)
+            ->setParameter('monthYear', $monthYear)
+            ->setParameter('debitType', TransactionType::DEBIT)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) ($result ?? 0);
+    }
+
+    /**
+     * Haalt historische maandelijkse uitgaven op voor categorieën.
+     * Sluit de eerste en huidige (incomplete) maand uit.
+     *
+     * @param int $accountId
+     * @param array $categoryIds Array met categorie IDs
+     * @param int|null $monthLimit Aantal maanden terug (null = alle maanden)
+     * @return array Array met ['month' => 'YYYY-MM', 'total' => int (cents)]
+     */
+    public function getMonthlySpentByCategories(int $accountId, array $categoryIds, ?int $monthLimit = null): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        // Haal eerst de eerste en laatste maand op
+        $firstMonth = $this->getFirstTransactionMonth($accountId);
+        $currentMonth = (new \DateTime())->format('Y-m');
+
+        $qb = $this->createQueryBuilder('t')
+            ->select(
+                "SUBSTRING(t.date, 1, 7) AS month",
+                "SUM(ABS(t.amountInCents)) AS total"
+            )
+            ->where('t.account = :accountId')
+            ->andWhere('t.category IN (:categoryIds)')
+            ->andWhere('t.transaction_type = :debitType')
+            ->setParameter('accountId', $accountId)
+            ->setParameter('categoryIds', $categoryIds)
+            ->setParameter('debitType', TransactionType::DEBIT);
+
+        // Sluit eerste en huidige maand uit
+        if ($firstMonth) {
+            $qb->andWhere('SUBSTRING(t.date, 1, 7) > :firstMonth')
+                ->setParameter('firstMonth', $firstMonth);
+        }
+
+        $qb->andWhere('SUBSTRING(t.date, 1, 7) < :currentMonth')
+            ->setParameter('currentMonth', $currentMonth);
+
+        $qb->groupBy('month')
+            ->orderBy('month', 'DESC');
+
+        if ($monthLimit !== null && $monthLimit > 0) {
+            $qb->setMaxResults($monthLimit);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Budget\Service;
 
 use App\Account\Repository\AccountRepository;
+use App\Budget\DTO\BudgetSummaryDTO;
 use App\Budget\DTO\CreateBudgetDTO;
 use App\Budget\DTO\UpdateBudgetDTO;
 use App\Budget\Repository\BudgetRepository;
@@ -10,6 +11,8 @@ use App\Category\Repository\CategoryRepository;
 use App\Entity\Account;
 use App\Entity\Budget;
 use App\Entity\BudgetVersion;
+use App\Money\MoneyFactory;
+use App\Transaction\Repository\TransactionRepository;
 use Exception;
 use InvalidArgumentException;
 use Money\Money;
@@ -21,17 +24,23 @@ class BudgetService
     private BudgetRepository $budgetRepository;
     private BudgetVersionService $budgetVersionService;
     private CategoryRepository $categoryRepository;
+    private TransactionRepository $transactionRepository;
+    private MoneyFactory $moneyFactory;
 
     public function __construct(
         AccountRepository $accountRepository,
         BudgetRepository $budgetRepository,
         BudgetVersionService $budgetVersionService,
-        CategoryRepository $categoryRepository
+        CategoryRepository $categoryRepository,
+        TransactionRepository $transactionRepository,
+        MoneyFactory $moneyFactory
     ) {
         $this->accountRepository = $accountRepository;
         $this->budgetRepository = $budgetRepository;
         $this->budgetVersionService = $budgetVersionService;
         $this->categoryRepository = $categoryRepository;
+        $this->transactionRepository = $transactionRepository;
+        $this->moneyFactory = $moneyFactory;
     }
 
     /**
@@ -185,6 +194,152 @@ class BudgetService
         $category->setBudget(null);
 
         return $this->budgetRepository->save($budget);
+    }
+
+    /**
+     * Haalt budget summaries op voor een specifieke maand.
+     *
+     * @throws NotFoundHttpException
+     */
+    public function getBudgetSummariesForMonth(int $accountId, string $monthYear): array
+    {
+        $account = $this->getAccountById($accountId);
+
+        // Haal alle budgetten op met hun categorieën en versies voor deze maand
+        $budgets = $this->budgetRepository->findBudgetsWithCategoriesForMonth($account, $monthYear);
+
+        $summaries = [];
+        foreach ($budgets as $budget) {
+            $summaries[] = $this->createBudgetSummary($budget, $monthYear, $accountId);
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * Creëert een budget summary voor een specifiek budget en maand.
+     */
+    private function createBudgetSummary(Budget $budget, string $monthYear, int $accountId): BudgetSummaryDTO
+    {
+        $summary = new BudgetSummaryDTO();
+        $summary->budgetId = $budget->getId();
+        $summary->budgetName = $budget->getName();
+        $summary->monthYear = $monthYear;
+
+        // Haal effectieve versie op voor deze maand
+        $effectiveVersion = $budget->getEffectiveVersion($monthYear);
+        $allocatedMoney = $effectiveVersion ? $effectiveVersion->getMonthlyAmount() : Money::EUR(0);
+        $summary->allocatedAmount = $this->moneyFactory->toFloat($allocatedMoney);
+
+        // Verzamel alle categorie IDs die bij dit budget horen
+        $categoryIds = [];
+        foreach ($budget->getCategories() as $category) {
+            $categoryIds[] = $category->getId();
+        }
+        $summary->categoryCount = count($categoryIds);
+
+        // Bereken totaal uitgegeven in deze maand
+        $spentInCents = $this->transactionRepository->getTotalSpentByCategoriesInMonth($categoryIds, $monthYear);
+        $summary->spentAmount = $this->moneyFactory->toFloat(Money::EUR($spentInCents));
+
+        // Bereken remaining en percentage
+        $allocatedInCents = (int) $allocatedMoney->getAmount();
+        $remainingInCents = $allocatedInCents - $spentInCents;
+        $summary->remainingAmount = $this->moneyFactory->toFloat(Money::EUR($remainingInCents));
+
+        if ($allocatedInCents > 0) {
+            $summary->spentPercentage = round(($spentInCents / $allocatedInCents) * 100, 1);
+        } else {
+            $summary->spentPercentage = 0.0;
+        }
+
+        $summary->isOverspent = $spentInCents > $allocatedInCents;
+
+        // Bepaal status
+        if ($summary->isOverspent) {
+            $summary->status = 'over';
+        } elseif ($summary->spentPercentage >= 90) {
+            $summary->status = 'warning';
+        } elseif ($summary->spentPercentage >= 50) {
+            $summary->status = 'good';
+        } else {
+            $summary->status = 'excellent';
+        }
+
+        // Bereken trend data
+        $this->calculateTrendData($summary, $accountId, $categoryIds, $spentInCents);
+
+        return $summary;
+    }
+
+    /**
+     * Berekent trend informatie voor een budget summary.
+     */
+    private function calculateTrendData(BudgetSummaryDTO $summary, int $accountId, array $categoryIds, int $currentSpentInCents): void
+    {
+        if (empty($categoryIds)) {
+            $summary->historicalMedian = 0.0;
+            $summary->trendPercentage = 0.0;
+            $summary->trendDirection = 'stable';
+            return;
+        }
+
+        // Haal laatste 12 maanden op (exclusief eerste en huidige maand)
+        $monthlyTotals = $this->transactionRepository->getMonthlySpentByCategories($accountId, $categoryIds, 12);
+
+        if (empty($monthlyTotals)) {
+            $summary->historicalMedian = 0.0;
+            $summary->trendPercentage = 0.0;
+            $summary->trendDirection = 'stable';
+            return;
+        }
+
+        // Bereken mediaan
+        $medianInCents = $this->calculateMedian($monthlyTotals);
+        $summary->historicalMedian = $this->moneyFactory->toFloat(Money::EUR($medianInCents));
+
+        // Bereken trend percentage
+        if ($medianInCents > 0) {
+            $difference = $currentSpentInCents - $medianInCents;
+            $summary->trendPercentage = round(($difference / $medianInCents) * 100, 1);
+
+            // Bepaal richting (significant vanaf 10% verschil)
+            if ($summary->trendPercentage > 10) {
+                $summary->trendDirection = 'up';
+            } elseif ($summary->trendPercentage < -10) {
+                $summary->trendDirection = 'down';
+            } else {
+                $summary->trendDirection = 'stable';
+            }
+        } else {
+            $summary->trendPercentage = 0.0;
+            $summary->trendDirection = 'stable';
+        }
+    }
+
+    /**
+     * Berekent de mediaan van maandelijkse totalen.
+     */
+    private function calculateMedian(array $monthlyTotals): int
+    {
+        if (empty($monthlyTotals)) {
+            return 0;
+        }
+
+        // Extract alleen de totalen en sorteer
+        $amounts = array_map(fn($row) => (int) $row['total'], $monthlyTotals);
+        sort($amounts);
+
+        $count = count($amounts);
+        $middle = floor($count / 2);
+
+        if ($count % 2 === 0) {
+            // Even aantal: gemiddelde van twee middelste waarden
+            return (int) (($amounts[$middle - 1] + $amounts[$middle]) / 2);
+        } else {
+            // Oneven aantal: middelste waarde
+            return $amounts[$middle];
+        }
     }
 
     private function getAccountById(int $accountId): Account

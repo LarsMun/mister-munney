@@ -7,6 +7,7 @@ import CompactTransactionChart from './components/CompactTransactionChart';
 import MonthlyStatisticsCard from '../transactions/components/MonthlyStatisticsCard';
 import QuickActions from './components/QuickActions';
 import InsightsPanel from './components/InsightsPanel';
+import BudgetOverviewCard from './components/BudgetOverviewCard';
 import { Toaster } from 'react-hot-toast';
 
 export default function DashboardPage() {
@@ -54,6 +55,9 @@ export default function DashboardPage() {
     const currentBalance = Number(summary.end_balance);
     const monthlyChange = Number(summary.net_total);
     const averageBalance = statistics?.trimmedMean || Number(summary.total_debit);
+
+    // Get current month in YYYY-MM format
+    const currentMonth = new Date().toISOString().substring(0, 7);
 
     return (
         <div className="min-h-screen bg-gray-50 pb-8">
@@ -107,6 +111,12 @@ export default function DashboardPage() {
                             ? parseInt(insights.find(i => i.message.includes('categorisatie'))!.message.match(/\d+/)?.[0] || '0')
                             : 0
                         }
+                    />
+                    
+                    {/* Budget Overview Card */}
+                    <BudgetOverviewCard 
+                        accountId={accountId}
+                        monthYear={currentMonth}
                     />
                     
                     {insights.length > 0 && (

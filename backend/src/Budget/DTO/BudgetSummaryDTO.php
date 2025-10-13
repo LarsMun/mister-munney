@@ -13,4 +13,10 @@ class BudgetSummaryDTO
     public string $monthYear;
     public bool $isOverspent;
     public string $status;
+    
+    // Trend informatie
+    public float $trendPercentage;
+    public string $trendDirection; // 'up', 'down', 'stable'
+    public float $historicalMedian;
+    public int $categoryCount;
 }
