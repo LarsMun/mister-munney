@@ -142,11 +142,12 @@ class CategoryService
 
         $existing = $this->categoryRepository->findOneBy([
             'name' => $data['name'],
-            'account' => $account
+            'account' => $account,
+            'transactionType' => $transactionType
         ]);
 
         if ($existing) {
-            throw new ConflictHttpException("Een categorie met deze naam en account bestaat al.");
+            throw new ConflictHttpException("Een categorie met deze naam, account en type bestaat al.");
         }
 
         $category = new Category();
@@ -179,11 +180,12 @@ class CategoryService
         if (!empty($data['name']) && $data['name'] !== $category->getName()) {
             $duplicate = $this->categoryRepository->findOneBy([
                 'name' => $data['name'],
-                'account' => $category->getAccount()
+                'account' => $category->getAccount(),
+                'transactionType' => $category->getTransactionType()
             ]);
 
             if ($duplicate) {
-                throw new ConflictHttpException("Een categorie met deze naam en account bestaat al.");
+                throw new ConflictHttpException("Een categorie met deze naam, account en type bestaat al.");
             }
 
             $category->setName($data['name']);
