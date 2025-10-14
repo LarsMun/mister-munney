@@ -27,10 +27,9 @@ services:
       - backend
     ports:
       - "3000:5173"
-    volumes:
-      # Mount de hele frontend directory maar exclude node_modules
-      - ./frontend:/app
-      - /app/node_modules  # Anonymous volume voor node_modules
+    # No volume mounts for local development - everything is in the container
+    # This avoids WSL2 permission and binary compatibility issues
+    # For hot reload on code changes, rebuild the container
     environment:
       - CHOKIDAR_USEPOLLING=true  # Voor file watching in WSL
     command: ["npm", "run", "dev", "--", "--host"]
