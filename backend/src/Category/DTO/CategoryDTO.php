@@ -2,7 +2,6 @@
 
 namespace App\Category\DTO;
 
-use App\Enum\TransactionType;
 use DateTimeImmutable;
 use OpenApi\Attributes as OA;
 
@@ -29,9 +28,6 @@ class CategoryDTO
 
     #[OA\Property(type: 'integer', example: 1)]
     public int $accountId;
-
-    #[OA\Property(type: 'string', enum: ['debit', 'credit'], example: 'debit')]
-    public TransactionType $transactionType;
 
     #[OA\Property(type: 'integer', example: 5, nullable: true)]
     public ?int $budgetId = null;
