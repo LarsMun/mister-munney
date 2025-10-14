@@ -48,7 +48,6 @@ class CategoryMapper
         $dto->createdAt = $category->getCreatedAt();
         $dto->updatedAt = $category->getUpdatedAt();
         $dto->accountId = $category->getAccount()->getId();
-        $dto->transactionType = $category->getTransactionType();
 
         // Budget information
         $budget = $category->getBudget();

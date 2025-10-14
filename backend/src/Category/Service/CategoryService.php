@@ -125,16 +125,6 @@ class CategoryService
             throw new BadRequestHttpException('Naam is verplicht.');
         }
 
-        if (empty($data['transactionType'])) {
-            throw new BadRequestHttpException('TransactionType is verplicht.');
-        }
-
-        try {
-            $transactionType = TransactionType::from($data['transactionType']);
-        } catch (ValueError $e) {
-            throw new BadRequestHttpException('Ongeldige transactionType. Moet "debit" of "credit" zijn.');
-        }
-
         $account = $this->accountRepository->find($accountId);
         if (!$account) {
             throw new NotFoundHttpException('Account niet gevonden.');
@@ -142,19 +132,17 @@ class CategoryService
 
         $existing = $this->categoryRepository->findOneBy([
             'name' => $data['name'],
-            'account' => $account,
-            'transactionType' => $transactionType
+            'account' => $account
         ]);
 
         if ($existing) {
-            throw new ConflictHttpException("Een categorie met deze naam, account en type bestaat al.");
+            throw new ConflictHttpException("Een categorie met deze naam bestaat al voor dit account.");
         }
 
         $category = new Category();
         $category->setName($data['name']);
         $category->setIcon($data['icon'] ?? null);
         $category->setColor($data['color'] ?? null);
-        $category->setTransactionType($transactionType);
         $category->setAccount($account);
 
         $this->categoryRepository->save($category);
@@ -180,12 +168,11 @@ class CategoryService
         if (!empty($data['name']) && $data['name'] !== $category->getName()) {
             $duplicate = $this->categoryRepository->findOneBy([
                 'name' => $data['name'],
-                'account' => $category->getAccount(),
-                'transactionType' => $category->getTransactionType()
+                'account' => $category->getAccount()
             ]);
 
             if ($duplicate) {
-                throw new ConflictHttpException("Een categorie met deze naam, account en type bestaat al.");
+                throw new ConflictHttpException("Een categorie met deze naam bestaat al voor dit account.");
             }
 
             $category->setName($data['name']);
