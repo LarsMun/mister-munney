@@ -616,4 +616,38 @@ class TransactionRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * Haalt het huidige maand bedrag op voor een specifieke categorie.
+     * Inclusief alle transacties van deze maand tot nu toe.
+     *
+     * @param int $accountId
+     * @param int $categoryId (0 = niet ingedeeld)
+     * @return int Totaal in centen (netto: CREDIT - DEBIT)
+     */
+    public function getCurrentMonthTotalByCategory(int $accountId, int $categoryId): int
+    {
+        $currentMonth = (new \DateTime())->format('Y-m');
+
+        $qb = $this->createQueryBuilder('t')
+            ->select(
+                "SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amountInCents ELSE -t.amountInCents END) AS total"
+            )
+            ->where('t.account = :accountId')
+            ->andWhere('SUBSTRING(t.date, 1, 7) = :currentMonth')
+            ->setParameter('accountId', $accountId)
+            ->setParameter('currentMonth', $currentMonth);
+
+        // Filter op categorie
+        if ($categoryId === 0) {
+            $qb->andWhere('t.category IS NULL');
+        } else {
+            $qb->andWhere('t.category = :categoryId')
+                ->setParameter('categoryId', $categoryId);
+        }
+
+        $result = $qb->getQuery()->getSingleScalarResult();
+
+        return (int) ($result ?? 0);
+    }
 }
