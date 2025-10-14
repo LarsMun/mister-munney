@@ -4,6 +4,7 @@ namespace App\Budget\Controller;
 
 use App\Budget\DTO\AssignCategoriesDTO;
 use App\Budget\DTO\BudgetDTO;
+use App\Budget\DTO\BudgetSummaryDTO;
 use App\Budget\DTO\CreateBudgetDTO;
 use App\Budget\DTO\UpdateBudgetDTO;
 use App\Budget\Service\BudgetService;
