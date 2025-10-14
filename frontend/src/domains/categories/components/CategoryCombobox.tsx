@@ -48,9 +48,8 @@ export default function CategoryCombobox({
     // Safety check voor categories array
     const safeCategories = Array.isArray(categories) ? categories : [];
 
-    const filteredByType = transactionType
-        ? safeCategories.filter(c => c.transactionType === transactionType)
-        : safeCategories;
+    // Categories can now contain both CREDIT and DEBIT transactions - no filtering by type
+    const filteredByType = safeCategories;
 
     const selected = categoryId
         ? safeCategories.find((c) => c.id === categoryId) ?? null
@@ -113,18 +112,12 @@ export default function CategoryCombobox({
         try {
             if (!input.trim()) return;
 
-            // Validatie: transactionType moet aanwezig zijn
-            if (!transactionType) {
-                toast.error("Kan geen categorie aanmaken zonder transactietype");
-                return;
-            }
-
+            // Categories no longer have a transactionType - they can contain both CREDIT and DEBIT
             const newCategory = await handleAddCategory(
                 {
                     name: input.trim(),
                     color: getRandomPastelHex(),
-                    icon: "tag",
-                    transactionType
+                    icon: "tag"
                 },
                 accountId,
                 setCategories

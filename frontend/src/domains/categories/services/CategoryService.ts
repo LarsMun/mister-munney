@@ -13,11 +13,7 @@ export async function createCategory(
     category: Partial<Category>,
     silent = false
 ): Promise<Category> {
-    // Validatie: transactionType is verplicht
-    if (!category.transactionType) {
-        throw new Error('transactionType is verplicht bij het aanmaken van een categorie');
-    }
-
+    // Categories no longer have a transactionType - they can contain both CREDIT and DEBIT
     const response = await api.post(`/account/${accountId}/categories`, category);
     if (!silent) {
         toast.success('Categorie succesvol aangemaakt');
