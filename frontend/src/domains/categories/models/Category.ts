@@ -6,5 +6,4 @@ export type Category = {
     createdAt: string;
     updatedAt: string;
     accountId: number;
-    transactionType: 'debit' | 'credit';
 };
