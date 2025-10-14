@@ -290,7 +290,6 @@ class CategoryService
                 'categoryName' => $stat['categoryName'],
                 'categoryColor' => $stat['categoryColor'],
                 'categoryIcon' => $stat['categoryIcon'],
-                'transactionType' => $stat['transactionType'] ?? 'debit',
                 'totalAmount' => $this->moneyFactory->toFloat(
                     $this->moneyFactory->fromCents($totalAmount)
                 ),

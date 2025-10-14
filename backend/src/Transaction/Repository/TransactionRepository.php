@@ -368,7 +368,6 @@ class TransactionRepository extends ServiceEntityRepository
                 'COALESCE(c.name, \'Niet ingedeeld\') AS categoryName',
                 'COALESCE(c.color, \'#CCCCCC\') AS categoryColor',
                 'COALESCE(c.icon, \'help-circle\') AS categoryIcon',
-                'COALESCE(c.transactionType, \'DEBIT\') AS transactionType',
                 'COUNT(t.id) AS transactionCount',
                 'SUM(CASE WHEN t.transaction_type = \'CREDIT\' THEN t.amountInCents ELSE -t.amountInCents END) AS totalAmount',
                 'AVG(CASE WHEN t.transaction_type = \'CREDIT\' THEN t.amountInCents ELSE -t.amountInCents END) AS averagePerTransaction'
