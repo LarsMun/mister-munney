@@ -35,10 +35,8 @@ export default function SimpleCategoryCombobox({
         }
     }, [selectedCategory?.id]);
 
-    // NIEUW: Filter categorieën op basis van transactionType
-    const filteredByType = transactionType
-        ? categories.filter(c => c.transactionType === transactionType)
-        : categories;
+    // Categories can now contain both CREDIT and DEBIT transactions - no filtering by type
+    const filteredByType = categories;
 
     const filtered = input.trim() === ""
         ? filteredByType.slice(0, 10) // default 10 tonen
@@ -55,17 +53,11 @@ export default function SimpleCategoryCombobox({
     const handleCreate = async () => {
         if (!input.trim()) return;
 
-        // NIEUW: Validatie
-        if (!transactionType) {
-            console.error("Kan geen categorie aanmaken zonder transactionType");
-            return;
-        }
-
+        // Categories no longer have a transactionType
         const newCategory = await handleAddCategory(
             {
                 name: input,
-                color: getRandomPastelHex(),
-                transactionType  // <-- NIEUW
+                color: getRandomPastelHex()
             },
             accountId,
             setCategories
