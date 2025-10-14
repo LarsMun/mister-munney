@@ -1,4 +1,4 @@
-const prefix = import.meta.env.VITE_API_URL || 'http://localhost:8686/api';
+const prefix = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
 
 export async function fetchTransactions(
     accountId: number,

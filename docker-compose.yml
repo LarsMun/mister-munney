@@ -11,7 +11,7 @@ services:
     environment:
       DATABASE_URL: "mysql://money:***REMOVED***@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
     ports:
-      - "8686:80"
+      - "8787:80"
     volumes:
       - ./backend:/var/www/html
       - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini

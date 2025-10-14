@@ -280,6 +280,12 @@ class CategoryService
                 $categoryId
             );
 
+            // Haal huidige maand bedrag op
+            $currentMonthTotal = $this->transactionRepository->getCurrentMonthTotalByCategory(
+                $accountId,
+                $categoryId
+            );
+
             // Bereken percentage
             $percentage = $totalSpentInCents > 0
                 ? round(($totalAmount / $totalSpentInCents) * 100, 2)
@@ -311,6 +317,9 @@ class CategoryService
                 ),
                 'trend' => $recentStats['trend'],
                 'trendPercentage' => $recentStats['trendPercentage'],
+                'currentMonthAmount' => $this->moneyFactory->toFloat(
+                    $this->moneyFactory->fromCents($currentMonthTotal)
+                ),
             ];
         }, $categoryStats);
 
