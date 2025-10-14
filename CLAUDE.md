@@ -8,23 +8,44 @@ Munney is a personal finance management application built with Symfony 7.2 (PHP 
 
 ## Development Setup
 
-### Starting the Application
+### Environment Configurations
+
+This project has **3 separate Docker environments**:
+
+1. **Local (WSL2/Windows)**: Uses `docker-compose.yml` + `Dockerfile`
+   - Clean setup without volume mounts for frontend (avoids WSL2 issues)
+   - Frontend code is baked into the image (rebuild container for code changes)
+
+2. **Dev Server** (devmunney.home.munne.me): Uses `deploy/ubuntu/docker-compose.dev.yml` + `Dockerfile`
+   - Volume mounts enabled for hot reload
+   - Traefik integration for HTTPS
+
+3. **Prod Server** (munney.home.munne.me): Uses `docker-compose.prod.yml` + `Dockerfile.prod`
+   - Production builds with Nginx
+   - Read-only volume mounts
+
+### Starting the Application (Local)
 
 ```bash
 # Start all containers
-docker-compose up -d
+docker compose up -d
 
 # Wait for containers to be healthy
-docker-compose ps
+docker compose ps
 
 # Run database migrations (first time or after pulling new migrations)
 docker exec money-backend php bin/console doctrine:migrations:migrate
 
 # Access points:
 # - Frontend: http://localhost:3000 (Vite dev server)
-# - Backend API: http://localhost:8686
+# - Backend API: http://localhost:8787
 # - Database: localhost:3333
 ```
+
+**Important for Local Development:**
+- Frontend changes require rebuilding the container: `docker compose build frontend && docker compose up -d frontend`
+- Backend has volume mount so changes are immediate (just refresh browser)
+- Database migrations persist in the db_data volume
 
 ### Backend Commands
 
