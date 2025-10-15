@@ -1,7 +1,7 @@
 // src/domains/patterns/models/PatternInput.ts
 
 export type matchTypeNotes = "LIKE" | "EXACT";
-export type TransactionType = "debit" | "credit";
+export type TransactionType = "debit" | "credit" | "both";
 export type PatternType = "category" | "savings";
 
 export interface PatternInput {
@@ -12,7 +12,7 @@ export interface PatternInput {
     notes?: string;
     matchTypeNotes?: "LIKE" | "EXACT";
     tag?: string;
-    transactionType?: "debit" | "credit";
+    transactionType?: "debit" | "credit" | "both";
     minAmount?: number;
     maxAmount?: number;
     startDate?: string;
