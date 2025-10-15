@@ -146,11 +146,11 @@ export default function PatternFormElements({ pattern, updateField }: Props) {
                 <div className="w-24">
                     <label className="block text-xs font-medium text-gray-600">Type</label>
                     <select
-                        value={pattern.transactionType ?? "debit"}  // <-- Default naar "debit" als er geen waarde is
+                        value={pattern.transactionType ?? "both"}
                         onChange={(e) => updateField("transactionType", e.target.value)}
                         className="w-full border rounded p-1 h-8 text-xs"
                     >
-                        {/* Verwijder de "Beide" optie */}
+                        <option value="both">Beiden</option>
                         <option value="debit">Af</option>
                         <option value="credit">Bij</option>
                     </select>
