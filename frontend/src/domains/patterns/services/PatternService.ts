@@ -40,7 +40,10 @@ export function sanitizePattern(p: PatternInput): Record<string, any> {
         clean.tag = p.tag?.trim();
     }
 
-    if (p.transactionType) clean.transactionType = p.transactionType;
+    // Only add transactionType if it's debit or credit (not 'both')
+    if (p.transactionType && p.transactionType !== "both") {
+        clean.transactionType = p.transactionType;
+    }
     if (typeof p.minAmount === "number") clean.minAmount = p.minAmount;
     if (typeof p.maxAmount === "number") clean.maxAmount = p.maxAmount;
     if (p.startDate) clean.startDate = p.startDate;
