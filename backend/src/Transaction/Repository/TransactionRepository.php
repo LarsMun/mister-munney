@@ -293,7 +293,7 @@ class TransactionRepository extends ServiceEntityRepository
 
     /**
      * Haalt de maandelijkse uitgaven per categorie op.
-     * Sluit de eerste en huidige (incomplete) maand uit.
+     * Inclusief alle maanden (eerste en huidige maand worden meegenomen).
      *
      * @param int $accountId
      * @param int $categoryId (0 = niet ingedeeld)
@@ -302,10 +302,6 @@ class TransactionRepository extends ServiceEntityRepository
      */
     public function getMonthlyTotalsByCategory(int $accountId, int $categoryId, ?int $monthLimit = null): array
     {
-        // Haal eerst de eerste en laatste maand op
-        $firstMonth = $this->getFirstTransactionMonth($accountId);
-        $currentMonth = (new \DateTime())->format('Y-m');
-
         $qb = $this->createQueryBuilder('t')
             ->select(
                 "SUBSTRING(t.date, 1, 7) AS month",
@@ -321,15 +317,6 @@ class TransactionRepository extends ServiceEntityRepository
             $qb->andWhere('t.category = :categoryId')
                 ->setParameter('categoryId', $categoryId);
         }
-
-        // Sluit eerste en huidige maand uit
-        if ($firstMonth) {
-            $qb->andWhere('SUBSTRING(t.date, 1, 7) > :firstMonth')
-                ->setParameter('firstMonth', $firstMonth);
-        }
-
-        $qb->andWhere('SUBSTRING(t.date, 1, 7) < :currentMonth')
-            ->setParameter('currentMonth', $currentMonth);
 
         // Als monthLimit is ingesteld, filter op datum
         if ($monthLimit !== null && $monthLimit > 0) {
@@ -350,7 +337,7 @@ class TransactionRepository extends ServiceEntityRepository
 
     /**
      * Haalt statistieken per categorie op voor een account.
-     * Sluit de eerste en huidige (incomplete) maand uit.
+     * Inclusief alle maanden (eerste en huidige maand worden meegenomen).
      *
      * @param int $accountId
      * @param int|null $monthLimit Aantal maanden terug te gaan (null = alle maanden)
@@ -358,10 +345,6 @@ class TransactionRepository extends ServiceEntityRepository
      */
     public function getCategoryStatistics(int $accountId, ?int $monthLimit = null): array
     {
-        // Haal eerst de eerste en laatste maand op
-        $firstMonth = $this->getFirstTransactionMonth($accountId);
-        $currentMonth = (new \DateTime())->format('Y-m');
-
         $qb = $this->createQueryBuilder('t')
             ->select(
                 'COALESCE(c.id, 0) AS categoryId',
@@ -375,15 +358,6 @@ class TransactionRepository extends ServiceEntityRepository
             ->leftJoin('t.category', 'c')
             ->where('t.account = :accountId')
             ->setParameter('accountId', $accountId);
-
-        // Sluit eerste en huidige maand uit
-        if ($firstMonth) {
-            $qb->andWhere('SUBSTRING(t.date, 1, 7) > :firstMonth')
-                ->setParameter('firstMonth', $firstMonth);
-        }
-
-        $qb->andWhere('SUBSTRING(t.date, 1, 7) < :currentMonth')
-            ->setParameter('currentMonth', $currentMonth);
 
         // Als monthLimit is ingesteld, filter op datum
         if ($monthLimit !== null && $monthLimit > 0) {
