@@ -199,12 +199,7 @@ export default function BudgetsPage() {
                 <div className="lg:col-span-1">
                     <div className="lg:sticky lg:top-4">
                         <AvailableCategories
-                            categories={availableCategories.filter(cat => {
-                                // Filter credit-only categorieën uit
-                                const stats = categoryStats?.categories.find(s => s.categoryId === cat.id);
-                                // Alleen tonen als netto uitgave (negatief) of geen stats
-                                return !stats || stats.medianLast12Months <= 0;
-                            })}
+                            categories={availableCategories}
                             categoryStats={categoryStats}
                             onRefresh={refresh}
                         />

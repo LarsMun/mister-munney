@@ -279,15 +279,8 @@ class TransactionService
             throw new NotFoundHttpException("Categorie niet gevonden");
         }
 
-        // Valideer dat transactionType overeenkomt
-        if ($transaction->getTransactionType() !== $category->getTransactionType()) {
-            $transactionTypeNL = $transaction->getTransactionType() === TransactionType::DEBIT ? 'uitgave' : 'inkomst';
-            $categoryTypeNL = $category->getTransactionType() === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
-
-            throw new BadRequestHttpException(
-                "Categorie '{$category->getName()}' is voor {$categoryTypeNL}, maar deze transactie is een {$transactionTypeNL}."
-            );
-        }
+        // Categories can now contain both CREDIT and DEBIT transactions
+        // No validation needed for transaction type
 
         $transaction->setCategory($category);
 
@@ -323,26 +316,8 @@ class TransactionService
             throw new NotFoundHttpException("Geen transacties gevonden");
         }
 
-        // Valideer dat alle transacties het juiste type hebben
-        $categoryType = $category->getTransactionType();
-        $invalidTransactions = [];
-
-        foreach ($transactions as $transaction) {
-            if ($transaction->getTransactionType() !== $categoryType) {
-                $invalidTransactions[] = $transaction->getId();
-            }
-        }
-
-        if (!empty($invalidTransactions)) {
-            $transactionTypeNL = $categoryType === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
-            $count = count($invalidTransactions);
-
-            throw new BadRequestHttpException(
-                "Categorie '{$category->getName()}' is alleen voor {$transactionTypeNL}. {$count} geselecteerde transactie(s) hebben het verkeerde type."
-            );
-        }
-
-        // Als alles OK is, voer de bulk update uit
+        // Categories can now contain both CREDIT and DEBIT transactions
+        // No validation needed for transaction type - voer de bulk update uit
         $this->transactionRepository->bulkAssignCategory($transactionIds, $categoryId);
     }
 

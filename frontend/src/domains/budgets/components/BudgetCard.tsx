@@ -106,13 +106,26 @@ export function BudgetCard({
         return categoryStats?.categories.find(stat => stat.categoryId === categoryId);
     };
 
-    // Bereken totaal verwachte uitgaven (mediaan laatste 12 maanden)
+    // Bepaal het budget type op basis van de eerste categorie met stats
+    const getBudgetType = (): 'DEBIT' | 'CREDIT' | null => {
+        for (const category of budget.categories) {
+            const stats = getStatsForCategory(category.id);
+            if (stats) {
+                return stats.transactionType;
+            }
+        }
+        return null;
+    };
+
+    const budgetType = getBudgetType();
+
+    // Bereken totaal verwachte uitgaven/inkomsten (mediaan laatste 12 maanden)
     const calculateTotalExpected = () => {
         let total = 0;
         budget.categories.forEach(category => {
             const stats = getStatsForCategory(category.id);
             if (stats) {
-                total += Math.abs(stats.medianLast12Months);
+                total += stats.medianLast12Months;
             }
         });
         return total;
@@ -120,8 +133,15 @@ export function BudgetCard({
 
     const totalExpected = calculateTotalExpected();
     const currentBudgetAmount = budget.currentMonthlyAmount || 0;
-    const difference = currentBudgetAmount - totalExpected;
-    const isOverBudget = difference < 0;
+    
+    // Bereken of we over budget zijn, afhankelijk van het type
+    // Voor DEBIT (uitgaven): totalExpected is negatief, budget is negatief
+    //   - Als abs(totalExpected) > abs(budget) dan over budget
+    // Voor CREDIT (inkomsten): totalExpected is positief, budget is positief  
+    //   - Als totalExpected > budget dan over budget (meer verwacht dan budget)
+    const isOverBudget = budgetType === 'CREDIT'
+        ? totalExpected > currentBudgetAmount  // Voor inkomsten: verwachte inkomsten hoger dan budget is "over"
+        : Math.abs(totalExpected) > Math.abs(currentBudgetAmount); // Voor uitgaven: verwachte uitgaven hoger dan budget
 
     return (
         <div
@@ -202,7 +222,7 @@ export function BudgetCard({
         Verwacht totaal:
     </span>
                                 <span className={`text-sm font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
-        {formatMoney(totalExpected)}
+        {formatMoney(Math.abs(totalExpected))}
     </span>
                             </div>
                         )}

@@ -88,4 +88,24 @@ class BudgetRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Haalt alle budgetten met hun categorieën en versies op voor een specifieke maand.
+     * Inclusief eager loading voor betere performance.
+     */
+    public function findBudgetsWithCategoriesForMonth(Account $account, string $monthYear): array
+    {
+        return $this->createQueryBuilder('b')
+            ->leftJoin('b.budgetVersions', 'bv')
+            ->leftJoin('b.categories', 'c')
+            ->addSelect('bv', 'c')
+            ->where('b.account = :account')
+            ->andWhere('bv.effectiveFromMonth <= :monthYear')
+            ->andWhere('bv.effectiveUntilMonth IS NULL OR bv.effectiveUntilMonth >= :monthYear')
+            ->setParameter('account', $account)
+            ->setParameter('monthYear', $monthYear)
+            ->orderBy('b.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

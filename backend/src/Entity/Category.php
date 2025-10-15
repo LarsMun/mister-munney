@@ -3,7 +3,6 @@
 namespace App\Entity;
 
 use App\Category\Repository\CategoryRepository;
-use App\Enum\TransactionType;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -40,9 +39,6 @@ class Category
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?DateTimeImmutable $updatedAt = null;
-
-    #[ORM\Column(type: "string", enumType: TransactionType::class)]
-    private TransactionType $transactionType;
 
     #[ORM\ManyToOne(targetEntity: Account::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: "CASCADE")]
@@ -121,17 +117,6 @@ class Category
     {
         $this->updatedAt = $updatedAt;
 
-        return $this;
-    }
-
-    public function getTransactionType(): TransactionType
-    {
-        return $this->transactionType;
-    }
-
-    public function setTransactionType(TransactionType $transactionType): static
-    {
-        $this->transactionType = $transactionType;
         return $this;
     }
 

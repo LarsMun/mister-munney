@@ -144,9 +144,11 @@ export function AvailableCategories({ categories, categoryStats, onRefresh }: Av
                                         </div>
 
                                         {stats && (
-                                            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                                {formatMoney(Math.abs(stats.averagePerMonth))}/mnd
-                                            </span>
+                                            <div className="flex items-end">
+                                                <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                                                    Mediaan: {formatMoney(Math.abs(stats.medianLast12Months))}/mnd
+                                                </span>
+                                            </div>
                                         )}
 
                                         <div className="text-gray-400">⋮⋮</div>

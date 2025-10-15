@@ -125,16 +125,6 @@ class CategoryService
             throw new BadRequestHttpException('Naam is verplicht.');
         }
 
-        if (empty($data['transactionType'])) {
-            throw new BadRequestHttpException('TransactionType is verplicht.');
-        }
-
-        try {
-            $transactionType = TransactionType::from($data['transactionType']);
-        } catch (ValueError $e) {
-            throw new BadRequestHttpException('Ongeldige transactionType. Moet "debit" of "credit" zijn.');
-        }
-
         $account = $this->accountRepository->find($accountId);
         if (!$account) {
             throw new NotFoundHttpException('Account niet gevonden.');
@@ -146,14 +136,13 @@ class CategoryService
         ]);
 
         if ($existing) {
-            throw new ConflictHttpException("Een categorie met deze naam en account bestaat al.");
+            throw new ConflictHttpException("Een categorie met deze naam bestaat al voor dit account.");
         }
 
         $category = new Category();
         $category->setName($data['name']);
         $category->setIcon($data['icon'] ?? null);
         $category->setColor($data['color'] ?? null);
-        $category->setTransactionType($transactionType);
         $category->setAccount($account);
 
         $this->categoryRepository->save($category);
@@ -183,7 +172,7 @@ class CategoryService
             ]);
 
             if ($duplicate) {
-                throw new ConflictHttpException("Een categorie met deze naam en account bestaat al.");
+                throw new ConflictHttpException("Een categorie met deze naam bestaat al voor dit account.");
             }
 
             $category->setName($data['name']);
@@ -291,6 +280,12 @@ class CategoryService
                 $categoryId
             );
 
+            // Haal huidige maand bedrag op
+            $currentMonthTotal = $this->transactionRepository->getCurrentMonthTotalByCategory(
+                $accountId,
+                $categoryId
+            );
+
             // Bereken percentage
             $percentage = $totalSpentInCents > 0
                 ? round(($totalAmount / $totalSpentInCents) * 100, 2)
@@ -322,6 +317,9 @@ class CategoryService
                 ),
                 'trend' => $recentStats['trend'],
                 'trendPercentage' => $recentStats['trendPercentage'],
+                'currentMonthAmount' => $this->moneyFactory->toFloat(
+                    $this->moneyFactory->fromCents($currentMonthTotal)
+                ),
             ];
         }, $categoryStats);
 
