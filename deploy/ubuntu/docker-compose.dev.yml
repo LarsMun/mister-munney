@@ -1,50 +1,54 @@
 # Munney Development Environment
-# Usage: docker compose -f docker-compose.yml -f deploy/ubuntu/docker-compose.dev.yml up -d
+# Standalone development configuration - no base file needed
+# Usage: docker compose -f deploy/ubuntu/docker-compose.dev.yml up -d
 
 services:
-  backend:
+  munney-dev-backend:
     build:
-      context: ./backend
+      context: ../../backend
       dockerfile: Dockerfile
-    container_name: munney-backend-dev
+    container_name: munney-dev-backend
     restart: unless-stopped
     networks:
       - proxy
-      - munney-dev-internal
+      - munney-dev-network
     depends_on:
-      database-dev:
+      munney-dev-mysql:
         condition: service_healthy
     environment:
       APP_ENV: dev
       APP_DEBUG: "true"
-      DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_DEV}@database-dev:3306/money_db_dev?serverVersion=8.0&charset=utf8mb4"
-      CORS_ALLOW_ORIGIN: '^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$$'
+      DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_DEV}@munney-dev-mysql:3306/money_db_dev?serverVersion=8.0&charset=utf8mb4"
+      CORS_ALLOW_ORIGIN: '^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$'
     volumes:
-      - ./backend:/var/www/html
-      - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ../../backend:/var/www/html
+      - ../../backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
       - ~/.composer:/home/symfony/.composer:cached
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.munney-backend-dev.rule=Host(`devmunney.home.munne.me`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.munney-backend-dev.entrypoints=websecure"
-      - "traefik.http.routers.munney-backend-dev.tls=true"
-      - "traefik.http.routers.munney-backend-dev.tls.certresolver=le"
-      - "traefik.http.routers.munney-backend-dev.service=munney-backend-dev"
-      - "traefik.http.services.munney-backend-dev.loadbalancer.server.port=80"
+      - "traefik.http.routers.munney-dev-backend.rule=Host(`devmunney.home.munne.me`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.munney-dev-backend.entrypoints=websecure"
+      - "traefik.http.routers.munney-dev-backend.tls=true"
+      - "traefik.http.routers.munney-dev-backend.tls.certresolver=le"
+      - "traefik.http.routers.munney-dev-backend.service=munney-dev-backend"
+      - "traefik.http.services.munney-dev-backend.loadbalancer.server.port=80"
+      # Project labels
+      - "project=munney"
+      - "environment=development"
 
-  frontend:
+  munney-dev-frontend:
     build:
-      context: ./frontend
+      context: ../../frontend
       dockerfile: Dockerfile
-    container_name: munney-frontend-dev
+    container_name: munney-dev-frontend
     restart: unless-stopped
     networks:
       - proxy
     depends_on:
-      - backend
+      - munney-dev-backend
     volumes:
-      - ./frontend:/app
+      - ../../frontend:/app
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
@@ -53,27 +57,30 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.munney-frontend-dev.rule=Host(`devmunney.home.munne.me`)"
-      - "traefik.http.routers.munney-frontend-dev.entrypoints=websecure"
-      - "traefik.http.routers.munney-frontend-dev.tls=true"
-      - "traefik.http.routers.munney-frontend-dev.tls.certresolver=le"
-      - "traefik.http.routers.munney-frontend-dev.service=munney-frontend-dev"
-      - "traefik.http.services.munney-frontend-dev.loadbalancer.server.port=5173"
+      - "traefik.http.routers.munney-dev-frontend.rule=Host(`devmunney.home.munne.me`)"
+      - "traefik.http.routers.munney-dev-frontend.entrypoints=websecure"
+      - "traefik.http.routers.munney-dev-frontend.tls=true"
+      - "traefik.http.routers.munney-dev-frontend.tls.certresolver=le"
+      - "traefik.http.routers.munney-dev-frontend.service=munney-dev-frontend"
+      - "traefik.http.services.munney-dev-frontend.loadbalancer.server.port=5173"
+      # Project labels
+      - "project=munney"
+      - "environment=development"
 
-  database-dev:
+  munney-dev-mysql:
     image: mysql:8.0
-    container_name: munney-mysql-dev
+    container_name: munney-dev-mysql
     restart: unless-stopped
     networks:
-      - munney-dev-internal
+      - munney-dev-network
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD_DEV}
       MYSQL_DATABASE: money_db_dev
       MYSQL_USER: money
       MYSQL_PASSWORD: ${MYSQL_PASSWORD_DEV}
     volumes:
-      - db_data_dev:/var/lib/mysql
-      - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
+      - munney-dev-mysql-data:/var/lib/mysql
+      - ../../backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
     command: --default-time-zone='+00:00'
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD_DEV}"]
@@ -81,15 +88,18 @@ services:
       retries: 5
       start_period: 30s
     ports:
-      - "3334:3306"
+      - "3334:3306"  # Only for external database tools
+    labels:
+      - "project=munney"
+      - "environment=development"
 
 networks:
   proxy:
     external: true
-  munney-dev-internal:
-    name: munney-dev-internal
+  munney-dev-network:
+    name: munney-dev-network
     driver: bridge
 
 volumes:
-  db_data_dev:
-    name: munney_db_data_dev
+  munney-dev-mysql-data:
+    name: munney_dev_mysql_data
