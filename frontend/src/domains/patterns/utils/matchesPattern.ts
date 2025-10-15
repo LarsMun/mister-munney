@@ -34,7 +34,8 @@ export function matchesPattern(t: Transaction, pattern: PatternInput): boolean {
     const notesMatch = matchString(t.notes, pattern.notes, pattern.matchTypeNotes);
     const tagMatch = matchString(t.tag, pattern.tag, 'LIKE');
 
-    const typeMatch = !pattern.transactionType || t.transactionType === pattern.transactionType;
+    // If transactionType is not set, is 'both', or matches the transaction type, it's a match
+    const typeMatch = !pattern.transactionType || pattern.transactionType === 'both' || t.transactionType === pattern.transactionType;
 
     const amountMatch =
         (!pattern.minAmount && !pattern.maxAmount) ||
