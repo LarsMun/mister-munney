@@ -152,13 +152,12 @@ class CategoryController extends AbstractController
         path: '/api/account/{accountId}/categories',
         summary: 'Maak een nieuwe categorie aan',
         requestBody: new OA\RequestBody(
-            description: 'Categoriegegevens (name en transactionType zijn verplicht, icon en color zijn optioneel)',
+            description: 'Categoriegegevens (name is verplicht, icon en color zijn optioneel)',
             required: true,
             content: new OA\JsonContent(
-                required: ['name', 'transactionType'],
+                required: ['name'],
                 properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'Boodschappen'),
-                    new OA\Property(property: 'transactionType', type: 'string', enum: ['debit', 'credit'], example: 'debit'),
+                    new OA\Property(property: 'name', type: 'string', example: 'Apparaten'),
                     new OA\Property(property: 'icon', type: 'string', example: 'shopping-cart'),
                     new OA\Property(property: 'color', type: 'string', example: '#FF9900')
                 ]
@@ -197,7 +196,7 @@ class CategoryController extends AbstractController
         path: '/api/account/{accountId}/categories/{id}',
         summary: 'Werk een categorie bij',
         requestBody: new OA\RequestBody(
-            description: 'Bijgewerkte categorienaam en optionele eigenschappen (transactionType kan niet gewijzigd worden)',
+            description: 'Bijgewerkte categorienaam en optionele eigenschappen',
             required: true,
             content: new OA\JsonContent(
                 required: ['name'],

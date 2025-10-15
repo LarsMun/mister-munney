@@ -14,6 +14,7 @@ export interface CategoryStatistic {
     medianAll: number;
     trend: 'increasing' | 'stable' | 'decreasing';
     trendPercentage: number;
+    currentMonthAmount: number; // Huidige maand tot nu toe
 }
 
 export interface CategoryStatistics {

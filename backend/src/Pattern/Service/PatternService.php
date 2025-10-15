@@ -70,15 +70,8 @@ readonly class PatternService
             }
         }
 
-        // Valideer dat category's transactionType matcht met pattern's transactionType
-        if ($dto->transactionType !== null && $category->getTransactionType()->value !== $dto->transactionType) {
-            $patternTypeNL = $dto->transactionType === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
-            $categoryTypeNL = $category->getTransactionType() === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
-
-            throw new BadRequestHttpException(
-                "Categorie '{$category->getName()}' is voor {$categoryTypeNL}, maar dit patroon is voor {$patternTypeNL}."
-            );
-        }
+        // Categories can now contain both CREDIT and DEBIT transactions
+        // No validation needed for transaction type matching
 
         $savingsAccount = null;
         if ($dto->savingsAccountId !== null) {
@@ -116,15 +109,8 @@ readonly class PatternService
                 throw new NotFoundHttpException("Categorie met ID $dto->categoryId niet gevonden.");
             }
 
-            // Valideer dat category's transactionType matcht met pattern's transactionType
-            if ($dto->transactionType !== null && $category->getTransactionType()->value !== $dto->transactionType) {
-                $patternTypeNL = $dto->transactionType === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
-                $categoryTypeNL = $category->getTransactionType() === TransactionType::DEBIT ? 'uitgaven' : 'inkomsten';
-
-                throw new BadRequestHttpException(
-                    "Categorie '{$category->getName()}' is voor {$categoryTypeNL}, maar dit patroon is voor {$patternTypeNL}."
-                );
-            }
+            // Categories can now contain both CREDIT and DEBIT transactions
+            // No validation needed for transaction type matching
 
             $pattern->setCategory($category);
         }
