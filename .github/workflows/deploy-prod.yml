@@ -1,0 +1,97 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Manual trigger option
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: self-hosted
+    
+    steps:
+      - name: 📋 Pre-deployment checklist
+        run: |
+          echo "🚀 Starting Production Deployment"
+          echo "Target: https://munney.home.munne.me"
+          echo "Location: /srv/munney-prod"
+          
+      - name: 💾 Create database backup
+        run: |
+          cd /srv/munney-prod
+          source .env
+          BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
+          echo "Creating backup: munney_prod_${BACKUP_DATE}.sql"
+          if docker ps | grep -q munney-prod-mysql; then
+            docker exec munney-prod-mysql mysqldump -u root -p${MYSQL_ROOT_PASSWORD_PROD} money_db_prod > /srv/munney-prod/backups/munney_prod_${BACKUP_DATE}.sql 2>/dev/null || true
+            echo "✅ Backup created"
+          else
+            echo "⚠️  Database not running, skipping backup"
+          fi
+          
+      - name: 📥 Pull latest code from main
+        run: |
+          cd /srv/munney-prod
+          git fetch origin
+          git checkout main
+          git pull origin main
+          echo "✅ Code updated to latest main branch"
+          
+      - name: 🏗️  Build production images
+        run: |
+          cd /srv/munney-prod
+          echo "Building with no-cache for clean build..."
+          docker compose -f deploy/ubuntu/docker-compose.prod.yml build --no-cache
+          echo "✅ Images built"
+          
+      - name: 🔄 Deploy containers
+        run: |
+          cd /srv/munney-prod
+          docker compose -f deploy/ubuntu/docker-compose.prod.yml down
+          docker compose -f deploy/ubuntu/docker-compose.prod.yml up -d
+          echo "✅ Containers deployed"
+          
+      - name: ⏳ Wait for services
+        run: |
+          echo "Waiting 20 seconds for services to stabilize..."
+          sleep 20
+          
+      - name: 🗄️ Run database migrations
+        run: |
+          cd /srv/munney-prod
+          docker exec munney-prod-backend php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+          echo "✅ Migrations complete"
+          
+      - name: 🧹 Clear and warm cache
+        run: |
+          cd /srv/munney-prod
+          docker exec munney-prod-backend php bin/console cache:clear --env=prod
+          docker exec munney-prod-backend php bin/console cache:warmup --env=prod
+          echo "✅ Cache refreshed"
+          
+      - name: 🏥 Health check
+        run: |
+          echo "Running health checks..."
+          sleep 5
+          if curl -f -s https://munney.home.munne.me/ > /dev/null; then
+            echo "✅ Frontend responding"
+          else
+            echo "⚠️  Frontend check failed"
+            exit 1
+          fi
+          if curl -f -s https://munney.home.munne.me/api > /dev/null; then
+            echo "✅ Backend API responding"
+          else
+            echo "⚠️  Backend API check failed"
+            exit 1
+          fi
+          
+      - name: ✅ Deployment complete
+        run: |
+          echo "========================================"
+          echo "✅ Production deployment successful!"
+          echo "========================================"
+          echo "🌐 URL: https://munney.home.munne.me"
+          docker ps --filter 'label=project=munney' --filter 'label=environment=production'
