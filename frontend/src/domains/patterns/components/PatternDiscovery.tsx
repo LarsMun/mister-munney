@@ -68,20 +68,27 @@ export default function PatternDiscovery({ onSuccess }: Props) {
         setLoading(true);
         try {
             const edited = editedData[index];
-            const data = edited || {
-                categoryName: suggestion.suggestedCategoryName,
-                categoryId: suggestion.existingCategoryId,
-                patternString: suggestion.patternString
-            };
+
+            // Use edited data if available, otherwise use original suggestion
+            const patternString = edited?.patternString || suggestion.patternString;
+            const categoryName = edited?.categoryName || suggestion.suggestedCategoryName;
+            const categoryId = edited?.categoryId !== undefined ? edited.categoryId : suggestion.existingCategoryId;
+
+            // Validation: pattern string cannot be empty
+            if (!patternString || patternString.trim() === '') {
+                toast.error("Pattern string mag niet leeg zijn");
+                setLoading(false);
+                return;
+            }
 
             await acceptPatternSuggestion(accountId, {
-                patternString: data.patternString,
-                categoryName: data.categoryName,
-                categoryId: data.categoryId,
+                patternString: patternString,
+                categoryName: categoryName,
+                categoryId: categoryId,
                 categoryColor: undefined
             });
 
-            toast.success(`Patroon "${data.patternString}" geaccepteerd`);
+            toast.success(`Patroon "${patternString}" geaccepteerd`);
 
             // Remove accepted suggestion from list
             setSuggestions(prev => prev.filter((_, i) => i !== index));
@@ -126,7 +133,7 @@ export default function PatternDiscovery({ onSuccess }: Props) {
         setEditedData(prev => ({
             ...prev,
             [index]: {
-                ...prev[index],
+                patternString: prev[index]?.patternString || '',
                 categoryName: category?.name || prev[index]?.categoryName || '',
                 categoryId: category?.id || null
             }
