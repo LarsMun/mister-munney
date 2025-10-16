@@ -624,4 +624,23 @@ class TransactionRepository extends ServiceEntityRepository
 
         return (int) ($result ?? 0);
     }
+
+    /**
+     * Find uncategorized transactions for AI suggestions
+     *
+     * @param int $accountId
+     * @param int $limit
+     * @return Transaction[]
+     */
+    public function findUncategorizedTransactions(int $accountId, int $limit = 50): array
+    {
+        return $this->createQueryBuilder('t')
+            ->where('t.account = :accountId')
+            ->andWhere('t.category IS NULL')
+            ->setParameter('accountId', $accountId)
+            ->orderBy('t.date', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }
