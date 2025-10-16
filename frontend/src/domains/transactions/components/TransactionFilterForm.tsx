@@ -110,6 +110,17 @@ export default function TransactionFilterForm({
             };
             await createPattern(accountId, payload);
             toast.success("Patroon aangemaakt!");
+
+            // Clear filter form but keep toggles
+            const clearedFilters: FilterState = {
+                matchTypeDescription: "LIKE",
+                matchTypeNotes: "LIKE",
+                transactionType: "both",
+                strict: false,
+                withoutCategory: filters.withoutCategory,
+            };
+            onFilterChange(clearedFilters);
+
             onRefresh();
         } catch (error) {
             console.error(error);
