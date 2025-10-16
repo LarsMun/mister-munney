@@ -8,7 +8,7 @@ import { Sparkles, Check, X, ChevronDown, ChevronUp, Edit2 } from "lucide-react"
 import { formatMoney } from "../../../shared/utils/MoneyFormat";
 import CategoryCombobox from "../../categories/components/CategoryCombobox";
 import { Category } from "../../categories/models/Category";
-import { getCategories } from "../../categories/services/CategoryService";
+import { fetchCategories } from "../../categories/services/CategoryService";
 
 interface Props {
     onSuccess?: () => void;
@@ -37,7 +37,7 @@ export default function PatternDiscovery({ onSuccess }: Props) {
 
     const loadCategories = async () => {
         try {
-            const cats = await getCategories(accountId);
+            const cats = await fetchCategories(accountId);
             setCategories(cats);
         } catch (error) {
             console.error("Failed to load categories", error);
