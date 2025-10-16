@@ -1,6 +1,7 @@
 // src/domains/transactions/components/PeriodPicker.tsx
 import { useEffect, useState } from "react";
 import {formatDateToLocalString, formatMonthFull} from "../../../shared/utils/DateFormat";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
     months: string[];
@@ -84,8 +85,43 @@ export default function PeriodPicker({ months, onChange }: Props) {
         }
     }, [periodType, selectedYear, selectedMonth, selectedQuarter, selectedHalf]);
 
+    // Logica voor vorige/volgende maand navigatie (alleen bij periodType "month")
+    const currentMonthKey = `${selectedYear}-${selectedMonth}`;
+    const currentMonthIndex = months.indexOf(currentMonthKey);
+
+    const hasPreviousMonth = periodType === "month" && currentMonthIndex < months.length - 1;
+    const hasNextMonth = periodType === "month" && currentMonthIndex > 0;
+
+    const goToPreviousMonth = () => {
+        if (hasPreviousMonth && currentMonthIndex !== -1) {
+            const previousMonth = months[currentMonthIndex + 1];
+            const [year, month] = previousMonth.split("-");
+            setSelectedYear(year);
+            setSelectedMonth(month);
+        }
+    };
+
+    const goToNextMonth = () => {
+        if (hasNextMonth && currentMonthIndex !== -1) {
+            const nextMonth = months[currentMonthIndex - 1];
+            const [year, month] = nextMonth.split("-");
+            setSelectedYear(year);
+            setSelectedMonth(month);
+        }
+    };
+
     return (
         <div className="flex items-center gap-2">
+            {hasPreviousMonth && (
+                <button
+                    onClick={goToPreviousMonth}
+                    className="p-1 rounded hover:bg-gray-100 border border-gray-300 bg-white"
+                    title="Vorige maand"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+            )}
+
             <select
                 value={periodType}
                 onChange={(e) => setPeriodType(e.target.value as any)}
@@ -150,6 +186,16 @@ export default function PeriodPicker({ months, onChange }: Props) {
                     </option>
                 ))}
             </select>
+
+            {hasNextMonth && (
+                <button
+                    onClick={goToNextMonth}
+                    className="p-1 rounded hover:bg-gray-100 border border-gray-300 bg-white"
+                    title="Volgende maand"
+                >
+                    <ChevronRight className="w-5 h-5" />
+                </button>
+            )}
         </div>
     );
 }
