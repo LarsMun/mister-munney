@@ -40,7 +40,12 @@ export default function TransactionPage() {
         importTransactions,
     } = useTransactions();
 
-    const [filters, setFilters] = useState<FilterState>({});
+    const [filters, setFilters] = useState<FilterState>({
+        matchTypeDescription: "LIKE",
+        matchTypeNotes: "LIKE",
+        transactionType: "both",
+        strict: false,
+    });
     const [filterByPeriod, setFilterByPeriod] = useState(false);
     const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
 
@@ -92,6 +97,17 @@ export default function TransactionPage() {
         }
     };
 
+    // Handlers for clicking description/notes in transaction drawer
+    const handleFilterByDescription = (description: string) => {
+        const newFilters = { ...filters, description };
+        setFilters(newFilters);
+    };
+
+    const handleFilterByNotes = (notes: string) => {
+        const newFilters = { ...filters, notes };
+        setFilters(newFilters);
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <Toaster position="top-center" />
@@ -109,6 +125,7 @@ export default function TransactionPage() {
 
             <TransactionFilterForm
                 accountId={accountId!}
+                filters={filters}
                 onFilterChange={setFilters}
                 onRefresh={handleRefresh}
                 filterByPeriod={filterByPeriod}
@@ -131,6 +148,8 @@ export default function TransactionPage() {
                     accountId={accountId!}
                     transactions={filteredTransactions}
                     refresh={handleRefresh}
+                    onFilterByDescription={handleFilterByDescription}
+                    onFilterByNotes={handleFilterByNotes}
                 />
             )}
         </div>
