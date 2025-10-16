@@ -140,14 +140,14 @@ export default function TransactionFilterForm({
             </div>
 
             {/* Rij 1: Omschrijving + matchtype + notities + matchtype */}
-            <div className="flex gap-4 items-end mb-3">
+            <div className="flex gap-4 items-start mb-3">
                 <div className="flex-1">
                     <label className="block text-xs font-medium text-gray-600">Omschrijving</label>
                     <input
                         type="text"
                         value={filters.description ?? ""}
                         onChange={(e) => updateFilter("description", e.target.value)}
-                        className="w-full border rounded p-1 h-8"
+                        className="w-full border rounded p-1 h-8 text-xs"
                         placeholder="Zoek in omschrijving..."
                     />
                 </div>
@@ -169,7 +169,7 @@ export default function TransactionFilterForm({
                     <textarea
                         value={filters.notes ?? ""}
                         onChange={(e) => updateFilter("notes", e.target.value)}
-                        className="w-full border rounded p-1 resize-none"
+                        className="w-full border rounded p-1 resize-none text-xs"
                         placeholder="Zoek in notities..."
                         rows={2}
                     />
