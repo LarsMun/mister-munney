@@ -165,7 +165,7 @@ class AiPatternDiscoveryController extends AbstractController
         }
 
         try {
-            $dto = $this->payloadMapper->map($data, AcceptPatternSuggestionDTO::class);
+            $dto = $this->payloadMapper->map($data, new AcceptPatternSuggestionDTO());
         } catch (\Exception $e) {
             throw new BadRequestHttpException('Validatiefout: ' . $e->getMessage());
         }
