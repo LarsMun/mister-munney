@@ -105,8 +105,7 @@ class AiCategorizationService
     {
         $categoryList = array_map(fn(Category $c) => [
             'id' => $c->getId(),
-            'name' => $c->getName(),
-            'type' => $c->getTransactionType()->value
+            'name' => $c->getName()
         ], $categories);
 
         $transactionList = array_map(fn(Transaction $t) => [
