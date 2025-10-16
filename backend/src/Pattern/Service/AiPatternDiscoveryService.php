@@ -9,7 +9,7 @@ use Psr\Log\LoggerInterface;
 
 class AiPatternDiscoveryService
 {
-    private const MAX_TRANSACTIONS_FOR_ANALYSIS = 200;
+    private const MAX_TRANSACTIONS_FOR_ANALYSIS = 1000;
 
     public function __construct(
         private readonly LoggerInterface $logger,
