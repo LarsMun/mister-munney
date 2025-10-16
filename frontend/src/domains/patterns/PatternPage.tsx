@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useState} from "react";
 import PatternList from "./components/PatternList";
 import PatternForm from "./components/PatternForm.tsx";
+import PatternDiscovery from "./components/PatternDiscovery.tsx";
 import {useRequiredAccount} from "../../app/context/AccountContext.tsx";
 import {PatternDTO} from "./models/PatternDTO.ts";
 import {getPatternsForAccount} from "./services/PatternService.ts";
@@ -45,28 +46,44 @@ export default function PatternPage() {
     }, [refresh]);
 
     return (
-        <div className="p-4 space-y-4">
-            <h1 className="text-xl font-semibold">
-                {editingPattern ? "Patroon bewerken" : "Patroon toevoegen"}
-            </h1>
-            <PatternForm
-                prefill={prefill}
-                editPattern={editingPattern}
-                onSuccess={handleSuccess}
-            />
-            {editingPattern && (
-                <button
-                    onClick={() => setEditingPattern(undefined)}
-                    className="text-sm text-gray-600 hover:text-gray-800 underline"
-                >
-                    ← Annuleren en nieuw patroon maken
-                </button>
-            )}
-            <h2 className="text-xl font-semibold">Patronen beheren</h2>
-            <PatternList
-                resetSignal={resetSignal}
-                onEdit={setEditingPattern}
-            />
+        <div className="p-4 space-y-6">
+            {/* AI Pattern Discovery Section */}
+            <div>
+                <h1 className="text-xl font-semibold mb-4">AI Patroonontdekking</h1>
+                <PatternDiscovery onSuccess={handleSuccess} />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200" />
+
+            {/* Manual Pattern Creation Section */}
+            <div>
+                <h1 className="text-xl font-semibold">
+                    {editingPattern ? "Patroon bewerken" : "Patroon toevoegen"}
+                </h1>
+                <PatternForm
+                    prefill={prefill}
+                    editPattern={editingPattern}
+                    onSuccess={handleSuccess}
+                />
+                {editingPattern && (
+                    <button
+                        onClick={() => setEditingPattern(undefined)}
+                        className="text-sm text-gray-600 hover:text-gray-800 underline"
+                    >
+                        ← Annuleren en nieuw patroon maken
+                    </button>
+                )}
+            </div>
+
+            {/* Pattern List Section */}
+            <div>
+                <h2 className="text-xl font-semibold mb-4">Patronen beheren</h2>
+                <PatternList
+                    resetSignal={resetSignal}
+                    onEdit={setEditingPattern}
+                />
+            </div>
         </div>
     );
 }
