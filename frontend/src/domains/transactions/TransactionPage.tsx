@@ -6,10 +6,12 @@ import { useAccount } from "../../app/context/AccountContext.tsx";
 import SummaryBar from "./components/SummaryBar.tsx";
 import PeriodPicker from "./components/PeriodPicker.tsx";
 import TransactionFilterForm from "./components/TransactionFilterForm.tsx";
+import AiSuggestionsModal from "./components/AiSuggestionsModal.tsx";
 import { getAllTransactions } from "./services/TransactionsService";
 import { matchesPattern } from "../patterns/utils/matchesPattern";
 import type { Transaction } from "./models/Transaction";
 import { toast } from "react-hot-toast";
+import { useCategories } from "../categories/hooks/useCategories";
 
 interface FilterState {
     description?: string;
@@ -49,6 +51,8 @@ export default function TransactionPage() {
     });
     const [filterByPeriod, setFilterByPeriod] = useState(false);
     const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const { categories } = useCategories(accountId!);
 
     // Fetch all transactions on mount (default behavior)
     useEffect(() => {
@@ -137,6 +141,16 @@ export default function TransactionPage() {
                 filterByPeriod={filterByPeriod}
                 onFilterByPeriodChange={handleFilterByPeriodChange}
                 filteredTransactions={filteredTransactions}
+                onOpenAiSuggestions={() => setAiModalOpen(true)}
+            />
+
+            <AiSuggestionsModal
+                accountId={accountId!}
+                open={aiModalOpen}
+                onClose={() => setAiModalOpen(false)}
+                onSuccess={handleRefresh}
+                transactions={allTransactions}
+                categories={categories.map(c => ({ id: c.id, name: c.name, color: c.color }))}
             />
 
             {summary && startDate && (
