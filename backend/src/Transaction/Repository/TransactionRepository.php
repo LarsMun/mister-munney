@@ -657,7 +657,7 @@ class TransactionRepository extends ServiceEntityRepository
             ->andWhere('t.category IS NULL')
             ->setParameter('accountId', $accountId)
             ->orderBy('t.date', 'DESC')
-            ->setMaxResults(200) // Limit for AI processing
+            ->setMaxResults(1000) // Limit for AI processing
             ->getQuery()
             ->getResult();
     }
