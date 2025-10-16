@@ -166,12 +166,12 @@ export default function TransactionFilterForm({
 
                 <div className="flex-1">
                     <label className="block text-xs font-medium text-gray-600">Notities</label>
-                    <input
-                        type="text"
+                    <textarea
                         value={filters.notes ?? ""}
                         onChange={(e) => updateFilter("notes", e.target.value)}
-                        className="w-full border rounded p-1 h-8"
+                        className="w-full border rounded p-1 resize-none"
                         placeholder="Zoek in notities..."
+                        rows={2}
                     />
                 </div>
 
