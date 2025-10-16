@@ -41,41 +41,51 @@ export default function TransactionPage() {
     } = useTransactions();
 
     const [filters, setFilters] = useState<FilterState>({});
-    const [ignorePeriod, setIgnorePeriod] = useState(false);
+    const [filterByPeriod, setFilterByPeriod] = useState(false);
     const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
 
-    // Fetch all transactions when ignorePeriod is enabled
+    // Fetch all transactions on mount (default behavior)
     useEffect(() => {
-        if (ignorePeriod && accountId) {
+        if (accountId) {
             getAllTransactions(accountId)
                 .then(setAllTransactions)
                 .catch(() => toast.error("Fout bij ophalen alle transacties"));
         }
-    }, [ignorePeriod, accountId]);
+    }, [accountId]);
+
+    // Check if any filters are applied (excluding categoryId/savingsAccountId which are for pattern creation)
+    const hasFilters = Object.entries(filters).some(([key, value]) => {
+        // Don't count categoryId, savingsAccountId, or strict as filters for transaction display
+        if (key === 'categoryId' || key === 'savingsAccountId' || key === 'strict') return false;
+        // Don't count default values (matchType selectors and transactionType "both")
+        if (key === 'matchTypeDescription' || key === 'matchTypeNotes' || key === 'transactionType') return false;
+        // Only count actual filter values (description, notes, tag, dates, amounts)
+        return value !== undefined && value !== "" && value !== null;
+    });
 
     // Apply filters to transactions
-    const transactionsToFilter = ignorePeriod ? allTransactions : transactions;
+    // Logic: No filters = show period transactions
+    //        Has filters + filterByPeriod unchecked = show all transactions
+    //        Has filters + filterByPeriod checked = show period transactions
+    const transactionsToFilter = (!hasFilters || filterByPeriod) ? transactions : allTransactions;
+
     const filteredTransactions = transactionsToFilter.filter(t => {
-        // If no filters are set, show all
-        const hasFilters = Object.values(filters).some(v => v !== undefined && v !== "" && v !== null);
+        // If no filters are set, show all from the selected source
         if (!hasFilters) return true;
 
         // Use matchesPattern utility
         return matchesPattern(t, filters as any);
     });
 
-    const handleIgnorePeriodChange = (ignore: boolean) => {
-        setIgnorePeriod(ignore);
-        if (!ignore) {
-            setAllTransactions([]);
-        }
+    const handleFilterByPeriodChange = (filter: boolean) => {
+        setFilterByPeriod(filter);
     };
 
     // Combined refresh function that handles both period-based and all transactions
     const handleRefresh = () => {
         refresh(); // Always refresh period-based transactions
-        if (ignorePeriod && accountId) {
-            // Also refresh all transactions if ignore period is active
+        if (accountId) {
+            // Also refresh all transactions
             getAllTransactions(accountId)
                 .then(setAllTransactions)
                 .catch(() => toast.error("Fout bij ophalen alle transacties"));
@@ -101,8 +111,8 @@ export default function TransactionPage() {
                 accountId={accountId!}
                 onFilterChange={setFilters}
                 onRefresh={handleRefresh}
-                ignorePeriod={ignorePeriod}
-                onIgnorePeriodChange={handleIgnorePeriodChange}
+                filterByPeriod={filterByPeriod}
+                onFilterByPeriodChange={handleFilterByPeriodChange}
                 filteredTransactions={filteredTransactions}
             />
 
