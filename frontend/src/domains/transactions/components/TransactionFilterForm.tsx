@@ -19,6 +19,7 @@ interface FilterState {
     categoryId?: number;
     savingsAccountId?: number;
     strict?: boolean;
+    withoutCategory?: boolean;
 }
 
 interface Props {
@@ -121,6 +122,15 @@ export default function TransactionFilterForm({
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Filters</h2>
                 <div className="flex gap-2">
+                    <label className="inline-flex items-center text-sm">
+                        <input
+                            type="checkbox"
+                            checked={filters.withoutCategory ?? false}
+                            onChange={(e) => updateFilter("withoutCategory", e.target.checked)}
+                            className="mr-2"
+                        />
+                        Alleen zonder categorie
+                    </label>
                     <label className="inline-flex items-center text-sm">
                         <input
                             type="checkbox"
