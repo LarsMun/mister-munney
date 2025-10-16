@@ -78,39 +78,14 @@ export default function TransactionTable({ accountId, transactions, refresh }: P
     };
 
     const { categories, setCategories } = useCategories(accountId);
-    const [selectedTransactions, setSelectedTransactions] = useState<number[]>([]);
-
-    const toggleTransactionSelection = (id: number) => {
-        setSelectedTransactions((prev) =>
-            prev.includes(id) ? prev.filter((tid) => tid !== id) : [...prev, id]
-        );
-    };
-
-    const toggleAllTransactions = () => {
-        if (selectedTransactions.length === transactions.length) {
-            setSelectedTransactions([]);
-        } else {
-            setSelectedTransactions(transactions.map((t) => t.id));
-        }
-    };
 
     return (
         <div className="overflow-x-auto rounded-xl border border-gray-200 shadow">
-            {selectedTransactions.length > 0 && (
-                <div className="flex items-center gap-4 mb-4 p-2 bg-blue-50 border border-blue-300 rounded">
-                    <span className="text-sm text-gray-600">{selectedTransactions.length} geselecteerd</span>
-                </div>
-            )}
-
             <table className="min-w-full table-fixed text-left text-sm">
                 <thead className="bg-gray-50">
                 <tr>
-                    <th className="w-4 px-2">
-                        <input
-                            type="checkbox"
-                            checked={selectedTransactions.length === transactions.length}
-                            onChange={toggleAllTransactions}
-                        />
+                    <th className="w-16 px-2 py-3 font-semibold text-center">
+                        #
                     </th>
                     <th
                         className="w-32 px-4 py-3 font-semibold cursor-pointer"
@@ -143,18 +118,14 @@ export default function TransactionTable({ accountId, transactions, refresh }: P
                 </thead>
                 <tbody>
 
-                {sortedTransactions.map((t) => (
+                {sortedTransactions.map((t, index) => (
                     <React.Fragment key={t.id}>
                         <tr
                             onClick={() => setSelectedTx(t)}
                             className="border-t hover:bg-gray-50 cursor-pointer"
                         >
-                            <td className="w-4 px-2" onClick={(e) => e.stopPropagation()}>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedTransactions.includes(t.id)}
-                                    onChange={() => toggleTransactionSelection(t.id)}
-                                />
+                            <td className="w-16 px-2 py-2 text-center text-gray-500 text-xs">
+                                {index + 1}
                             </td>
                             <td className="w-32 px-4 py-2">{formatDate(t.date)}</td>
                             <td className="w-96 px-4 py-2">{t.description}</td>

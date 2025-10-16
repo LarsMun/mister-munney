@@ -25,8 +25,8 @@ interface Props {
     accountId: number;
     onFilterChange: (filters: FilterState) => void;
     onRefresh: () => void;
-    ignorePeriod: boolean;
-    onIgnorePeriodChange: (ignore: boolean) => void;
+    filterByPeriod: boolean;
+    onFilterByPeriodChange: (filter: boolean) => void;
     filteredTransactions: Transaction[];
 }
 
@@ -44,8 +44,8 @@ export default function TransactionFilterForm({
     accountId,
     onFilterChange,
     onRefresh,
-    ignorePeriod,
-    onIgnorePeriodChange,
+    filterByPeriod,
+    onFilterByPeriodChange,
     filteredTransactions
 }: Props) {
     const [filters, setFilters] = useState<FilterState>({
@@ -99,7 +99,7 @@ export default function TransactionFilterForm({
         };
         setFilters(emptyFilters);
         onFilterChange(emptyFilters);
-        onIgnorePeriodChange(false);
+        onFilterByPeriodChange(false);
     };
 
     const handleCreatePattern = async () => {
@@ -130,11 +130,11 @@ export default function TransactionFilterForm({
                     <label className="inline-flex items-center text-sm">
                         <input
                             type="checkbox"
-                            checked={ignorePeriod}
-                            onChange={(e) => onIgnorePeriodChange(e.target.checked)}
+                            checked={filterByPeriod}
+                            onChange={(e) => onFilterByPeriodChange(e.target.checked)}
                             className="mr-2"
                         />
-                        Negeer geselecteerde periode
+                        Filter binnen geselecteerde periode
                     </label>
                     <button
                         onClick={clearAllFilters}
