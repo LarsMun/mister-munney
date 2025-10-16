@@ -1,13 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTransactions } from './hooks/useTransactions';
 import TransactionTable from './components/TransactionTable';
 import { Toaster } from 'react-hot-toast';
 import { useAccount } from "../../app/context/AccountContext.tsx";
 import SummaryBar from "./components/SummaryBar.tsx";
-import TreeMapChartIncome from "./components/TreeMapChartIncome.tsx";
-import TreeMapChartExpenses from "./components/TreeMapChartExpenses.tsx";
-import FilterBar from "./components/FilterBar.tsx";
 import PeriodPicker from "./components/PeriodPicker.tsx";
+import TransactionFilterForm from "./components/TransactionFilterForm.tsx";
+import { getAllTransactions } from "./services/TransactionsService";
+import { matchesPattern } from "../patterns/utils/matchesPattern";
+import type { Transaction } from "./models/Transaction";
+import { toast } from "react-hot-toast";
+
+interface FilterState {
+    description?: string;
+    matchTypeDescription?: "LIKE" | "EXACT";
+    notes?: string;
+    matchTypeNotes?: "LIKE" | "EXACT";
+    tag?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    startDate?: string;
+    endDate?: string;
+    transactionType?: "debit" | "credit" | "both";
+    categoryId?: number;
+    savingsAccountId?: number;
+    strict?: boolean;
+}
 
 export default function TransactionPage() {
     const { accountId } = useAccount();
@@ -17,44 +35,78 @@ export default function TransactionPage() {
         setStartDate,
         setEndDate,
         summary,
-        treeMapData,
         transactions,
         refresh,
         importTransactions,
     } = useTransactions();
 
-    const [selection, setSelection] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
-    const [finalSelection, setFinalSelection] = useState<{ start: string; end: string } | null>(null);
+    const [filters, setFilters] = useState<FilterState>({
+        matchTypeDescription: "LIKE",
+        matchTypeNotes: "LIKE",
+        transactionType: "both",
+        strict: false,
+    });
+    const [filterByPeriod, setFilterByPeriod] = useState(false);
+    const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
 
-    const clearSelection = () => {
-        setFinalSelection(null);
-        setSelection({ start: null, end: null });
-    };
-
-    const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
-
-    const handleToggleCategory = (name: string) => {
-        setSelectedCategoryNames(prev =>
-            prev.includes(name)
-                ? prev.filter(n => n !== name)
-                : [...prev, name]
-        );
-    };
-
-    // Filter transacties
-    const filteredTransactions = transactions.filter(t => {
-        if (selection.start && selection.end && (t.date < selection.start || t.date > selection.end)) {
-            return false;
+    // Fetch all transactions on mount (default behavior)
+    useEffect(() => {
+        if (accountId) {
+            getAllTransactions(accountId)
+                .then(setAllTransactions)
+                .catch(() => toast.error("Fout bij ophalen alle transacties"));
         }
-        if (selectedCategoryNames.length > 0) {
-            if (!t.category) return selectedCategoryNames.includes("Niet ingedeeld");
-            if (!selectedCategoryNames.includes(t.category.name)) return false;
-        }
-        return true;
+    }, [accountId]);
+
+    // Check if any filters are applied (excluding categoryId/savingsAccountId which are for pattern creation)
+    const hasFilters = Object.entries(filters).some(([key, value]) => {
+        // Don't count categoryId, savingsAccountId, or strict as filters for transaction display
+        if (key === 'categoryId' || key === 'savingsAccountId' || key === 'strict') return false;
+        // Don't count default values (matchType selectors and transactionType "both")
+        if (key === 'matchTypeDescription' || key === 'matchTypeNotes' || key === 'transactionType') return false;
+        // Only count actual filter values (description, notes, tag, dates, amounts)
+        return value !== undefined && value !== "" && value !== null;
     });
 
-    // Keuze welke grafiek actief is
-    const [chartType, setChartType] = useState<'treeMapDebit' | 'treeMapCredit'>('treeMapDebit');
+    // Apply filters to transactions
+    // Logic: No filters = show period transactions
+    //        Has filters + filterByPeriod unchecked = show all transactions
+    //        Has filters + filterByPeriod checked = show period transactions
+    const transactionsToFilter = (!hasFilters || filterByPeriod) ? transactions : allTransactions;
+
+    const filteredTransactions = transactionsToFilter.filter(t => {
+        // If no filters are set, show all from the selected source
+        if (!hasFilters) return true;
+
+        // Use matchesPattern utility
+        return matchesPattern(t, filters as any);
+    });
+
+    const handleFilterByPeriodChange = (filter: boolean) => {
+        setFilterByPeriod(filter);
+    };
+
+    // Combined refresh function that handles both period-based and all transactions
+    const handleRefresh = () => {
+        refresh(); // Always refresh period-based transactions
+        if (accountId) {
+            // Also refresh all transactions
+            getAllTransactions(accountId)
+                .then(setAllTransactions)
+                .catch(() => toast.error("Fout bij ophalen alle transacties"));
+        }
+    };
+
+    // Handlers for clicking description/notes in transaction drawer
+    const handleFilterByDescription = (description: string) => {
+        const newFilters = { ...filters, description };
+        setFilters(newFilters);
+    };
+
+    const handleFilterByNotes = (notes: string) => {
+        const newFilters = { ...filters, notes };
+        setFilters(newFilters);
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -71,37 +123,15 @@ export default function TransactionPage() {
                 />
             </header>
 
-            <div className="my-8">
-                {/* Toggle knoppen voor grafieksoorten */}
-                <div className="flex justify-start mb-4">
-                    <button
-                        className={`px-3 py-1 mx-2 text-xs ${chartType === 'treeMapDebit' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                        onClick={() => setChartType('treeMapDebit')}
-                    >
-                        Uitgaven
-                    </button>
-                    <button
-                        className={`px-3 py-1 mx-2 text-xs ${chartType === 'treeMapCredit' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                        onClick={() => setChartType('treeMapCredit')}
-                    >
-                        Inkomsten
-                    </button>
-                </div>
-
-                <div className="h-96">
-                    {chartType === 'treeMapDebit' && treeMapData && (
-                        <TreeMapChartExpenses
-                            treeMapData={treeMapData}
-                            onSelectCategory={handleToggleCategory}
-                        />
-                    )}
-                    {chartType === 'treeMapCredit' && treeMapData && (
-                        <TreeMapChartIncome
-                            categoryData={treeMapData.credit}
-                        />
-                    )}
-                </div>
-            </div>
+            <TransactionFilterForm
+                accountId={accountId!}
+                filters={filters}
+                onFilterChange={setFilters}
+                onRefresh={handleRefresh}
+                filterByPeriod={filterByPeriod}
+                onFilterByPeriodChange={handleFilterByPeriodChange}
+                filteredTransactions={filteredTransactions}
+            />
 
             {summary && startDate && (
                 <SummaryBar
@@ -111,24 +141,16 @@ export default function TransactionPage() {
                 />
             )}
 
-            {transactions.length === 0 ? (
+            {filteredTransactions.length === 0 ? (
                 <p className="text-gray-500">Geen transacties gevonden.</p>
             ) : (
-                <>
-                    <FilterBar
-                        selectedCategoryNames={selectedCategoryNames}
-                        clearCategory={(name) =>
-                            setSelectedCategoryNames((prev) => prev.filter((n) => n !== name))
-                        }
-                        finalSelection={finalSelection}
-                        clearDateSelection={clearSelection}
-                    />
-                    <TransactionTable
-                        accountId={accountId!}
-                        transactions={filteredTransactions}
-                        refresh={refresh}
-                    />
-                </>
+                <TransactionTable
+                    accountId={accountId!}
+                    transactions={filteredTransactions}
+                    refresh={handleRefresh}
+                    onFilterByDescription={handleFilterByDescription}
+                    onFilterByNotes={handleFilterByNotes}
+                />
             )}
         </div>
     );
