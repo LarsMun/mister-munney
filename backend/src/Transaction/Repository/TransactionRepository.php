@@ -643,4 +643,22 @@ class TransactionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Find all uncategorized transactions for pattern discovery
+     *
+     * @param int $accountId
+     * @return Transaction[]
+     */
+    public function findUncategorizedByAccount(int $accountId): array
+    {
+        return $this->createQueryBuilder('t')
+            ->where('t.account = :accountId')
+            ->andWhere('t.category IS NULL')
+            ->setParameter('accountId', $accountId)
+            ->orderBy('t.date', 'DESC')
+            ->setMaxResults(200) // Limit for AI processing
+            ->getQuery()
+            ->getResult();
+    }
 }

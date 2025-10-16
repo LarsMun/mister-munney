@@ -28,5 +28,9 @@ services:
         arguments:
             $openaiApiKey: '%env(OPENAI_API_KEY)%'
 
+    App\Pattern\Service\AiPatternDiscoveryService:
+        arguments:
+            $openaiApiKey: '%env(OPENAI_API_KEY)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

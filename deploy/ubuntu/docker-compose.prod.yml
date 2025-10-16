@@ -21,6 +21,7 @@ services:
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_PROD}@munney-prod-mysql:3306/money_db_prod?serverVersion=8.0&charset=utf8mb4"
       CORS_ALLOW_ORIGIN: '^https://munney\.home\.munne\.me$'
       APP_SECRET: ${APP_SECRET_PROD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     # NO VOLUMES IN PRODUCTION - use the built image
     labels:
       - "traefik.enable=true"
