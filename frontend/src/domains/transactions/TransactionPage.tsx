@@ -25,6 +25,7 @@ interface FilterState {
     categoryId?: number;
     savingsAccountId?: number;
     strict?: boolean;
+    withoutCategory?: boolean;
 }
 
 export default function TransactionPage() {
@@ -60,8 +61,8 @@ export default function TransactionPage() {
 
     // Check if any filters are applied (excluding categoryId/savingsAccountId which are for pattern creation)
     const hasFilters = Object.entries(filters).some(([key, value]) => {
-        // Don't count categoryId, savingsAccountId, or strict as filters for transaction display
-        if (key === 'categoryId' || key === 'savingsAccountId' || key === 'strict') return false;
+        // Don't count categoryId, savingsAccountId, strict, or withoutCategory as filters for transaction display
+        if (key === 'categoryId' || key === 'savingsAccountId' || key === 'strict' || key === 'withoutCategory') return false;
         // Don't count default values (matchType selectors and transactionType "both")
         if (key === 'matchTypeDescription' || key === 'matchTypeNotes' || key === 'transactionType') return false;
         // Only count actual filter values (description, notes, tag, dates, amounts)
@@ -75,6 +76,11 @@ export default function TransactionPage() {
     const transactionsToFilter = (!hasFilters || filterByPeriod) ? transactions : allTransactions;
 
     const filteredTransactions = transactionsToFilter.filter(t => {
+        // Apply "without category" filter first
+        if (filters.withoutCategory && t.category) {
+            return false;
+        }
+
         // If no filters are set, show all from the selected source
         if (!hasFilters) return true;
 
