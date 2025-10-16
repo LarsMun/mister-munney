@@ -111,7 +111,7 @@ class AiCategorizationService
         $transactionList = array_map(fn(Transaction $t) => [
             'id' => $t->getId(),
             'description' => $t->getDescription(),
-            'amount' => (float) $t->getAmount(),
+            'amount' => $t->getAmount() ? (float) $t->getAmount()->getAmount() / 100 : 0,
             'type' => $t->getTransactionType()->value,
             'counterparty' => $t->getCounterpartyAccount(),
             'mutationType' => $t->getMutationType()
