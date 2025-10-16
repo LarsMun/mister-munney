@@ -79,3 +79,43 @@ export async function deletePatternsWithoutCategory(accountId: number): Promise<
     const response = await api.delete(`/account/${accountId}/patterns/without-category`);
     return response.data;
 }
+
+export interface PatternSuggestion {
+    patternString: string;
+    suggestedCategoryName: string;
+    existingCategoryId: number | null;
+    matchCount: number;
+    exampleTransactions: Array<{
+        id: number;
+        description: string;
+        amount: number;
+        date: string;
+    }>;
+    confidence: number;
+    reasoning: string;
+}
+
+export async function discoverPatterns(accountId: number): Promise<{
+    patterns: PatternSuggestion[];
+    totalUncategorized: number;
+}> {
+    const response = await api.post(`/account/${accountId}/patterns/discover`);
+    return response.data;
+}
+
+export async function acceptPatternSuggestion(
+    accountId: number,
+    suggestion: {
+        patternString: string;
+        categoryName: string;
+        categoryId?: number | null;
+        categoryColor?: string | null;
+    }
+): Promise<{
+    message: string;
+    pattern: PatternDTO;
+    appliedToTransactions: number;
+}> {
+    const response = await api.post(`/account/${accountId}/patterns/discover/accept`, suggestion);
+    return response.data;
+}
