@@ -9,7 +9,7 @@ use Psr\Log\LoggerInterface;
 
 class AiPatternDiscoveryService
 {
-    private const MAX_TRANSACTIONS_FOR_ANALYSIS = 200;
+    private const MAX_TRANSACTIONS_FOR_ANALYSIS = 1000;
 
     public function __construct(
         private readonly LoggerInterface $logger,
@@ -80,27 +80,28 @@ class AiPatternDiscoveryService
             'date' => $t->getDate()?->format('Y-m-d')
         ], $transactions);
 
-        return sprintf(
-            "Analyseer de volgende ongecategoriseerde banktransacties en ontdek herhalende patronen.\n\n" .
-            "Transacties:\n%s\n\n" .
+        $transactionsJson = json_encode($transactionList, JSON_PRETTY_PRINT);
+
+        return "Analyseer de volgende ongecategoriseerde banktransacties en ontdek herhalende patronen.\n\n" .
+            "Transacties:\n{$transactionsJson}\n\n" .
             "Identificeer patronen door:\n" .
             "1. Transacties te groeperen met vergelijkbare omschrijvingen\n" .
-            "2. Een pattern string te maken (bijv. 'ALBERT HEIJN*' voor alle Albert Heijn transacties)\n" .
+            "2. Een pattern string te maken (bijv. 'ALBERT HEIJN' voor alle Albert Heijn transacties)\n" .
             "3. Een passende categorienaam voor te stellen (bijv. 'Boodschappen', 'Vervoer', 'Abonnementen')\n" .
             "4. Te tellen hoeveel transacties bij dit patroon passen\n" .
             "5. Een confidence score te geven (0-1) hoe zeker je bent van dit patroon\n\n" .
             "Regels voor pattern strings:\n" .
-            "- Gebruik * als wildcard (bijv. 'SPOTIFY*' matcht alle Spotify transacties)\n" .
-            "- Maak patterns specifiek genoeg om niet teveel te matchen\n" .
-            "- Maak patterns breed genoeg om variaties te vangen\n" .
-            "- Gebruik hoofdletters\n\n" .
+            "- Pattern matching gebruikt SQL LIKE met automatische wildcards aan begin en eind\n" .
+            "- Gebruik GEEN wildcards zoals * of procent-tekens in de pattern string zelf\n" .
+            "- Maak patterns specifiek genoeg om niet teveel te matchen (bijv. 'SPOTIFY' niet 'SPOT')\n" .
+            "- Maak patterns breed genoeg om variaties te vangen (bijv. 'ALBERT HEIJN' matcht 'ALBERT HEIJN 1234' en 'ALBERT HEIJN AMSTERDAM')\n" .
+            "- Gebruik hoofdletters voor consistentie\n" .
+            "- Voorbeelden: 'ALBERT HEIJN', 'SPOTIFY', 'NS GROEP', 'ZIGGO'\n\n" .
             "Geef minimaal 3 en maximaal 15 patronen terug, gesorteerd op matchCount (hoogste eerst).\n\n" .
             "Antwoord in dit JSON formaat:\n" .
             '{"patterns": [' .
-            '{"patternString": "ALBERT HEIJN*", "categoryName": "Boodschappen", "matchCount": 25, "exampleTransactionIds": [1, 5, 12], "confidence": 0.95, "reasoning": "Supermarkt aankopen"}' .
-            ']}',
-            json_encode($transactionList, JSON_PRETTY_PRINT)
-        );
+            '{"patternString": "ALBERT HEIJN", "categoryName": "Boodschappen", "matchCount": 25, "exampleTransactionIds": [1, 5, 12], "confidence": 0.95, "reasoning": "Supermarkt aankopen"}' .
+            ']}';
     }
 
     /**
