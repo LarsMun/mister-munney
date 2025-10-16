@@ -23,6 +23,7 @@ interface FilterState {
 
 interface Props {
     accountId: number;
+    filters: FilterState;
     onFilterChange: (filters: FilterState) => void;
     onRefresh: () => void;
     filterByPeriod: boolean;
@@ -42,18 +43,13 @@ function FeedbackBox({ type, children }: { type: "error" | "success" | "new"; ch
 
 export default function TransactionFilterForm({
     accountId,
+    filters,
     onFilterChange,
     onRefresh,
     filterByPeriod,
     onFilterByPeriodChange,
     filteredTransactions
 }: Props) {
-    const [filters, setFilters] = useState<FilterState>({
-        matchTypeDescription: "LIKE",
-        matchTypeNotes: "LIKE",
-        transactionType: "both",
-        strict: false,
-    });
 
     // Calculate pattern match statistics
     const conflictingCategory = useMemo(() => {
@@ -86,7 +82,6 @@ export default function TransactionFilterForm({
 
     const updateFilter = (key: keyof FilterState, value: any) => {
         const newFilters = { ...filters, [key]: value };
-        setFilters(newFilters);
         onFilterChange(newFilters);
     };
 
@@ -97,7 +92,6 @@ export default function TransactionFilterForm({
             transactionType: "both",
             strict: false,
         };
-        setFilters(emptyFilters);
         onFilterChange(emptyFilters);
         onFilterByPeriodChange(false);
     };

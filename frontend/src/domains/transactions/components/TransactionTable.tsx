@@ -14,9 +14,11 @@ type Props = {
     accountId: number;
     transactions: Transaction[];
     refresh: () => void;
+    onFilterByDescription?: (description: string) => void;
+    onFilterByNotes?: (notes: string) => void;
 };
 
-export default function TransactionTable({ accountId, transactions, refresh }: Props) {
+export default function TransactionTable({ accountId, transactions, refresh, onFilterByDescription, onFilterByNotes }: Props) {
 
     const [sortBy, setSortBy] = useState<keyof Transaction>("date");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -165,6 +167,8 @@ export default function TransactionTable({ accountId, transactions, refresh }: P
                 <TransactionDrawer
                     transaction={selectedTx}
                     onClose={() => setSelectedTx(undefined)}
+                    onFilterByDescription={onFilterByDescription}
+                    onFilterByNotes={onFilterByNotes}
                 />
             )}
         </div>
