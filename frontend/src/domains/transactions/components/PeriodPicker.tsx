@@ -85,38 +85,149 @@ export default function PeriodPicker({ months, onChange }: Props) {
         }
     }, [periodType, selectedYear, selectedMonth, selectedQuarter, selectedHalf]);
 
-    // Logica voor vorige/volgende maand navigatie (alleen bij periodType "month")
-    const currentMonthKey = `${selectedYear}-${selectedMonth}`;
-    const currentMonthIndex = months.indexOf(currentMonthKey);
+    // Logica voor vorige/volgende periode navigatie
+    let hasPrevious = false;
+    let hasNext = false;
 
-    const hasPreviousMonth = periodType === "month" && currentMonthIndex < months.length - 1;
-    const hasNextMonth = periodType === "month" && currentMonthIndex > 0;
+    if (periodType === "month") {
+        const currentMonthKey = `${selectedYear}-${selectedMonth}`;
+        const currentMonthIndex = months.indexOf(currentMonthKey);
+        hasPrevious = currentMonthIndex < months.length - 1;
+        hasNext = currentMonthIndex > 0;
+    } else if (periodType === "quarter") {
+        const currentQuarterNum = Number(selectedQuarter);
+        const currentYearNum = Number(selectedYear);
 
-    const goToPreviousMonth = () => {
-        if (hasPreviousMonth && currentMonthIndex !== -1) {
-            const previousMonth = months[currentMonthIndex + 1];
-            const [year, month] = previousMonth.split("-");
-            setSelectedYear(year);
-            setSelectedMonth(month);
+        // Check vorige kwartaal
+        if (currentQuarterNum > 1) {
+            hasPrevious = true;
+        } else {
+            const prevYearIndex = availableYears.indexOf(selectedYear) + 1;
+            hasPrevious = prevYearIndex < availableYears.length;
+        }
+
+        // Check volgende kwartaal
+        if (currentQuarterNum < 4) {
+            const nextQuarterStartMonth = currentQuarterNum * 3;
+            const nextQuarterDate = new Date(currentYearNum, nextQuarterStartMonth);
+            hasNext = lastDate ? nextQuarterDate <= lastDate : false;
+        } else {
+            const nextYearIndex = availableYears.indexOf(selectedYear) - 1;
+            hasNext = nextYearIndex >= 0;
+        }
+    } else if (periodType === "halfyear") {
+        const currentHalfNum = Number(selectedHalf);
+        const currentYearNum = Number(selectedYear);
+
+        // Check vorige halfjaar
+        if (currentHalfNum > 1) {
+            hasPrevious = true;
+        } else {
+            const prevYearIndex = availableYears.indexOf(selectedYear) + 1;
+            hasPrevious = prevYearIndex < availableYears.length;
+        }
+
+        // Check volgende halfjaar
+        if (currentHalfNum < 2) {
+            const nextHalfDate = new Date(currentYearNum, 6);
+            hasNext = lastDate ? nextHalfDate <= lastDate : false;
+        } else {
+            const nextYearIndex = availableYears.indexOf(selectedYear) - 1;
+            hasNext = nextYearIndex >= 0;
+        }
+    } else if (periodType === "year") {
+        const yearIndex = availableYears.indexOf(selectedYear);
+        hasPrevious = yearIndex < availableYears.length - 1;
+        hasNext = yearIndex > 0;
+    }
+
+    const goToPrevious = () => {
+        if (periodType === "month") {
+            const currentMonthKey = `${selectedYear}-${selectedMonth}`;
+            const currentMonthIndex = months.indexOf(currentMonthKey);
+            if (currentMonthIndex < months.length - 1) {
+                const previousMonth = months[currentMonthIndex + 1];
+                const [year, month] = previousMonth.split("-");
+                setSelectedYear(year);
+                setSelectedMonth(month);
+            }
+        } else if (periodType === "quarter") {
+            const currentQuarterNum = Number(selectedQuarter);
+            if (currentQuarterNum > 1) {
+                setSelectedQuarter(String(currentQuarterNum - 1) as any);
+            } else {
+                const prevYearIndex = availableYears.indexOf(selectedYear) + 1;
+                if (prevYearIndex < availableYears.length) {
+                    setSelectedYear(availableYears[prevYearIndex]);
+                    setSelectedQuarter("4");
+                }
+            }
+        } else if (periodType === "halfyear") {
+            const currentHalfNum = Number(selectedHalf);
+            if (currentHalfNum > 1) {
+                setSelectedHalf("1");
+            } else {
+                const prevYearIndex = availableYears.indexOf(selectedYear) + 1;
+                if (prevYearIndex < availableYears.length) {
+                    setSelectedYear(availableYears[prevYearIndex]);
+                    setSelectedHalf("2");
+                }
+            }
+        } else if (periodType === "year") {
+            const yearIndex = availableYears.indexOf(selectedYear);
+            if (yearIndex < availableYears.length - 1) {
+                setSelectedYear(availableYears[yearIndex + 1]);
+            }
         }
     };
 
-    const goToNextMonth = () => {
-        if (hasNextMonth && currentMonthIndex !== -1) {
-            const nextMonth = months[currentMonthIndex - 1];
-            const [year, month] = nextMonth.split("-");
-            setSelectedYear(year);
-            setSelectedMonth(month);
+    const goToNext = () => {
+        if (periodType === "month") {
+            const currentMonthKey = `${selectedYear}-${selectedMonth}`;
+            const currentMonthIndex = months.indexOf(currentMonthKey);
+            if (currentMonthIndex > 0) {
+                const nextMonth = months[currentMonthIndex - 1];
+                const [year, month] = nextMonth.split("-");
+                setSelectedYear(year);
+                setSelectedMonth(month);
+            }
+        } else if (periodType === "quarter") {
+            const currentQuarterNum = Number(selectedQuarter);
+            if (currentQuarterNum < 4) {
+                setSelectedQuarter(String(currentQuarterNum + 1) as any);
+            } else {
+                const nextYearIndex = availableYears.indexOf(selectedYear) - 1;
+                if (nextYearIndex >= 0) {
+                    setSelectedYear(availableYears[nextYearIndex]);
+                    setSelectedQuarter("1");
+                }
+            }
+        } else if (periodType === "halfyear") {
+            const currentHalfNum = Number(selectedHalf);
+            if (currentHalfNum < 2) {
+                setSelectedHalf("2");
+            } else {
+                const nextYearIndex = availableYears.indexOf(selectedYear) - 1;
+                if (nextYearIndex >= 0) {
+                    setSelectedYear(availableYears[nextYearIndex]);
+                    setSelectedHalf("1");
+                }
+            }
+        } else if (periodType === "year") {
+            const yearIndex = availableYears.indexOf(selectedYear);
+            if (yearIndex > 0) {
+                setSelectedYear(availableYears[yearIndex - 1]);
+            }
         }
     };
 
     return (
         <div className="flex items-center gap-2">
-            {hasPreviousMonth && (
+            {hasPrevious && (
                 <button
-                    onClick={goToPreviousMonth}
+                    onClick={goToPrevious}
                     className="p-1 rounded hover:bg-gray-100 border border-gray-300 bg-white"
-                    title="Vorige maand"
+                    title={periodType === "month" ? "Vorige maand" : periodType === "quarter" ? "Vorig kwartaal" : periodType === "halfyear" ? "Vorig halfjaar" : "Vorig jaar"}
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -187,11 +298,11 @@ export default function PeriodPicker({ months, onChange }: Props) {
                 ))}
             </select>
 
-            {hasNextMonth && (
+            {hasNext && (
                 <button
-                    onClick={goToNextMonth}
+                    onClick={goToNext}
                     className="p-1 rounded hover:bg-gray-100 border border-gray-300 bg-white"
-                    title="Volgende maand"
+                    title={periodType === "month" ? "Volgende maand" : periodType === "quarter" ? "Volgend kwartaal" : periodType === "halfyear" ? "Volgend halfjaar" : "Volgend jaar"}
                 >
                     <ChevronRight className="w-5 h-5" />
                 </button>
