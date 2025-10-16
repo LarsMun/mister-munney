@@ -22,6 +22,11 @@ export function getTransactions(
         }));
 }
 
+export function getAllTransactions(accountId: number): Promise<Transaction[]> {
+    return api.get(`/account/${accountId}/transactions`)
+        .then(res => res.data.data);
+}
+
 export function importTransactions(_accountId: number, file: File): Promise<any> {
     const formData = new FormData();
     formData.append("file", file);
