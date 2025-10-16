@@ -30,6 +30,7 @@ interface Props {
     filterByPeriod: boolean;
     onFilterByPeriodChange: (filter: boolean) => void;
     filteredTransactions: Transaction[];
+    onOpenAiSuggestions?: () => void;
 }
 
 function FeedbackBox({ type, children }: { type: "error" | "success" | "new"; children: React.ReactNode }) {
@@ -49,7 +50,8 @@ export default function TransactionFilterForm({
     onRefresh,
     filterByPeriod,
     onFilterByPeriodChange,
-    filteredTransactions
+    filteredTransactions,
+    onOpenAiSuggestions
 }: Props) {
 
     // Calculate pattern match statistics
@@ -151,6 +153,15 @@ export default function TransactionFilterForm({
                         />
                         Filter binnen geselecteerde periode
                     </label>
+                    {onOpenAiSuggestions && (
+                        <button
+                            onClick={onOpenAiSuggestions}
+                            className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 flex items-center gap-1"
+                        >
+                            <span>✨</span>
+                            AI Suggesties
+                        </button>
+                    )}
                     <button
                         onClick={clearAllFilters}
                         className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
