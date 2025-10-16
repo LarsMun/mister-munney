@@ -9,9 +9,11 @@ import { useNavigate } from "react-router-dom";
 type Props = {
     transaction: Transaction | null;
     onClose: () => void;
+    onFilterByDescription?: (description: string) => void;
+    onFilterByNotes?: (notes: string) => void;
 };
 
-export default function TransactionDrawer({ transaction, onClose }: Props) {
+export default function TransactionDrawer({ transaction, onClose, onFilterByDescription, onFilterByNotes }: Props) {
     if (!transaction) return null;
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
@@ -60,7 +62,14 @@ export default function TransactionDrawer({ transaction, onClose }: Props) {
 
                     <dl className="space-y-4 text-sm">
                         <Detail label="Datum" value={formatDate(transaction.date)}/>
-                        <Detail label="Omschrijving" value={transaction.description}/>
+                        <ClickableDetail
+                            label="Omschrijving"
+                            value={transaction.description}
+                            onClick={() => {
+                                onFilterByDescription?.(transaction.description);
+                                handleClose();
+                            }}
+                        />
                         <Detail
                             label="Bedrag"
                             value={
@@ -77,7 +86,16 @@ export default function TransactionDrawer({ transaction, onClose }: Props) {
                         <Detail label="Categorie" value={transaction.category?.name || null}/>
                         <Detail label="Spaarrekening" value={transaction.savingsAccount?.name || null}/>
                         <Detail label="Tag" value={transaction.tag || null}/>
-                        <Detail label="Notities" value={transaction.notes || null}/>
+                        <ClickableDetail
+                            label="Notities"
+                            value={transaction.notes || null}
+                            onClick={() => {
+                                if (transaction.notes) {
+                                    onFilterByNotes?.(transaction.notes);
+                                    handleClose();
+                                }
+                            }}
+                        />
                         <Detail label="Balans na transactie" value={formatMoney(transaction.balanceAfter)}/>
                     </dl>
                     <button
@@ -100,6 +118,25 @@ function Detail({ label, value }: { label: string; value?: string | React.ReactN
         <div>
             <dt className="font-medium text-gray-600">{label}</dt>
             <dd className="text-gray-900">{value ?? <span className="text-gray-400 italic">–</span>}</dd>
+        </div>
+    );
+}
+
+function ClickableDetail({ label, value, onClick }: { label: string; value?: string | null; onClick: () => void }) {
+    if (!value) {
+        return <Detail label={label} value={null} />;
+    }
+
+    return (
+        <div>
+            <dt className="font-medium text-gray-600">{label}</dt>
+            <dd
+                className="text-gray-900 cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 -mx-1 transition-colors"
+                onClick={onClick}
+                title="Klik om te filteren"
+            >
+                {value}
+            </dd>
         </div>
     );
 }
