@@ -60,12 +60,14 @@ export async function getPatternsForAccount(accountId: number): Promise<PatternD
 }
 
 export async function createPattern(accountId: number, payload: any) {
-    const response = await api.post(`/account/${accountId}/patterns`, payload);
+    const sanitized = sanitizePattern(payload);
+    const response = await api.post(`/account/${accountId}/patterns`, sanitized);
     return response.data;
 }
 
 export async function updatePattern(accountId: number, patternId: number, payload: any): Promise<PatternDTO> {
-    const response = await api.patch(`/account/${accountId}/patterns/${patternId}`, payload);
+    const sanitized = sanitizePattern(payload);
+    const response = await api.patch(`/account/${accountId}/patterns/${patternId}`, sanitized);
     return response.data;
 }
 
