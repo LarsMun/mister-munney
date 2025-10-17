@@ -81,7 +81,8 @@ export async function deletePatternsWithoutCategory(accountId: number): Promise<
 }
 
 export interface PatternSuggestion {
-    patternString: string;
+    descriptionPattern: string | null;
+    notesPattern: string | null;
     suggestedCategoryName: string;
     existingCategoryId: number | null;
     matchCount: number;
@@ -93,11 +94,12 @@ export interface PatternSuggestion {
     }>;
     confidence: number;
     reasoning: string;
+    previouslyDiscovered: boolean;
 }
 
 export async function discoverPatterns(accountId: number): Promise<{
     patterns: PatternSuggestion[];
-    totalUncategorized: number;
+    analyzedCount: number;
 }> {
     const response = await api.post(`/account/${accountId}/patterns/discover`);
     return response.data;
@@ -106,7 +108,8 @@ export async function discoverPatterns(accountId: number): Promise<{
 export async function acceptPatternSuggestion(
     accountId: number,
     suggestion: {
-        patternString: string;
+        descriptionPattern: string | null;
+        notesPattern: string | null;
         categoryName: string;
         categoryId?: number | null;
         categoryColor?: string | null;
@@ -115,7 +118,21 @@ export async function acceptPatternSuggestion(
     message: string;
     pattern: PatternDTO;
     appliedToTransactions: number;
+    wasAltered: boolean;
 }> {
     const response = await api.post(`/account/${accountId}/patterns/discover/accept`, suggestion);
+    return response.data;
+}
+
+export async function rejectPatternSuggestion(
+    accountId: number,
+    suggestion: {
+        descriptionPattern: string | null;
+        notesPattern: string | null;
+    }
+): Promise<{
+    message: string;
+}> {
+    const response = await api.post(`/account/${accountId}/patterns/discover/reject`, suggestion);
     return response.data;
 }
