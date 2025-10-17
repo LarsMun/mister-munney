@@ -11,6 +11,7 @@ use App\Category\Repository\CategoryRepository;
 use App\Entity\Account;
 use App\Entity\Budget;
 use App\Entity\BudgetVersion;
+use App\Enum\BudgetType;
 use App\Money\MoneyFactory;
 use App\Transaction\Repository\TransactionRepository;
 use Exception;
@@ -54,6 +55,7 @@ class BudgetService
         $budget = new Budget();
         $budget->setName($createBudgetDTO->name);
         $budget->setAccount($this->getAccountById($createBudgetDTO->accountId));
+        $budget->setBudgetType(BudgetType::from($createBudgetDTO->budgetType));
 
         // Save via repository
         $budget = $this->budgetRepository->save($budget);
@@ -82,7 +84,13 @@ class BudgetService
         }
 
         // Update only the basic budget properties
-        $budget->setName($updateBudgetDTO->name);
+        if ($updateBudgetDTO->name !== null) {
+            $budget->setName($updateBudgetDTO->name);
+        }
+
+        if ($updateBudgetDTO->budgetType !== null) {
+            $budget->setBudgetType(BudgetType::from($updateBudgetDTO->budgetType));
+        }
 
         return $this->budgetRepository->save($budget);
     }
