@@ -57,10 +57,11 @@ class BudgetController extends AbstractController
             description: 'Budgetgegevens',
             required: true,
             content: new OA\JsonContent(
-                required: ['name', 'accountId', 'monthlyAmount', 'effectiveFromMonth'],
+                required: ['name', 'accountId', 'budgetType', 'monthlyAmount', 'effectiveFromMonth'],
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'Maandelijks Budget'),
                     new OA\Property(property: 'accountId', type: 'integer', example: 1),
+                    new OA\Property(property: 'budgetType', type: 'string', enum: ['EXPENSE', 'INCOME'], example: 'EXPENSE'),
                     new OA\Property(property: 'monthlyAmount', type: 'number', format: 'float', example: 2500.50),
                     new OA\Property(property: 'effectiveFromMonth', type: 'string', pattern: '^\d{4}-\d{2}$', example: '2024-01'),
                     new OA\Property(property: 'changeReason', type: 'string', example: 'Initieel budget', nullable: true)
@@ -116,9 +117,9 @@ class BudgetController extends AbstractController
             description: 'Budget update gegevens',
             required: true,
             content: new OA\JsonContent(
-                required: ['name'],
                 properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'Aangepast Budget Naam')
+                    new OA\Property(property: 'name', type: 'string', example: 'Aangepast Budget Naam', nullable: true),
+                    new OA\Property(property: 'budgetType', type: 'string', enum: ['EXPENSE', 'INCOME'], example: 'EXPENSE', nullable: true)
                 ]
             )
         ),

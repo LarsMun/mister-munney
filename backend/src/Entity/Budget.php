@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Budget\Repository\BudgetRepository;
+use App\Enum\BudgetType;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -43,6 +44,9 @@ class Budget
 
     #[ORM\OneToMany(targetEntity: Category::class, mappedBy: 'budget')]
     private Collection $categories;
+
+    #[ORM\Column(type: "string", enumType: BudgetType::class)]
+    private BudgetType $budgetType = BudgetType::EXPENSE;
 
     // --- Getters & Setters ---
 
@@ -184,5 +188,16 @@ class Budget
             return null;
         }
         return $this->budgetVersions->first();
+    }
+
+    public function getBudgetType(): BudgetType
+    {
+        return $this->budgetType;
+    }
+
+    public function setBudgetType(BudgetType $budgetType): static
+    {
+        $this->budgetType = $budgetType;
+        return $this;
     }
 }

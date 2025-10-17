@@ -9,6 +9,7 @@ class BudgetDTO
     public int $id;
     public string $name;
     public int $accountId;
+    public string $budgetType;
     public string $createdAt;
     public string $updatedAt;
 

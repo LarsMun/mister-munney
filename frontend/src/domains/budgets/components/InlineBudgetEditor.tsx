@@ -179,7 +179,7 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
 
             {/* Editable Date Range */}
             <div className="text-sm text-gray-500 mt-1 flex items-center flex-wrap gap-1">
-                <span>per maand vanaf</span>
+                <span>{budget.budgetType === 'INCOME' ? 'Doel' : 'Limiet'} per maand vanaf</span>
 
                 {/* From Date - Editable */}
                 {isEditingFromDate ? (
