@@ -232,6 +232,7 @@ class BudgetService
         $summary = new BudgetSummaryDTO();
         $summary->budgetId = $budget->getId();
         $summary->budgetName = $budget->getName();
+        $summary->budgetType = $budget->getBudgetType()->value;
         $summary->monthYear = $monthYear;
 
         // Haal effectieve versie op voor deze maand
@@ -357,6 +358,22 @@ class BudgetService
             throw new NotFoundHttpException("Account with ID {$accountId} not found");
         }
         return $account;
+    }
+
+    /**
+     * Get statistics for uncategorized transactions
+     * @param int $accountId
+     * @param string $monthYear
+     * @return array
+     */
+    public function getUncategorizedTransactionStats(int $accountId, string $monthYear): array
+    {
+        $stats = $this->transactionRepository->getUncategorizedStats($accountId, $monthYear);
+
+        return [
+            'totalAmount' => $this->moneyFactory->toFloat(Money::EUR($stats['total_amount'])),
+            'count' => $stats['count']
+        ];
     }
 
 }

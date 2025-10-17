@@ -205,17 +205,25 @@ Frontend receives money as strings with decimal precision from API, display as-i
 
 ## Git Workflow
 
+**Existing branches:**
 - **Main branch**: `main` (production, deployed to NAS)
 - **Development branch**: `develop` (staging)
-- **Feature branches**: `feature/*`
-- **Hotfix branches**: `hotfix/*`
 
-Standard workflow:
-1. Create feature branch from `develop`
+**Branch naming conventions** (create as needed):
+- **Feature branches**: `feature/*` (e.g., `feature/add-authentication`, `feature/budget-tests`)
+- **Hotfix branches**: `hotfix/*` (e.g., `hotfix/fix-csv-import`)
+
+**Standard workflow:**
+1. Create feature branch from `develop`: `git checkout -b feature/my-feature`
 2. Make changes and test locally
-3. Create PR to `develop`
-4. After approval, merge to `develop`
-5. When ready for release, merge `develop` to `main`
+3. Commit changes: `git commit -m "Description of changes"`
+4. Push to remote: `git push -u origin feature/my-feature`
+5. Create PR to `develop` (via GitHub/GitLab/etc.)
+6. After approval, merge to `develop`
+7. Delete feature branch after merge
+8. When ready for release, merge `develop` to `main`
+
+**Current branch:** You are on `develop`
 
 ## Deployment
 
@@ -266,3 +274,89 @@ Patterns use string matching on transaction descriptions. Pattern entities are l
 - **Backend**: PSR-12 coding standards
 - **Frontend**: ESLint configuration in `frontend/eslint.config.js`
 - **Dutch comments**: Most inline comments and documentation are in Dutch (this is intentional)
+
+## Known Technical Debt & Improvement Opportunities
+
+### Critical Priority (Security)
+1. **No Authentication/Authorization**: The application currently has no authentication system. All API endpoints are publicly accessible without any user verification. CORS is set to wildcard `*` allowing any origin.
+   - `config/packages/security.yaml` has all access control commented out
+   - No middleware validates that users own the accounts they're accessing
+   - Recommendation: Implement JWT or session-based authentication before production deployment
+
+### High Priority (Testing)
+2. **Missing Test Coverage**:
+   - **Budget Domain**: No tests (0% coverage) - complex financial calculations are untested
+   - **Pattern Domain**: No tests (0% coverage) - SQL generation and pattern matching untested
+   - **AI Services**: No tests for `AiPatternDiscoveryService` or `AiCategorizationService`
+   - Recommendation: Prioritize Budget and Pattern domain tests as they contain critical business logic
+
+### Medium Priority (Code Quality)
+3. **Code Duplication**: Entity lookup pattern repeated 40+ times across services
+   ```php
+   $entity = $this->repository->find($id);
+   if (!$entity) { throw new NotFoundHttpException('...'); }
+   ```
+   - Recommendation: Create `EntityLookupTrait` or base service helper method
+
+4. **Large Files**: Several files exceed 500 lines
+   - `TransactionRepository.php` (664 lines)
+   - `TransactionService.php` (555 lines) - statistics methods should be extracted
+   - `TransactionImportService.php` (517 lines)
+   - Recommendation: Split into smaller, focused classes
+
+5. **API Inconsistencies**:
+   - Mixed use of verbs in URLs (`/create`, `/import`) instead of HTTP methods
+   - Inconsistent error response formats (`errors` vs `error`)
+   - Mix of Dutch and English error messages
+   - Recommendation: Standardize REST conventions across all controllers
+
+### Low Priority (Cleanup)
+6. **Constructor Pattern Inconsistency**: Mix of PHP 8.1 property promotion and traditional property assignment
+7. **Validation Error Handling**: Duplicated validation logic in 14+ controllers
+8. **CORS Configuration**: Manual CORS headers in `ApiExceptionListener` duplicate `nelmio_cors` bundle config
+
+## Testing Guide
+
+### Running Tests
+```bash
+# Run all tests
+docker exec money-backend vendor/bin/phpunit
+
+# Run specific test file
+docker exec money-backend vendor/bin/phpunit tests/Unit/Money/MoneyFactoryTest.php
+
+# Run specific test method
+docker exec money-backend vendor/bin/phpunit --filter testSetCategoryUpdatesTransaction
+```
+
+### Test Structure
+- **ApiTestCase**: Base class for API integration tests (provides `makeJsonRequest`, `assertJsonResponse`)
+- **DatabaseTestCase**: Base class for repository tests (handles database setup/teardown)
+- **WebTestCase**: Base class for web tests
+
+### Current Test Coverage (as of 2025)
+- **Account**: ✅ Good (10 API tests)
+- **Category**: ✅ Good (16 API tests)
+- **SavingsAccount**: ✅ Good (12 API tests)
+- **Transaction**: ✅ Excellent (22 API tests + 3 repository tests + 3 unit tests)
+- **MoneyFactory**: ✅ Good (4 unit tests)
+- **Budget**: ❌ None
+- **Pattern**: ❌ None
+- **AI Services**: ❌ None
+
+Total: 69 tests, 366 assertions (as of latest run)
+
+## Recent Architectural Changes
+
+### Removal of TransactionType Constraint on Categories (2024-2025)
+Previously, categories were strictly tied to either CREDIT or DEBIT transaction types. This constraint has been removed:
+- Categories can now contain both CREDIT and DEBIT transactions
+- The `transactionType` field has been removed from the Category entity
+- Tests have been updated to reflect this change
+- This allows more flexible categorization (e.g., a "Transfer" category can handle both incoming and outgoing transfers)
+
+### Entity Relationships
+- **Category → Account**: ManyToOne relationship (Category knows about Account)
+- **Account ← Category**: No inverse relationship (Account doesn't track Categories collection)
+  - This is intentional - unidirectional relationship is sufficient
+  - Categories are queried via CategoryRepository when needed

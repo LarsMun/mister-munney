@@ -121,8 +121,7 @@ class TransactionRepositoryTest extends DatabaseTestCase
         $category->setName('Test Category')
             ->setColor('#22C55E')
             ->setIcon('test')
-            ->setAccount($account)
-            ->setTransactionType(TransactionType::DEBIT);
+            ->setAccount($account);
         $this->entityManager->persist($category);
 
         $transactions = [

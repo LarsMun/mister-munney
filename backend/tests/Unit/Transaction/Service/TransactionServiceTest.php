@@ -71,8 +71,7 @@ class TransactionServiceTest extends TestCase
 
         $category = new Category();
         $category->setName('Test Category')
-            ->setAccount($account)
-            ->setTransactionType(TransactionType::DEBIT);
+            ->setAccount($account);
 
         $this->transactionRepository->expects($this->once())
             ->method('find')
