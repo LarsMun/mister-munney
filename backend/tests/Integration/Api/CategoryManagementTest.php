@@ -37,17 +37,15 @@ class CategoryManagementTest extends ApiTestCase
             'POST',
             '/api/account/' . $this->account->getId() . '/categories',
             [
-                'name' => 'Groceries',
-                'transactionType' => 'debit'
+                'name' => 'Groceries'
             ]
         );
 
         // Then - Category created
         $data = $this->assertJsonResponse(201);
 
-        $this->assertResponseHasKeys(['id', 'name', 'transactionType', 'accountId'], $data);
+        $this->assertResponseHasKeys(['id', 'name', 'accountId'], $data);
         $this->assertEquals('Groceries', $data['name']);
-        $this->assertEquals('debit', $data['transactionType']);
         $this->assertEquals($this->account->getId(), $data['accountId']);
     }
 
@@ -59,7 +57,6 @@ class CategoryManagementTest extends ApiTestCase
             '/api/account/' . $this->account->getId() . '/categories',
             [
                 'name' => 'Groceries',
-                'transactionType' => 'debit',
                 'icon' => 'shopping-cart',
                 'color' => '#22C55E'
             ]
@@ -78,36 +75,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->makeJsonRequest(
             'POST',
             '/api/account/' . $this->account->getId() . '/categories',
-            ['transactionType' => 'debit']
-        );
-
-        // Then - Bad request
-        $this->assertEquals(400, $this->client->getResponse()->getStatusCode());
-    }
-
-    public function testCreateCategoryWithoutTransactionTypeReturns400(): void
-    {
-        // When - Create category without transaction type
-        $this->makeJsonRequest(
-            'POST',
-            '/api/account/' . $this->account->getId() . '/categories',
-            ['name' => 'Groceries']
-        );
-
-        // Then - Bad request
-        $this->assertEquals(400, $this->client->getResponse()->getStatusCode());
-    }
-
-    public function testCreateCategoryWithInvalidTransactionTypeReturns400(): void
-    {
-        // When - Create category with invalid type
-        $this->makeJsonRequest(
-            'POST',
-            '/api/account/' . $this->account->getId() . '/categories',
-            [
-                'name' => 'Groceries',
-                'transactionType' => 'invalid'
-            ]
+            []
         );
 
         // Then - Bad request
@@ -160,7 +128,6 @@ class CategoryManagementTest extends ApiTestCase
         $data = $this->assertJsonResponse(200);
 
         $this->assertEquals('Supermarket', $data['name']);
-        $this->assertEquals('debit', $data['transactionType']); // Type unchanged
     }
 
     public function testUpdateCategoryIconAndColor(): void
@@ -186,24 +153,29 @@ class CategoryManagementTest extends ApiTestCase
         $this->assertEquals('#FF0000', $data['color']);
     }
 
-    public function testCannotUpdateTransactionType(): void
+    public function testUpdateCategoryPreservesOtherFields(): void
     {
-        // Given - Debit category
+        // Given - Category with icon and color
         $category = $this->createCategory('Groceries', TransactionType::DEBIT);
+        $this->entityManager->refresh($category);
+        $category->setIcon('cart');
+        $category->setColor('#FF0000');
+        $this->entityManager->flush();
 
-        // When - Try to update transaction type (it should be ignored)
+        // When - Update only name
         $this->makeJsonRequest(
             'PUT',
             '/api/account/' . $this->account->getId() . '/categories/' . $category->getId(),
             [
-                'name' => 'Groceries',
-                'transactionType' => 'credit' // This should be ignored
+                'name' => 'Supermarket'
             ]
         );
 
-        // Then - Transaction type unchanged
+        // Then - Other fields preserved
         $data = $this->assertJsonResponse(200);
-        $this->assertEquals('debit', $data['transactionType']);
+        $this->assertEquals('Supermarket', $data['name']);
+        $this->assertStringEndsWith('cart', $data['icon']);
+        $this->assertEquals('#FF0000', $data['color']);
     }
 
     public function testDeleteCategory(): void
@@ -282,26 +254,32 @@ class CategoryManagementTest extends ApiTestCase
         $data = $this->assertJsonResponse(200);
 
         $this->assertCount(3, $data);
-        $this->assertArrayItemsHaveKeys(['id', 'name', 'transactionType'], $data);
+        $this->assertArrayItemsHaveKeys(['id', 'name'], $data);
     }
 
-    public function testCategoriesAreSeparatedByTransactionType(): void
+    public function testGetAllCategoriesIncludesOptionalFields(): void
     {
-        // Given - Debit and credit categories
-        $this->createCategory('Groceries', TransactionType::DEBIT);
-        $this->createCategory('Salary', TransactionType::CREDIT);
+        // Given - Categories with and without optional fields
+        $cat1 = $this->createCategory('Groceries', TransactionType::DEBIT);
+        $cat1->setIcon('cart');
+        $cat1->setColor('#FF0000');
+        $this->entityManager->flush();
+
+        $this->createCategory('Transport', TransactionType::DEBIT);
 
         // When - Get all categories
         $this->client->request('GET', '/api/account/' . $this->account->getId() . '/categories');
 
-        // Then - Categories have correct types
+        // Then - Categories returned with optional fields
         $data = $this->assertJsonResponse(200);
 
-        $debitCategories = array_filter($data, fn($c) => $c['transactionType'] === 'debit');
-        $creditCategories = array_filter($data, fn($c) => $c['transactionType'] === 'credit');
+        $this->assertCount(2, $data);
 
-        $this->assertCount(1, $debitCategories);
-        $this->assertCount(1, $creditCategories);
+        // Find the groceries category
+        $groceries = array_filter($data, fn($c) => $c['name'] === 'Groceries')[0] ?? null;
+        $this->assertNotNull($groceries);
+        $this->assertStringEndsWith('cart', $groceries['icon']);
+        $this->assertEquals('#FF0000', $groceries['color']);
     }
 
     private function createTestAccount(): Account
@@ -323,8 +301,7 @@ class CategoryManagementTest extends ApiTestCase
 
         $category = new Category();
         $category->setName($name)
-            ->setAccount($this->account)
-            ->setTransactionType($type);
+            ->setAccount($this->account);
 
         $entityManager->persist($category);
         $entityManager->flush();
