@@ -3,8 +3,6 @@
 namespace App\Entity;
 
 use App\Account\Repository\AccountRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AccountRepository::class)]
@@ -62,31 +60,6 @@ class Account
     {
         $this->isDefault = $isDefault;
 
-        return $this;
-    }
-
-    public function getCategories(): Collection
-    {
-        return $this->categories;
-    }
-
-    public function addCategory(Category $category): static
-    {
-        if (!$this->categories->contains($category)) {
-            $this->categories[] = $category;
-            $category->setAccount($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCategory(Category $category): static
-    {
-        if ($this->categories->removeElement($category)) {
-            if ($category->getAccount() === $this) {
-                $category->setAccount(null);
-            }
-        }
         return $this;
     }
 }
