@@ -11,7 +11,7 @@ import type {
     UpdateBudgetVersion,
     BudgetVersion
 } from "../models/Budget";
-import type { BudgetSummary } from "../models/BudgetSummary";
+import type { BudgetSummary, BudgetSummaryResponse } from "../models/BudgetSummary";
 
 // ===============================
 // BUDGET CRUD
@@ -51,7 +51,7 @@ export function deleteBudget(accountId: number, budgetId: number): Promise<void>
 // BUDGET SUMMARIES
 // ===============================
 
-export async function getBudgetSummaries(accountId: number, monthYear: string): Promise<BudgetSummary[]> {
+export async function getBudgetSummaries(accountId: number, monthYear: string): Promise<BudgetSummaryResponse> {
     const res = await api.get(`/account/${accountId}/budget/summary/${monthYear}`);
     return res.data;
 }

@@ -489,7 +489,13 @@ class BudgetController extends AbstractController
 
         $summaries = $this->budgetService->getBudgetSummariesForMonth($accountId, $monthYear);
 
-        return $this->json($summaries);
+        // Get uncategorized transaction stats
+        $uncategorizedStats = $this->budgetService->getUncategorizedTransactionStats($accountId, $monthYear);
+
+        return $this->json([
+            'summaries' => $summaries,
+            'uncategorized' => $uncategorizedStats
+        ]);
     }
 
 }
