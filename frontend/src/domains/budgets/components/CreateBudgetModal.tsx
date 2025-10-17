@@ -12,6 +12,7 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
     const [formData, setFormData] = useState<CreateBudget>({
         name: '',
         accountId,
+        budgetType: 'EXPENSE',
         monthlyAmount: 0,
         effectiveFromMonth: new Date().toISOString().slice(0, 7), // YYYY-MM format
         changeReason: '',
@@ -59,6 +60,7 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
         setFormData({
             name: '',
             accountId,
+            budgetType: 'EXPENSE',
             monthlyAmount: 0,
             effectiveFromMonth: new Date().toISOString().slice(0, 7),
             changeReason: '',
@@ -93,7 +95,22 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Maandelijks Bedrag (€)
+                            Budget Type
+                        </label>
+                        <select
+                            value={formData.budgetType}
+                            onChange={(e) => setFormData(prev => ({ ...prev, budgetType: e.target.value as 'EXPENSE' | 'INCOME' }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isSubmitting}
+                        >
+                            <option value="EXPENSE">Uitgaven</option>
+                            <option value="INCOME">Inkomsten</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Maandelijks {formData.budgetType === 'INCOME' ? 'Doel' : 'Limiet'} (€)
                         </label>
                         <input
                             type="number"

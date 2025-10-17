@@ -14,6 +14,10 @@ class CreateBudgetDTO
     #[Assert\Positive(message: 'Bedrag moet een positief getal zijn')]
     public int $accountId;
 
+    #[Assert\NotBlank(message: 'Budget type is verplicht')]
+    #[Assert\Choice(choices: ['EXPENSE', 'INCOME'], message: 'Budget type moet EXPENSE of INCOME zijn')]
+    public string $budgetType = 'EXPENSE';
+
     #[Assert\NotBlank(message: 'Bedrag is verplicht')]
     #[Assert\Positive(message: 'Bedrag moet een positief getal zijn')]
     public float $monthlyAmount;
