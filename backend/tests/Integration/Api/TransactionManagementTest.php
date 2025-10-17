@@ -329,16 +329,14 @@ class TransactionManagementTest extends ApiTestCase
         $this->groceriesCategory->setName('Groceries')
             ->setColor('#22C55E')
             ->setIcon('shopping-cart')
-            ->setAccount($this->account)
-            ->setTransactionType(TransactionType::DEBIT);
+            ->setAccount($this->account);
         $entityManager->persist($this->groceriesCategory);
 
         $this->salaryCategory = new Category();
         $this->salaryCategory->setName('Salary')
             ->setColor('#3B82F6')
             ->setIcon('dollar-sign')
-            ->setAccount($this->account)
-            ->setTransactionType(TransactionType::CREDIT);
+            ->setAccount($this->account);
         $entityManager->persist($this->salaryCategory);
 
         // Create transactions

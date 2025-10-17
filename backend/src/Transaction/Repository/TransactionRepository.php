@@ -661,4 +661,37 @@ class TransactionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Get total amount and count of uncategorized transactions for an account
+     * @param int $accountId
+     * @param string|null $monthYear Optional YYYY-MM format to filter by month
+     * @return array ['total_amount' => int (cents), 'count' => int]
+     */
+    public function getUncategorizedStats(int $accountId, ?string $monthYear = null): array
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->select('SUM(t.amountInCents) as total_amount, COUNT(t.id) as count')
+            ->where('t.account = :accountId')
+            ->andWhere('t.category IS NULL')
+            ->setParameter('accountId', $accountId);
+
+        if ($monthYear) {
+            // Parse monthYear to get start and end dates (database-agnostic)
+            $startDate = $monthYear . '-01';
+            $endDate = date('Y-m-t', strtotime($startDate)); // Last day of the month
+
+            $qb->andWhere('t.date >= :startDate')
+                ->andWhere('t.date <= :endDate')
+                ->setParameter('startDate', new \DateTime($startDate))
+                ->setParameter('endDate', new \DateTime($endDate));
+        }
+
+        $result = $qb->getQuery()->getSingleResult();
+
+        return [
+            'total_amount' => (int) ($result['total_amount'] ?? 0),
+            'count' => (int) ($result['count'] ?? 0)
+        ];
+    }
 }

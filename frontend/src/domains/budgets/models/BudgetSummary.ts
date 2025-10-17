@@ -3,6 +3,7 @@
 export interface BudgetSummary {
     budgetId: number;
     budgetName: string;
+    budgetType: 'EXPENSE' | 'INCOME';
     allocatedAmount: number;
     spentAmount: number;
     remainingAmount: number;
@@ -16,7 +17,12 @@ export interface BudgetSummary {
     categoryCount: number;
 }
 
+export interface UncategorizedStats {
+    totalAmount: number;
+    count: number;
+}
+
 export interface BudgetSummaryResponse {
     summaries: BudgetSummary[];
-    monthYear: string;
+    uncategorized: UncategorizedStats;
 }

@@ -11,7 +11,19 @@ interface BudgetOverviewCardProps {
 }
 
 export default function BudgetOverviewCard({ accountId, monthYear }: BudgetOverviewCardProps) {
-    const { summaries, isLoading, error } = useBudgetSummary(accountId, monthYear);
+    const { summaries, uncategorized, isLoading, error } = useBudgetSummary(accountId, monthYear);
+
+    // Separate INCOME and EXPENSE budgets
+    const incomeBudgets = summaries.filter(s => s.budgetType === 'INCOME');
+    const expenseBudgets = summaries.filter(s => s.budgetType === 'EXPENSE');
+
+    // Calculate total income from INCOME budgets
+    const totalIncome = incomeBudgets.reduce((sum, s) => sum + s.spentAmount, 0);
+
+    // Calculate total allocated and spent across all expense budgets
+    const totalAllocated = expenseBudgets.reduce((sum, s) => sum + s.allocatedAmount, 0);
+    const totalSpent = expenseBudgets.reduce((sum, s) => sum + s.spentAmount, 0);
+    const totalPercentage = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
 
     if (isLoading) {
         return (
@@ -35,12 +47,12 @@ export default function BudgetOverviewCard({ accountId, monthYear }: BudgetOverv
         );
     }
 
-    if (!summaries || summaries.length === 0) {
+    if (!expenseBudgets || expenseBudgets.length === 0) {
         return (
             <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Budget Overzicht</h2>
                 <div className="text-center py-8">
-                    <p className="text-gray-500 text-sm">Geen budgetten beschikbaar voor deze maand</p>
+                    <p className="text-gray-500 text-sm">Geen uitgaven budgetten beschikbaar voor deze maand</p>
                 </div>
             </div>
         );
@@ -49,17 +61,45 @@ export default function BudgetOverviewCard({ accountId, monthYear }: BudgetOverv
     return (
         <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Budget Overzicht</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                    {new Date(monthYear + '-01').toLocaleDateString('nl-NL', { 
-                        month: 'long', 
-                        year: 'numeric' 
-                    })}
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-lg font-semibold text-gray-900">Budgetoverzicht</h2>
+                    <p className="text-sm text-gray-500">
+                        {new Date(monthYear + '-01').toLocaleDateString('nl-NL', {
+                            month: 'long',
+                            year: 'numeric'
+                        })}
+                    </p>
+                </div>
+
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <div className="bg-purple-50 rounded-lg p-3">
+                        <p className="text-xs text-purple-600 font-medium">Besteedbaar budget</p>
+                        <p className="text-lg font-bold text-purple-900">{formatMoney(totalAllocated)}</p>
+                        <p className="text-xs text-purple-600">{expenseBudgets.length} budgetten actief</p>
+                    </div>
+
+                    <div className="bg-blue-50 rounded-lg p-3">
+                        <p className="text-xs text-blue-600 font-medium">Gecategoriseerd en in budget</p>
+                        <p className="text-lg font-bold text-blue-900">{formatMoney(totalSpent)}</p>
+                        <p className="text-xs text-blue-600">van {formatMoney(totalAllocated)} ({totalPercentage.toFixed(1)}%)</p>
+                    </div>
+
+                    <div className="bg-orange-50 rounded-lg p-3">
+                        <p className="text-xs text-orange-600 font-medium">Ongecategoriseerd</p>
+                        <p className="text-lg font-bold text-orange-900">{formatMoney(Math.abs(uncategorized.totalAmount))}</p>
+                        <p className="text-xs text-orange-600">{uncategorized.count} transacties</p>
+                    </div>
+
+                    <div className="bg-green-50 rounded-lg p-3">
+                        <p className="text-xs text-green-600 font-medium">Resterend</p>
+                        <p className="text-lg font-bold text-green-900">{formatMoney(totalAllocated - totalSpent - Math.abs(uncategorized.totalAmount))}</p>
+                    </div>
+                </div>
             </div>
 
-            <div className="divide-y divide-gray-100">
-                {summaries.map((summary) => (
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {expenseBudgets.map((summary) => (
                     <BudgetSummaryItem key={summary.budgetId} summary={summary} />
                 ))}
             </div>
@@ -116,64 +156,62 @@ function BudgetSummaryItem({ summary }: BudgetSummaryItemProps) {
     const isOverBudget = summary.spentPercentage > 100;
 
     return (
-        <div className="p-6 hover:bg-gray-50 transition-colors">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
             {/* Header */}
-            <div className="flex items-start justify-between mb-3">
-                <div>
-                    <h3 className="font-medium text-gray-900">{summary.budgetName}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                        {summary.categoryCount} {summary.categoryCount === 1 ? 'categorie' : 'categorieën'}
-                    </p>
+            <div className="mb-3">
+                <h3 className="font-semibold text-gray-900 text-sm truncate" title={summary.budgetName}>
+                    {summary.budgetName}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                    {summary.categoryCount} {summary.categoryCount === 1 ? 'categorie' : 'categorieën'}
+                </p>
+            </div>
+
+            {/* Percentage & Amount */}
+            <div className="mb-3 text-center">
+                <div className={`text-3xl font-bold mb-1 ${isOverBudget ? 'text-red-600' : 'text-gray-900'}`}>
+                    {summary.spentPercentage.toFixed(0)}%
                 </div>
-                <div className="text-right">
-                    <div className={`text-lg font-semibold ${isOverBudget ? 'text-red-600' : 'text-gray-900'}`}>
-                        {summary.spentPercentage.toFixed(1)}%
-                    </div>
-                    <div className="text-xs text-gray-500">
-                        {formatMoney(summary.spentAmount)} / {formatMoney(summary.allocatedAmount)}
-                    </div>
+                <div className="text-xs text-gray-600">
+                    {formatMoney(summary.spentAmount)}
+                </div>
+                <div className="text-xs text-gray-500">
+                    van {formatMoney(summary.allocatedAmount)}
                 </div>
             </div>
 
             {/* Progress Bar */}
             <div className="mb-3">
-                <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <div
-                        className={`h-2.5 rounded-full transition-all duration-300 ${getStatusColor(summary.status)}`}
+                        className={`h-2 rounded-full transition-all duration-300 ${getStatusColor(summary.status)}`}
                         style={{ width: `${displayPercentage}%` }}
                     />
                 </div>
-                {isOverBudget && (
-                    <div className="mt-1 flex items-center gap-1 text-xs text-red-600">
-                        <span className="font-medium">Over budget:</span>
-                        <span>{formatMoney(Math.abs(summary.remainingAmount))}</span>
+            </div>
+
+            {/* Remaining or Over Budget */}
+            <div className="mb-2 text-center">
+                {isOverBudget ? (
+                    <div className="text-xs text-red-600 font-medium">
+                        Over: {formatMoney(Math.abs(summary.remainingAmount))}
+                    </div>
+                ) : (
+                    <div className="text-xs text-green-600 font-medium">
+                        Resterend: {formatMoney(summary.remainingAmount)}
                     </div>
                 )}
             </div>
 
-            {/* Bottom Info */}
-            <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1.5 text-gray-600">
-                    {getTrendIcon(summary.trendDirection)}
-                    <span className="text-xs">
-                        {getTrendText(summary.trendDirection, summary.trendPercentage)}
-                    </span>
-                </div>
-                {!isOverBudget && (
-                    <div className="text-xs text-gray-500">
-                        Resterend: <span className="font-medium text-gray-700">{formatMoney(summary.remainingAmount)}</span>
-                    </div>
-                )}
+            {/* Trend */}
+            <div className="flex items-center justify-center gap-1 text-gray-600 border-t border-gray-100 pt-2">
+                {getTrendIcon(summary.trendDirection)}
+                <span className="text-xs">
+                    {summary.trendDirection === 'stable' ? 'Stabiel' :
+                     summary.trendDirection === 'up' ? `+${Math.abs(summary.trendPercentage).toFixed(0)}%` :
+                     `-${Math.abs(summary.trendPercentage).toFixed(0)}%`}
+                </span>
             </div>
-
-            {/* Trend Context */}
-            {summary.historicalMedian > 0 && (
-                <div className="mt-2 pt-2 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">
-                        Gemiddeld (12 mnd): <span className="font-medium text-gray-700">{formatMoney(summary.historicalMedian)}</span>
-                    </p>
-                </div>
-            )}
         </div>
     );
 }
