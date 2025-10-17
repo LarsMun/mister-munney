@@ -3,9 +3,13 @@
 namespace App\Pattern\Controller;
 
 use App\Category\Service\CategoryService;
+use App\Enum\AiPatternSuggestionStatus;
 use App\Mapper\PayloadMapper;
 use App\Pattern\DTO\AcceptPatternSuggestionDTO;
 use App\Pattern\DTO\CreatePatternDTO;
+use App\Pattern\Mapper\PatternMapper;
+use App\Pattern\Repository\AiPatternSuggestionRepository;
+use App\Pattern\Repository\PatternRepository;
 use App\Pattern\Service\AiPatternDiscoveryService;
 use App\Pattern\Service\PatternService;
 use App\Transaction\Repository\TransactionRepository;
@@ -31,7 +35,10 @@ class AiPatternDiscoveryController extends AbstractController
         private readonly PatternService $patternService,
         private readonly CategoryService $categoryService,
         private readonly PayloadMapper $payloadMapper,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly AiPatternSuggestionRepository $suggestionRepository,
+        private readonly PatternRepository $patternRepository,
+        private readonly PatternMapper $patternMapper
     ) {
     }
 
@@ -55,7 +62,8 @@ class AiPatternDiscoveryController extends AbstractController
                     properties: [
                         new OA\Property(property: 'patterns', type: 'array', items: new OA\Items(
                             properties: [
-                                new OA\Property(property: 'patternString', type: 'string', example: 'ALBERT HEIJN*'),
+                                new OA\Property(property: 'descriptionPattern', type: 'string', nullable: true, example: 'ALBERT HEIJN'),
+                                new OA\Property(property: 'notesPattern', type: 'string', nullable: true, example: null),
                                 new OA\Property(property: 'suggestedCategoryName', type: 'string', example: 'Boodschappen'),
                                 new OA\Property(property: 'existingCategoryId', type: 'integer', nullable: true),
                                 new OA\Property(property: 'matchCount', type: 'integer', example: 25),
@@ -90,25 +98,30 @@ class AiPatternDiscoveryController extends AbstractController
                 ]);
             }
 
+            // AI analyseert maximaal 200 transacties
+            $analyzedCount = min(count($transactions), 200);
+
             // Gebruik AI om patronen te ontdekken
-            $suggestions = $this->aiPatternDiscoveryService->discoverPatterns($transactions);
+            $suggestions = $this->aiPatternDiscoveryService->discoverPatterns($transactions, $accountId);
 
             // Converteer naar array voor JSON response
             $patternsArray = array_map(function ($suggestion) {
                 return [
-                    'patternString' => $suggestion->patternString,
+                    'descriptionPattern' => $suggestion->descriptionPattern,
+                    'notesPattern' => $suggestion->notesPattern,
                     'suggestedCategoryName' => $suggestion->suggestedCategoryName,
                     'existingCategoryId' => $suggestion->existingCategoryId,
                     'matchCount' => $suggestion->matchCount,
                     'exampleTransactions' => $suggestion->exampleTransactions,
                     'confidence' => $suggestion->confidence,
-                    'reasoning' => $suggestion->reasoning
+                    'reasoning' => $suggestion->reasoning,
+                    'previouslyDiscovered' => $suggestion->previouslyDiscovered
                 ];
             }, $suggestions);
 
             return new JsonResponse([
                 'patterns' => $patternsArray,
-                'totalUncategorized' => count($transactions)
+                'analyzedCount' => $analyzedCount
             ]);
 
         } catch (\Exception $e) {
@@ -134,7 +147,8 @@ class AiPatternDiscoveryController extends AbstractController
             required: true,
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: 'patternString', type: 'string', example: 'ALBERT HEIJN*'),
+                    new OA\Property(property: 'descriptionPattern', type: 'string', nullable: true, example: 'ALBERT HEIJN'),
+                    new OA\Property(property: 'notesPattern', type: 'string', nullable: true, example: null),
                     new OA\Property(property: 'categoryName', type: 'string', example: 'Boodschappen'),
                     new OA\Property(property: 'categoryId', type: 'integer', nullable: true, description: 'Gebruik bestaande categorie (optioneel)'),
                     new OA\Property(property: 'categoryColor', type: 'string', nullable: true, example: '#4ade80')
@@ -176,6 +190,24 @@ class AiPatternDiscoveryController extends AbstractController
         }
 
         try {
+            // Generate pattern hash to find the suggestion
+            $patternHash = $this->generatePatternHash(
+                $accountId,
+                $dto->descriptionPattern,
+                $dto->notesPattern
+            );
+
+            // Find the AI suggestion in database
+            $aiSuggestion = $this->suggestionRepository->findByPatternHash($accountId, $patternHash);
+
+            // Determine if pattern was altered
+            $wasAltered = false;
+            if ($aiSuggestion) {
+                $wasAltered = ($aiSuggestion->getDescriptionPattern() !== $dto->descriptionPattern)
+                    || ($aiSuggestion->getNotesPattern() !== $dto->notesPattern)
+                    || ($aiSuggestion->getSuggestedCategoryName() !== $dto->categoryName);
+            }
+
             // Check of we een bestaande categorie gebruiken of een nieuwe maken
             $categoryId = $dto->categoryId;
 
@@ -191,21 +223,129 @@ class AiPatternDiscoveryController extends AbstractController
             // Maak pattern aan
             $createPatternDTO = new CreatePatternDTO();
             $createPatternDTO->accountId = $accountId;
-            $createPatternDTO->description = $dto->patternString;
+            $createPatternDTO->description = $dto->descriptionPattern;
+            $createPatternDTO->matchTypeDescription = $dto->descriptionPattern ? 'LIKE' : null;
+            $createPatternDTO->notes = $dto->notesPattern;
+            $createPatternDTO->matchTypeNotes = $dto->notesPattern ? 'LIKE' : null;
             $createPatternDTO->categoryId = $categoryId;
             $createPatternDTO->strict = false;
 
-            $pattern = $this->patternService->createFromDTO($createPatternDTO);
+            $patternDTO = $this->patternService->createFromDTO($createPatternDTO);
+
+            // Retrieve the Pattern entity by hash (PatternService returns DTO, but we need the entity)
+            $patternHash = $this->patternMapper->generateHash(
+                $accountId,
+                $dto->descriptionPattern,
+                $dto->notesPattern,
+                $categoryId,
+                null // savingsAccountId
+            );
+            $patternEntity = $this->patternRepository->findByHash($patternHash);
+
+            // Update AI suggestion status
+            if ($aiSuggestion) {
+                $aiSuggestion->setStatus(
+                    $wasAltered ? AiPatternSuggestionStatus::ACCEPTED_ALTERED : AiPatternSuggestionStatus::ACCEPTED
+                );
+                $aiSuggestion->setCreatedPattern($patternEntity);
+                $aiSuggestion->setProcessedAt(new \DateTimeImmutable());
+
+                // Store what user actually chose (for feedback learning)
+                $aiSuggestion->setAcceptedDescriptionPattern($dto->descriptionPattern);
+                $aiSuggestion->setAcceptedNotesPattern($dto->notesPattern);
+                $aiSuggestion->setAcceptedCategoryName($dto->categoryName);
+
+                $this->suggestionRepository->save($aiSuggestion);
+            }
 
             return new JsonResponse([
                 'message' => 'Patroon succesvol geaccepteerd en aangemaakt',
-                'pattern' => $pattern,
-                'appliedToTransactions' => 0 // Pattern is automatically applied by createFromDTO
+                'pattern' => $patternDTO,
+                'appliedToTransactions' => 0, // Pattern is automatically applied by createFromDTO
+                'wasAltered' => $wasAltered
             ], Response::HTTP_CREATED);
 
         } catch (\Exception $e) {
             return new JsonResponse([
                 'error' => 'Accepteren van patroon mislukt: ' . $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route('/discover/reject', name: 'reject_pattern_suggestion', methods: ['POST'])]
+    #[OA\Post(
+        summary: 'Wijs een AI-voorgesteld patroon af',
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 1)
+            )
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'descriptionPattern', type: 'string', nullable: true, example: 'ALBERT HEIJN'),
+                    new OA\Property(property: 'notesPattern', type: 'string', nullable: true, example: null)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Patroon succesvol afgewezen',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string')
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: 'Patroon niet gevonden'),
+            new OA\Response(response: 400, description: 'Validatiefout')
+        ]
+    )]
+    public function rejectSuggestion(int $accountId, Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new BadRequestHttpException('Ongeldige JSON-invoer');
+        }
+
+        $descriptionPattern = $data['descriptionPattern'] ?? null;
+        $notesPattern = $data['notesPattern'] ?? null;
+
+        if (!$descriptionPattern && !$notesPattern) {
+            throw new BadRequestHttpException('Ten minste één patroon (description of notes) is vereist');
+        }
+
+        try {
+            // Generate pattern hash
+            $patternHash = $this->generatePatternHash($accountId, $descriptionPattern, $notesPattern);
+
+            // Find the AI suggestion
+            $aiSuggestion = $this->suggestionRepository->findByPatternHash($accountId, $patternHash);
+
+            if (!$aiSuggestion) {
+                return new JsonResponse([
+                    'error' => 'Patroon suggestie niet gevonden'
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            // Mark as rejected
+            $aiSuggestion->setStatus(AiPatternSuggestionStatus::REJECTED);
+            $aiSuggestion->setProcessedAt(new \DateTimeImmutable());
+            $this->suggestionRepository->save($aiSuggestion);
+
+            return new JsonResponse([
+                'message' => 'Patroon succesvol afgewezen'
+            ]);
+
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => 'Afwijzen van patroon mislukt: ' . $e->getMessage()
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -219,5 +359,16 @@ class AiPatternDiscoveryController extends AbstractController
             '#ec4899', '#f43f5e'
         ];
         return $colors[array_rand($colors)];
+    }
+
+    private function generatePatternHash(int $accountId, ?string $descriptionPattern, ?string $notesPattern): string
+    {
+        $data = implode('|', [
+            $accountId,
+            $descriptionPattern ?? '',
+            $notesPattern ?? ''
+        ]);
+
+        return hash('sha256', $data);
     }
 }

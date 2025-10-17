@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRequiredAccount } from "../../../app/context/AccountContext";
-import { discoverPatterns, acceptPatternSuggestion, PatternSuggestion } from "../services/PatternService";
+import { discoverPatterns, acceptPatternSuggestion, rejectPatternSuggestion, PatternSuggestion } from "../services/PatternService";
 import { toast } from "react-hot-toast";
-import { Sparkles, Check, X, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
+import { Sparkles, Check, X, ChevronDown, ChevronUp, Edit2, Clock } from "lucide-react";
 import { formatMoney } from "../../../shared/utils/MoneyFormat";
 import CategoryCombobox from "../../categories/components/CategoryCombobox";
 import { Category } from "../../categories/models/Category";
 import { fetchCategories } from "../../categories/services/CategoryService";
+
+const API_PREFIX = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
 
 interface Props {
     onSuccess?: () => void;
@@ -27,7 +29,15 @@ export default function PatternDiscovery({ onSuccess }: Props) {
         [key: number]: {
             categoryName: string;
             categoryId: number | null;
-            patternString: string;
+            descriptionPattern: string | null;
+            notesPattern: string | null;
+        }
+    }>({});
+    const [matchingTransactions, setMatchingTransactions] = useState<{
+        [key: number]: {
+            loading: boolean;
+            data: any[] | null;
+            total: number | null;
         }
     }>({});
 
@@ -49,7 +59,7 @@ export default function PatternDiscovery({ onSuccess }: Props) {
         try {
             const result = await discoverPatterns(accountId);
             setSuggestions(result.patterns);
-            setTotalUncategorized(result.totalUncategorized);
+            setTotalUncategorized(result.analyzedCount);
 
             if (result.patterns.length === 0) {
                 toast.success("Geen nieuwe patronen gevonden");
@@ -70,25 +80,28 @@ export default function PatternDiscovery({ onSuccess }: Props) {
             const edited = editedData[index];
 
             // Use edited data if available, otherwise use original suggestion
-            const patternString = edited?.patternString || suggestion.patternString;
+            const descriptionPattern = edited?.descriptionPattern !== undefined ? edited.descriptionPattern : suggestion.descriptionPattern;
+            const notesPattern = edited?.notesPattern !== undefined ? edited.notesPattern : suggestion.notesPattern;
             const categoryName = edited?.categoryName || suggestion.suggestedCategoryName;
             const categoryId = edited?.categoryId !== undefined ? edited.categoryId : suggestion.existingCategoryId;
 
-            // Validation: pattern string cannot be empty
-            if (!patternString || patternString.trim() === '') {
-                toast.error("Pattern string mag niet leeg zijn");
+            // Validation: at least one pattern must be provided
+            if (!descriptionPattern && !notesPattern) {
+                toast.error("Minimaal één pattern (description of notes) moet ingevuld zijn");
                 setLoading(false);
                 return;
             }
 
             await acceptPatternSuggestion(accountId, {
-                patternString: patternString,
+                descriptionPattern: descriptionPattern,
+                notesPattern: notesPattern,
                 categoryName: categoryName,
                 categoryId: categoryId,
                 categoryColor: undefined
             });
 
-            toast.success(`Patroon "${patternString}" geaccepteerd`);
+            const patternDisplay = [descriptionPattern, notesPattern].filter(Boolean).join(' + ');
+            toast.success(`Patroon "${patternDisplay}" geaccepteerd`);
 
             // Remove accepted suggestion from list
             setSuggestions(prev => prev.filter((_, i) => i !== index));
@@ -99,6 +112,9 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                 delete newData[index];
                 return newData;
             });
+
+            // Close editing mode
+            setEditingSuggestion(null);
 
             if (onSuccess) {
                 onSuccess();
@@ -119,7 +135,8 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                 [index]: {
                     categoryName: suggestion.suggestedCategoryName,
                     categoryId: suggestion.existingCategoryId,
-                    patternString: suggestion.patternString
+                    descriptionPattern: suggestion.descriptionPattern,
+                    notesPattern: suggestion.notesPattern
                 }
             }));
         }
@@ -129,35 +146,135 @@ export default function PatternDiscovery({ onSuccess }: Props) {
         setEditingSuggestion(null);
     };
 
-    const updateEditedCategory = (index: number, category: Category | null) => {
-        setEditedData(prev => ({
+    const updateEditedCategory = (index: number, category: Category | null, suggestion: PatternSuggestion) => {
+        setEditedData(prev => {
+            const currentData = prev[index];
+            return {
+                ...prev,
+                [index]: {
+                    descriptionPattern: currentData?.descriptionPattern !== undefined ? currentData.descriptionPattern : suggestion.descriptionPattern,
+                    notesPattern: currentData?.notesPattern !== undefined ? currentData.notesPattern : suggestion.notesPattern,
+                    categoryName: category?.name || '',
+                    categoryId: category?.id || null
+                }
+            };
+        });
+    };
+
+    const updateEditedDescriptionPattern = (index: number, descriptionPattern: string, suggestion: PatternSuggestion) => {
+        setEditedData(prev => {
+            const currentData = prev[index];
+            return {
+                ...prev,
+                [index]: {
+                    descriptionPattern: descriptionPattern || null,
+                    notesPattern: currentData?.notesPattern !== undefined ? currentData.notesPattern : suggestion.notesPattern,
+                    categoryName: currentData?.categoryName || suggestion.suggestedCategoryName,
+                    categoryId: currentData?.categoryId !== undefined ? currentData.categoryId : suggestion.existingCategoryId
+                }
+            };
+        });
+    };
+
+    const updateEditedNotesPattern = (index: number, notesPattern: string, suggestion: PatternSuggestion) => {
+        setEditedData(prev => {
+            const currentData = prev[index];
+            return {
+                ...prev,
+                [index]: {
+                    descriptionPattern: currentData?.descriptionPattern !== undefined ? currentData.descriptionPattern : suggestion.descriptionPattern,
+                    notesPattern: notesPattern || null,
+                    categoryName: currentData?.categoryName || suggestion.suggestedCategoryName,
+                    categoryId: currentData?.categoryId !== undefined ? currentData.categoryId : suggestion.existingCategoryId
+                }
+            };
+        });
+    };
+
+    const handleReject = async (index: number, suggestion: PatternSuggestion) => {
+        setLoading(true);
+        try {
+            await rejectPatternSuggestion(accountId, {
+                descriptionPattern: suggestion.descriptionPattern,
+                notesPattern: suggestion.notesPattern
+            });
+
+            const patternDisplay = [suggestion.descriptionPattern, suggestion.notesPattern].filter(Boolean).join(' + ');
+            toast.success(`Patroon "${patternDisplay}" afgewezen`);
+
+            // Remove rejected suggestion from list
+            setSuggestions(prev => prev.filter((_, i) => i !== index));
+
+            // Remove from edited data
+            setEditedData(prev => {
+                const newData = { ...prev };
+                delete newData[index];
+                return newData;
+            });
+        } catch (error) {
+            toast.error("Afwijzen mislukt");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadMatchingTransactions = async (index: number, suggestion: PatternSuggestion) => {
+        // If already loaded or loading, skip
+        if (matchingTransactions[index]?.data || matchingTransactions[index]?.loading) {
+            return;
+        }
+
+        // Set loading state
+        setMatchingTransactions(prev => ({
             ...prev,
-            [index]: {
-                patternString: prev[index]?.patternString || '',
-                categoryName: category?.name || prev[index]?.categoryName || '',
-                categoryId: category?.id || null
-            }
+            [index]: { loading: true, data: null, total: null }
         }));
-    };
 
-    const updateEditedPattern = (index: number, patternString: string) => {
-        setEditedData(prev => ({
-            ...prev,
-            [index]: {
-                ...prev[index],
-                patternString,
-                categoryName: prev[index]?.categoryName || '',
-                categoryId: prev[index]?.categoryId || null
+        try {
+            const edited = editedData[index];
+            const descriptionPattern = edited?.descriptionPattern !== undefined ? edited.descriptionPattern : suggestion.descriptionPattern;
+            const notesPattern = edited?.notesPattern !== undefined ? edited.notesPattern : suggestion.notesPattern;
+
+            const response = await fetch(`${API_PREFIX}/account/${accountId}/patterns/match`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accountId: accountId,
+                    description: descriptionPattern,
+                    matchTypeDescription: descriptionPattern ? 'LIKE' : null,
+                    notes: notesPattern,
+                    matchTypeNotes: notesPattern ? 'LIKE' : null,
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load matching transactions');
             }
-        }));
+
+            const result = await response.json();
+
+            setMatchingTransactions(prev => ({
+                ...prev,
+                [index]: {
+                    loading: false,
+                    data: result.data,
+                    total: result.total
+                }
+            }));
+        } catch (error) {
+            console.error('Failed to load matching transactions', error);
+            toast.error('Kon overeenkomende transacties niet laden');
+            setMatchingTransactions(prev => ({
+                ...prev,
+                [index]: { loading: false, data: null, total: null }
+            }));
+        }
     };
 
-    const handleReject = (suggestion: PatternSuggestion) => {
-        setSuggestions(prev => prev.filter(s => s.patternString !== suggestion.patternString));
-        toast.success("Patroon afgewezen");
-    };
+    const toggleExpanded = async (index: number, suggestion: PatternSuggestion) => {
+        const isCurrentlyExpanded = expandedSuggestions.has(index);
 
-    const toggleExpanded = (index: number) => {
         setExpandedSuggestions(prev => {
             const newSet = new Set(prev);
             if (newSet.has(index)) {
@@ -167,6 +284,11 @@ export default function PatternDiscovery({ onSuccess }: Props) {
             }
             return newSet;
         });
+
+        // Load matching transactions when expanding
+        if (!isCurrentlyExpanded) {
+            await loadMatchingTransactions(index, suggestion);
+        }
     };
 
     return (
@@ -184,7 +306,7 @@ export default function PatternDiscovery({ onSuccess }: Props) {
 
                 {totalUncategorized > 0 && (
                     <span className="text-sm text-gray-600">
-                        {totalUncategorized} ongecategoriseerde transacties
+                        Gebaseerd op {totalUncategorized} ongecategoriseerde transacties
                     </span>
                 )}
             </div>
@@ -200,8 +322,15 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                         const isEditing = editingSuggestion === index;
                         const edited = editedData[index];
                         const displayCategoryName = edited?.categoryName || suggestion.suggestedCategoryName;
-                        const displayPatternString = edited?.patternString || suggestion.patternString;
+                        const displayDescriptionPattern = edited?.descriptionPattern !== undefined ? edited.descriptionPattern : suggestion.descriptionPattern;
+                        const displayNotesPattern = edited?.notesPattern !== undefined ? edited.notesPattern : suggestion.notesPattern;
                         const displayCategoryId = edited?.categoryId !== undefined ? edited.categoryId : suggestion.existingCategoryId;
+
+                        // Build pattern display string
+                        const patternParts = [];
+                        if (displayDescriptionPattern) patternParts.push(`Desc: "${displayDescriptionPattern}"`);
+                        if (displayNotesPattern) patternParts.push(`Notes: "${displayNotesPattern}"`);
+                        const patternDisplay = patternParts.join(' + ');
 
                         return (
                             <div
@@ -215,19 +344,30 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                                             {isEditing ? (
                                                 <div className="space-y-2 mb-2">
                                                     <div>
-                                                        <label className="text-xs text-gray-600 mb-1 block">Pattern string:</label>
+                                                        <label className="text-xs text-gray-600 mb-1 block">Description pattern:</label>
                                                         <input
                                                             type="text"
-                                                            value={displayPatternString}
-                                                            onChange={(e) => updateEditedPattern(index, e.target.value)}
+                                                            value={displayDescriptionPattern || ''}
+                                                            onChange={(e) => updateEditedDescriptionPattern(index, e.target.value, suggestion)}
                                                             className="w-full border rounded px-2 py-1 text-sm"
+                                                            placeholder="Optioneel"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-gray-600 mb-1 block">Notes pattern:</label>
+                                                        <input
+                                                            type="text"
+                                                            value={displayNotesPattern || ''}
+                                                            onChange={(e) => updateEditedNotesPattern(index, e.target.value, suggestion)}
+                                                            className="w-full border rounded px-2 py-1 text-sm"
+                                                            placeholder="Optioneel"
                                                         />
                                                     </div>
                                                     <div>
                                                         <label className="text-xs text-gray-600 mb-1 block">Categorie:</label>
                                                         <CategoryCombobox
                                                             categoryId={displayCategoryId}
-                                                            onChange={(cat) => updateEditedCategory(index, cat)}
+                                                            onChange={(cat) => updateEditedCategory(index, cat, suggestion)}
                                                             categories={categories}
                                                             setCategories={setCategories}
                                                         />
@@ -235,13 +375,19 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-semibold text-gray-900">
-                                                        {displayPatternString}
+                                                    <span className="font-semibold text-gray-900 text-sm">
+                                                        {patternDisplay}
                                                     </span>
                                                     <span className="text-sm text-gray-500">→</span>
                                                     <span className="px-2 py-0.5 rounded text-sm font-medium bg-blue-100 text-blue-800">
                                                         {displayCategoryName}
                                                     </span>
+                                                    {suggestion.previouslyDiscovered && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800" title="Dit patroon was eerder ontdekt maar nog niet verwerkt">
+                                                            <Clock size={12} />
+                                                            Eerder ontdekt
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-3 text-xs text-gray-600">
@@ -295,7 +441,7 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                                                         <Edit2 size={18} />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleReject(suggestion)}
+                                                        onClick={() => handleReject(index, suggestion)}
                                                         disabled={loading}
                                                         className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
                                                         title="Afwijzen"
@@ -303,7 +449,7 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                                                         <X size={18} />
                                                     </button>
                                                     <button
-                                                        onClick={() => toggleExpanded(index)}
+                                                        onClick={() => toggleExpanded(index, suggestion)}
                                                         className="p-1.5 text-gray-600 hover:bg-gray-50 rounded transition"
                                                         title="Details tonen/verbergen"
                                                     >
@@ -318,26 +464,68 @@ export default function PatternDiscovery({ onSuccess }: Props) {
                                         </div>
                                     </div>
 
-                                    {/* Example Transactions (Expandable) */}
-                                    {expandedSuggestions.has(index) && suggestion.exampleTransactions.length > 0 && (
+                                    {/* Matching Transactions (Expandable) */}
+                                    {expandedSuggestions.has(index) && (
                                         <div className="mt-3 pt-3 border-t">
                                             <p className="text-xs font-medium text-gray-600 mb-2">
-                                                Voorbeeldtransacties:
+                                                {matchingTransactions[index]?.loading ? (
+                                                    "Laden..."
+                                                ) : matchingTransactions[index]?.total !== null ? (
+                                                    `Overeenkomende transacties (${matchingTransactions[index].total}):`
+                                                ) : (
+                                                    "Overeenkomende transacties:"
+                                                )}
                                             </p>
-                                            <div className="space-y-1">
-                                                {suggestion.exampleTransactions.map((tx) => (
-                                                    <div
-                                                        key={tx.id}
-                                                        className="text-xs text-gray-700 flex justify-between items-center py-1 px-2 bg-gray-50 rounded"
-                                                    >
-                                                        <span className="truncate flex-1">{tx.description}</span>
-                                                        <div className="flex items-center gap-2 ml-2">
-                                                            <span className="text-gray-500">{tx.date}</span>
-                                                            <span className="font-medium">{formatMoney(tx.amount)}</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+
+                                            {matchingTransactions[index]?.loading && (
+                                                <div className="text-center py-4 text-gray-500 text-sm">
+                                                    <div className="animate-pulse">Transacties laden...</div>
+                                                </div>
+                                            )}
+
+                                            {matchingTransactions[index]?.data && matchingTransactions[index].data.length > 0 && (
+                                                <div className="overflow-x-auto">
+                                                    <table className="min-w-full text-xs">
+                                                        <thead>
+                                                            <tr className="border-b">
+                                                                <th className="text-left py-2 px-2 font-medium text-gray-600">Datum</th>
+                                                                <th className="text-left py-2 px-2 font-medium text-gray-600">Beschrijving</th>
+                                                                <th className="text-left py-2 px-2 font-medium text-gray-600">Notities</th>
+                                                                <th className="text-right py-2 px-2 font-medium text-gray-600">Bedrag</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {matchingTransactions[index].data.map((tx: any) => (
+                                                                <tr key={tx.id} className="border-b hover:bg-gray-50">
+                                                                    <td className="py-2 px-2 text-gray-700 whitespace-nowrap">
+                                                                        {tx.date}
+                                                                    </td>
+                                                                    <td className="py-2 px-2 text-gray-700">
+                                                                        {tx.description}
+                                                                    </td>
+                                                                    <td className="py-2 px-2 text-gray-500 max-w-xs">
+                                                                        <div
+                                                                            className="truncate"
+                                                                            title={tx.notes || ''}
+                                                                        >
+                                                                            {tx.notes || '-'}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="py-2 px-2 text-right font-medium whitespace-nowrap">
+                                                                        {formatMoney(tx.amount)}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+
+                                            {matchingTransactions[index]?.data && matchingTransactions[index].data.length === 0 && (
+                                                <div className="text-center py-4 text-gray-500 text-sm">
+                                                    Geen overeenkomende transacties gevonden
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
