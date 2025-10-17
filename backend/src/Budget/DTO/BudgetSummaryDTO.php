@@ -6,6 +6,7 @@ class BudgetSummaryDTO
 {
     public int $budgetId;
     public string $budgetName;
+    public string $budgetType; // 'EXPENSE' or 'INCOME'
     public float $allocatedAmount;
     public float $spentAmount;
     public float $remainingAmount;
@@ -13,7 +14,7 @@ class BudgetSummaryDTO
     public string $monthYear;
     public bool $isOverspent;
     public string $status;
-    
+
     // Trend informatie
     public float $trendPercentage;
     public string $trendDirection; // 'up', 'down', 'stable'
