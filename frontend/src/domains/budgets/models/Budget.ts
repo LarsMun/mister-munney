@@ -1,9 +1,12 @@
 // frontend/src/domains/budgets/models/Budget.ts
 
+export type BudgetType = 'EXPENSE' | 'INCOME';
+
 export interface Budget {
     id: number;
     name: string;
     accountId: number;
+    budgetType: BudgetType;
     status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
     statusLabel: string;
     statusColor: string;
@@ -38,6 +41,7 @@ export interface Category {
 export interface CreateBudget {
     name: string;
     accountId: number;
+    budgetType: BudgetType;
     monthlyAmount: number;
     effectiveFromMonth: string;
     changeReason?: string;
@@ -46,6 +50,7 @@ export interface CreateBudget {
 
 export interface UpdateBudget {
     name?: string;
+    budgetType?: BudgetType;
     status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 }
 
