@@ -117,6 +117,8 @@ class AiPatternDiscoveryService
             "- Match op description (bedrijfsnaam/tegenpartij), notes (extra omschrijving), of beide\n" .
             "- GEEN wildcards\n" .
             "- Zoek patronen in zowel description als notes velden\n" .
+            "- VERPLICHT: Alleen patronen voorstellen met minimaal 2 overeenkomende transacties\n" .
+            "- Eén transactie is geen patroon - skip deze\n" .
             "- BELANGRIJK: Wees specifiek met notes patronen - gebruik volledige identifiers\n" .
             "- VERPLICHT: Als je transacties ziet met dezelfde description maar verschillende:\n" .
             "  * Bedragen (bijv. €22.60 vs €26.85)\n" .
@@ -254,6 +256,16 @@ class AiPatternDiscoveryService
 
             // Skip if no pattern is provided or no category name
             if ((!$descriptionPattern && !$notesPattern) || !$categoryName) {
+                continue;
+            }
+
+            // Skip if match count is less than 2 (one transaction is not a pattern)
+            if ($matchCount < 2) {
+                $this->logger->info('Skipping pattern with less than 2 matches', [
+                    'description' => $descriptionPattern,
+                    'notes' => $notesPattern,
+                    'matchCount' => $matchCount
+                ]);
                 continue;
             }
 
