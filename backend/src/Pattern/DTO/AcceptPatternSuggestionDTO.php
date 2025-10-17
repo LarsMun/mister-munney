@@ -6,8 +6,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class AcceptPatternSuggestionDTO
 {
-    #[Assert\NotBlank]
-    public string $patternString;
+    public ?string $descriptionPattern = null;
+
+    public ?string $notesPattern = null;
 
     #[Assert\NotBlank]
     public string $categoryName;
