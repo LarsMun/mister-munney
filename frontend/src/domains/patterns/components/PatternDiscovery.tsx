@@ -13,7 +13,7 @@ import { fetchCategories } from "../../categories/services/CategoryService";
 const API_PREFIX = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
 
 interface Props {
-    onSuccess?: () => void;
+    onSuccess?: (wasEdit?: boolean, updatedPattern?: any) => void;
 }
 
 export default function PatternDiscovery({ onSuccess }: Props) {
