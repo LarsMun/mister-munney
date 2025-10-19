@@ -51,6 +51,9 @@ export function sanitizePattern(p: PatternInput): Record<string, any> {
     if (p.categoryId) clean.categoryId = p.categoryId;
     if (p.savingsAccountId) clean.savingsAccountId = p.savingsAccountId;
 
+    // Always include strict flag (defaults to false if undefined)
+    clean.strict = p.strict ?? false;
+
     return clean;
 }
 

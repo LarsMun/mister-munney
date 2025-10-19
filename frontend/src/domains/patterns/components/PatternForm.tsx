@@ -18,7 +18,7 @@ interface Props {
         transactionType?: 'debit' | 'credit';
     };
     editPattern?: PatternDTO;
-    onSuccess: () => void;
+    onSuccess: (wasEdit: boolean, updatedPattern?: PatternDTO) => void;
 }
 
 export default function PatternForm({ prefill, editPattern, onSuccess }: Props) {
@@ -93,19 +93,24 @@ export default function PatternForm({ prefill, editPattern, onSuccess }: Props) 
         try {
             const { patternType, ...payload } = pattern;
 
+            const wasEdit = !!editPattern;
+            let updatedPattern: PatternDTO | undefined;
+
             if (editPattern) {
                 // Update bestaand pattern
-                await updatePattern(accountId, editPattern.id, payload);
+                updatedPattern = await updatePattern(accountId, editPattern.id, payload);
                 toast.success("Patroon bijgewerkt", { id: toastId });
             } else {
                 // Nieuw pattern aanmaken
                 await createPattern(accountId, payload);
                 toast.success("Patroon opgeslagen", { id: toastId });
+
+                // Reset form alleen bij nieuw patroon, niet bij update
+                setPattern(initialPattern);
+                setResetSignal(prev => prev + 1);
             }
 
-            setPattern(initialPattern);
-            setResetSignal(prev => prev + 1);
-            onSuccess();
+            onSuccess(wasEdit, updatedPattern);
         } catch (e: any) {
             console.error("Fout bij opslaan:", e);
             const backendMessage = e?.response?.data?.error;
