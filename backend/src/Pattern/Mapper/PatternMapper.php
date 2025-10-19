@@ -110,6 +110,7 @@ class PatternMapper
         $pattern->setNotes($dto->notes);
         $pattern->setMatchTypeNotes(MatchType::fromInput($dto->matchTypeNotes ?? 'LIKE'));
         $pattern->setTag($dto->tag);
+        $pattern->setStrict($dto->strict);
     }
 
     public function generateHash(

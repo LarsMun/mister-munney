@@ -54,17 +54,15 @@ class UpdatePatternDTO
     public ?string $description = null;
 
     #[Assert\Choice(['exact', 'like', 'EXACT', 'LIKE'])]
-    #[Assert\NotBlank]
     #[OA\Property(description: 'Matching type voor description', type: 'string', example: 'LIKE')]
-    public string $matchTypeDescription;
+    public ?string $matchTypeDescription = null;
 
     #[OA\Property(type: 'string', example: 'Weekboodschappen')]
     public ?string $notes = null;
 
     #[Assert\Choice(['exact', 'like', 'EXACT', 'LIKE'])]
-    #[Assert\NotBlank]
     #[OA\Property(description: 'Matching type voor notes', type: 'string', example: 'LIKE')]
-    public string $matchTypeNotes;
+    public ?string $matchTypeNotes = null;
 
     #[OA\Property(type: 'string', example: 'boodschappen')]
     public ?string $tag = null;

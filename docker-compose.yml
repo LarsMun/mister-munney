@@ -10,6 +10,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: "mysql://money:moneymakestheworldgoround@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
     ports:
       - "8787:80"
     volumes:

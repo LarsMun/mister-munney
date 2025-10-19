@@ -27,9 +27,15 @@ export default function PatternPage() {
     const [resetSignal, setResetSignal] = useState(0);
     const [editingPattern, setEditingPattern] = useState<PatternDTO | undefined>(undefined);
 
-    const handleSuccess = () => {
+    const handleSuccess = (wasEdit: boolean = false, updatedPattern?: PatternDTO) => {
         setResetSignal(prev => prev + 1);
-        setEditingPattern(undefined);
+        // Alleen edit mode verlaten als het een nieuw patroon was (niet bij update)
+        if (!wasEdit) {
+            setEditingPattern(undefined);
+        } else if (updatedPattern) {
+            // Bij update: vervang editingPattern met de geüpdatete data
+            setEditingPattern(updatedPattern);
+        }
         refresh();
     };
 
