@@ -170,12 +170,20 @@ export default function CategoryCombobox({
                         onBlur={() => setTimeout(() => setShowList(false), 100)}
                     />
                     {showList && (
-                        <ul className="absolute z-10 bg-white border mt-1 w-full max-h-40 overflow-auto rounded shadow text-xs">
+                        <ul className="absolute z-50 bg-white border mt-1 w-full max-h-40 overflow-auto rounded shadow text-xs">
+                            {filtered.length === 0 && (
+                                <li className="px-2 py-1 text-gray-500 italic">
+                                    Geen categorieën gevonden
+                                </li>
+                            )}
                             {filtered.map((c) => (
                                 <li
                                     key={c.id}
                                     className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => handleSelect(c)}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        handleSelect(c);
+                                    }}
                                 >
                                     <span
                                         className="inline-block px-2 py-1 rounded text-gray-700 text-sm"
@@ -188,7 +196,10 @@ export default function CategoryCombobox({
                             {input && !filteredByType.find(c => c?.name?.toLowerCase() === input.toLowerCase()) && (
                                 <li
                                     className="px-2 py-1 text-blue-600 hover:bg-gray-50 cursor-pointer border-t"
-                                    onClick={handleCreate}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        handleCreate();
+                                    }}
                                 >
                                     + Nieuwe categorie: "{input}"
                                 </li>
