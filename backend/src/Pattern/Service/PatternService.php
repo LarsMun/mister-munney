@@ -130,6 +130,7 @@ readonly class PatternService
 
         $this->mapper->updateFromDto($pattern, $dto);
         $this->patternRepository->save($pattern);
+        $this->assignService->assignSinglePattern($pattern);
 
         return $this->mapper->toDto($pattern);
     }
