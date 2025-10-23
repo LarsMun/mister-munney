@@ -7,6 +7,7 @@ export interface Budget {
     name: string;
     accountId: number;
     budgetType: BudgetType;
+    icon?: string | null;
     status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
     statusLabel: string;
     statusColor: string;
@@ -42,6 +43,7 @@ export interface CreateBudget {
     name: string;
     accountId: number;
     budgetType: BudgetType;
+    icon?: string | null;
     monthlyAmount: number;
     effectiveFromMonth: string;
     changeReason?: string;
@@ -51,6 +53,7 @@ export interface CreateBudget {
 export interface UpdateBudget {
     name?: string;
     budgetType?: BudgetType;
+    icon?: string | null;
     status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 }
 

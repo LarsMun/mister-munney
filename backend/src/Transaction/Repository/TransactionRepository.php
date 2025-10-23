@@ -542,6 +542,44 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Haalt breakdown van uitgaven per categorie op voor een specifieke maand.
+     *
+     * @param array $categoryIds Array met categorie IDs
+     * @param string $monthYear Maand in YYYY-MM formaat
+     * @return array Array met ['categoryId' => int, 'totalAmount' => int (cents), 'transactionCount' => int]
+     */
+    public function getCategoryBreakdownForMonth(array $categoryIds, string $monthYear): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        $results = $this->createQueryBuilder('t')
+            ->select(
+                'IDENTITY(t.category) AS categoryId',
+                'SUM(ABS(t.amountInCents)) AS totalAmount',
+                'COUNT(t.id) AS transactionCount'
+            )
+            ->where('t.category IN (:categoryIds)')
+            ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
+            ->andWhere('t.transaction_type = :debitType')
+            ->setParameter('categoryIds', $categoryIds)
+            ->setParameter('monthYear', $monthYear)
+            ->setParameter('debitType', TransactionType::DEBIT)
+            ->groupBy('t.category')
+            ->getQuery()
+            ->getResult();
+
+        return array_map(function ($row) {
+            return [
+                'categoryId' => (int) $row['categoryId'],
+                'totalAmount' => (int) $row['totalAmount'],
+                'transactionCount' => (int) $row['transactionCount']
+            ];
+        }, $results);
+    }
+
+    /**
      * Haalt historische maandelijkse uitgaven op voor categorieën.
      * Sluit de eerste en huidige (incomplete) maand uit.
      *
