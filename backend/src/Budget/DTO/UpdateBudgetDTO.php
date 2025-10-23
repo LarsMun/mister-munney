@@ -12,4 +12,7 @@ class UpdateBudgetDTO
 
     #[Assert\Choice(choices: ['EXPENSE', 'INCOME'], message: 'Budget type moet EXPENSE of INCOME zijn')]
     public ?string $budgetType = null;
+
+    #[Assert\Length(max: 255)]
+    public ?string $icon = null;
 }

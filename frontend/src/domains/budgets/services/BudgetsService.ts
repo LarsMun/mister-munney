@@ -12,6 +12,7 @@ import type {
     BudgetVersion
 } from "../models/Budget";
 import type { BudgetSummary, BudgetSummaryResponse } from "../models/BudgetSummary";
+import type { CategoryBreakdown } from "../models/CategoryBreakdown";
 
 // ===============================
 // BUDGET CRUD
@@ -53,6 +54,15 @@ export function deleteBudget(accountId: number, budgetId: number): Promise<void>
 
 export async function getBudgetSummaries(accountId: number, monthYear: string): Promise<BudgetSummaryResponse> {
     const res = await api.get(`/account/${accountId}/budget/summary/${monthYear}`);
+    return res.data;
+}
+
+export async function getCategoryBreakdown(
+    accountId: number,
+    budgetId: number,
+    monthYear: string
+): Promise<CategoryBreakdown[]> {
+    const res = await api.get(`/account/${accountId}/budget/${budgetId}/breakdown/${monthYear}`);
     return res.data;
 }
 

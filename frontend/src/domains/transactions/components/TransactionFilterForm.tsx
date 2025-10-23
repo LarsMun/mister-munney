@@ -54,6 +54,12 @@ export default function TransactionFilterForm({
     onOpenAiSuggestions
 }: Props) {
 
+    // Check if user is doing pattern matching (has other filters besides categoryId/savingsAccountId/dates)
+    const isPatternMatching = useMemo(() => {
+        return !!(filters.description || filters.notes || filters.tag ||
+                  filters.minAmount || filters.maxAmount || filters.withoutCategory);
+    }, [filters]);
+
     // Calculate pattern match statistics
     const conflictingCategory = useMemo(() => {
         if (!filters.categoryId || filters.strict) return [];
@@ -301,8 +307,8 @@ export default function TransactionFilterForm({
             <div className="border-t pt-4 mt-4">
                 <h3 className="text-sm font-semibold mb-3">Maak patroon van filter</h3>
 
-                {/* Pattern Match Preview */}
-                {filteredTransactions.length > 0 && (
+                {/* Pattern Match Preview - only show when actively pattern matching */}
+                {isPatternMatching && filteredTransactions.length > 0 && (
                     <div className="border border-gray-200 rounded mb-3 text-sm">
                         <div className="p-2 border-b font-semibold bg-gray-50 text-gray-800">
                             🎯 {filteredTransactions.length} transacties gevonden
