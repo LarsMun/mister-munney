@@ -7,6 +7,7 @@ import { InlineBudgetEditor } from './InlineBudgetEditor';
 import { AddBudgetVersionModal } from './AddBudgetVersionModal';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
+import { API_URL } from '../../../lib/api';
 
 interface BudgetCardProps {
     budget: Budget;
@@ -153,15 +154,24 @@ export function BudgetCard({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
         >
-            {/* Header with Budget Name & Delete Button */}
+            {/* Header with Budget Icon, Name & Delete Button */}
             <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                    <InlineBudgetEditor
-                        budget={budget}
-                        onUpdateBudget={onUpdate}
-                        onUpdateVersion={onUpdateVersion}
-                        isOverBudget={isOverBudget}
-                    />
+                <div className="flex items-start space-x-3 flex-1">
+                    {budget.icon && (
+                        <img
+                            src={`${API_URL}/api/icons/${budget.icon}`}
+                            alt=""
+                            className="w-8 h-8 mt-1 flex-shrink-0"
+                        />
+                    )}
+                    <div className="flex-1">
+                        <InlineBudgetEditor
+                            budget={budget}
+                            onUpdateBudget={onUpdate}
+                            onUpdateVersion={onUpdateVersion}
+                            isOverBudget={isOverBudget}
+                        />
+                    </div>
                 </div>
                 <button
                     onClick={() => setShowDeleteBudgetDialog(true)}

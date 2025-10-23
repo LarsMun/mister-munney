@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { CreateBudget } from '../models/Budget';
+import { IconPicker } from '../../../shared/components/IconPicker';
 
 interface CreateBudgetModalProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
         name: '',
         accountId,
         budgetType: 'EXPENSE',
+        icon: null,
         monthlyAmount: 0,
         effectiveFromMonth: new Date().toISOString().slice(0, 7), // YYYY-MM format
         changeReason: '',
@@ -61,6 +63,7 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
             name: '',
             accountId,
             budgetType: 'EXPENSE',
+            icon: null,
             monthlyAmount: 0,
             effectiveFromMonth: new Date().toISOString().slice(0, 7),
             changeReason: '',
@@ -106,6 +109,14 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
                             <option value="EXPENSE">Uitgaven</option>
                             <option value="INCOME">Inkomsten</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <IconPicker
+                            selectedIcon={formData.icon}
+                            onSelect={(icon) => setFormData(prev => ({ ...prev, icon }))}
+                            label="Icoon (optioneel)"
+                        />
                     </div>
 
                     <div>

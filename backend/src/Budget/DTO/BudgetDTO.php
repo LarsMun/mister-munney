@@ -10,6 +10,7 @@ class BudgetDTO
     public string $name;
     public int $accountId;
     public string $budgetType;
+    public ?string $icon = null;
     public string $createdAt;
     public string $updatedAt;
 
