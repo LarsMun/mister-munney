@@ -498,4 +498,68 @@ class BudgetController extends AbstractController
         ]);
     }
 
+    #[Route('/{budgetId}/breakdown/{monthYear}', name: 'get_budget_category_breakdown', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/account/{accountId}/budget/{budgetId}/breakdown/{monthYear}',
+        description: 'Haalt de breakdown van uitgaven per categorie op voor een specifiek budget in een maand',
+        summary: 'Toon categorie breakdown voor budget',
+        tags: ['Budgetten'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+            new OA\Parameter(
+                name: 'budgetId',
+                description: 'ID van het budget',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 5)
+            ),
+            new OA\Parameter(
+                name: 'monthYear',
+                description: 'Maand en jaar in YYYY-MM formaat',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'string', pattern: '^\d{4}-\d{2}$', example: '2024-12')
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Category breakdown met bedragen en transactie counts',
+                content: new OA\JsonContent(
+                    type: 'array',
+                    items: new OA\Items(
+                        properties: [
+                            new OA\Property(property: 'categoryId', type: 'integer', example: 1),
+                            new OA\Property(property: 'categoryName', type: 'string', example: 'Supermarkt'),
+                            new OA\Property(property: 'categoryColor', type: 'string', example: '#3B82F6'),
+                            new OA\Property(property: 'spentAmount', type: 'number', format: 'float', example: 700.50),
+                            new OA\Property(property: 'transactionCount', type: 'integer', example: 15)
+                        ]
+                    )
+                )
+            ),
+            new OA\Response(response: 400, description: 'Ongeldige maand format'),
+            new OA\Response(response: 404, description: 'Budget of account niet gevonden')
+        ]
+    )]
+    public function getCategoryBreakdown(int $accountId, int $budgetId, string $monthYear): JsonResponse
+    {
+        // Validate monthYear format
+        if (!preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
+            return $this->json([
+                'error' => 'Invalid month format. Use YYYY-MM (e.g., 2024-12)'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $breakdown = $this->budgetService->getCategoryBreakdownForBudget($accountId, $budgetId, $monthYear);
+
+        return $this->json($breakdown);
+    }
+
 }
