@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTransactions } from './hooks/useTransactions';
 import TransactionTable from './components/TransactionTable';
 import { Toaster } from 'react-hot-toast';
@@ -32,6 +33,7 @@ interface FilterState {
 
 export default function TransactionPage() {
     const { accountId } = useAccount();
+    const [searchParams, setSearchParams] = useSearchParams();
     const {
         months,
         startDate,
@@ -54,6 +56,38 @@ export default function TransactionPage() {
     const [aiModalOpen, setAiModalOpen] = useState(false);
     const { categories } = useCategories(accountId!);
 
+    // Apply URL parameters on mount
+    useEffect(() => {
+        const categoryId = searchParams.get('categoryId');
+        const startDateParam = searchParams.get('startDate');
+        const endDateParam = searchParams.get('endDate');
+
+        if (categoryId || startDateParam || endDateParam) {
+            const newFilters: FilterState = { ...filters };
+
+            if (categoryId) {
+                newFilters.categoryId = parseInt(categoryId);
+            }
+
+            if (startDateParam) {
+                newFilters.startDate = startDateParam;
+                setStartDate(startDateParam);
+                setFilterByPeriod(true);
+            }
+
+            if (endDateParam) {
+                newFilters.endDate = endDateParam;
+                setEndDate(endDateParam);
+                setFilterByPeriod(true);
+            }
+
+            setFilters(newFilters);
+
+            // Clear URL parameters after applying
+            setSearchParams({});
+        }
+    }, [searchParams, setSearchParams]);
+
     // Fetch all transactions on mount (default behavior)
     useEffect(() => {
         if (accountId) {
@@ -63,13 +97,13 @@ export default function TransactionPage() {
         }
     }, [accountId]);
 
-    // Check if any filters are applied (excluding categoryId/savingsAccountId which are for pattern creation)
+    // Check if any filters are applied (including categoryId for display filtering)
     const hasFilters = Object.entries(filters).some(([key, value]) => {
-        // Don't count categoryId, savingsAccountId, strict, or withoutCategory as filters for transaction display
-        if (key === 'categoryId' || key === 'savingsAccountId' || key === 'strict' || key === 'withoutCategory') return false;
+        // Don't count savingsAccountId, strict as filters for transaction display
+        if (key === 'savingsAccountId' || key === 'strict') return false;
         // Don't count default values (matchType selectors and transactionType "both")
         if (key === 'matchTypeDescription' || key === 'matchTypeNotes' || key === 'transactionType') return false;
-        // Only count actual filter values (description, notes, tag, dates, amounts)
+        // Count categoryId, withoutCategory, and other actual filter values
         return value !== undefined && value !== "" && value !== null;
     });
 
@@ -85,10 +119,15 @@ export default function TransactionPage() {
             return false;
         }
 
+        // Apply categoryId filter for display (not pattern matching)
+        if (filters.categoryId !== undefined && t.category?.id !== filters.categoryId) {
+            return false;
+        }
+
         // If no filters are set, show all from the selected source
         if (!hasFilters) return true;
 
-        // Use matchesPattern utility
+        // Use matchesPattern utility for other filters
         return matchesPattern(t, filters as any);
     });
 

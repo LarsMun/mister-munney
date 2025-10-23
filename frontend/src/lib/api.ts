@@ -1,5 +1,7 @@
 const prefix = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
 
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+
 export async function fetchTransactions(
     accountId: number,
     filters: { startDate?: string; endDate?: string }
@@ -30,5 +32,13 @@ export async function importTransactions(accountId: number, file: File): Promise
         throw new Error('Failed to import transactions');
     }
 
+    return await response.json();
+}
+
+export async function fetchIcons(): Promise<string[]> {
+    const response = await fetch(`${prefix}/icons`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch icons');
+    }
     return await response.json();
 }

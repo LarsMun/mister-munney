@@ -29,5 +29,8 @@ class CreateBudgetDTO
     #[Assert\Length(max: 500)]
     public ?string $changeReason = null;
 
+    #[Assert\Length(max: 255)]
+    public ?string $icon = null;
+
     public array $categoryIds = [];
 }
