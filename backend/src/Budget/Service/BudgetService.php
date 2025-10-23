@@ -4,6 +4,7 @@ namespace App\Budget\Service;
 
 use App\Account\Repository\AccountRepository;
 use App\Budget\DTO\BudgetSummaryDTO;
+use App\Budget\DTO\CategoryBreakdownDTO;
 use App\Budget\DTO\CreateBudgetDTO;
 use App\Budget\DTO\UpdateBudgetDTO;
 use App\Budget\Repository\BudgetRepository;
@@ -56,6 +57,7 @@ class BudgetService
         $budget->setName($createBudgetDTO->name);
         $budget->setAccount($this->getAccountById($createBudgetDTO->accountId));
         $budget->setBudgetType(BudgetType::from($createBudgetDTO->budgetType));
+        $budget->setIcon($createBudgetDTO->icon);
 
         // Save via repository
         $budget = $this->budgetRepository->save($budget);
@@ -90,6 +92,10 @@ class BudgetService
 
         if ($updateBudgetDTO->budgetType !== null) {
             $budget->setBudgetType(BudgetType::from($updateBudgetDTO->budgetType));
+        }
+
+        if ($updateBudgetDTO->icon !== null) {
+            $budget->setIcon($updateBudgetDTO->icon);
         }
 
         return $this->budgetRepository->save($budget);
@@ -374,6 +380,64 @@ class BudgetService
             'totalAmount' => $this->moneyFactory->toFloat(Money::EUR($stats['total_amount'])),
             'count' => $stats['count']
         ];
+    }
+
+    /**
+     * Haalt de category breakdown op voor een specifiek budget in een maand.
+     *
+     * @param int $accountId
+     * @param int $budgetId
+     * @param string $monthYear
+     * @return array Array van CategoryBreakdownDTO objecten
+     * @throws NotFoundHttpException
+     */
+    public function getCategoryBreakdownForBudget(int $accountId, int $budgetId, string $monthYear): array
+    {
+        $account = $this->getAccountById($accountId);
+
+        // Haal budget op met categories
+        $budget = $this->budgetRepository->findWithVersionsAndCategories($budgetId, $account);
+        if (!$budget) {
+            throw new NotFoundHttpException("Budget with ID {$budgetId} not found for account {$accountId}");
+        }
+
+        // Verzamel category IDs
+        $categoryIds = [];
+        $categoryMap = [];
+        foreach ($budget->getCategories() as $category) {
+            $categoryIds[] = $category->getId();
+            $categoryMap[$category->getId()] = $category;
+        }
+
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        // Haal breakdown data op
+        $breakdownData = $this->transactionRepository->getCategoryBreakdownForMonth($categoryIds, $monthYear);
+
+        // Map naar DTOs
+        $breakdowns = [];
+        foreach ($breakdownData as $data) {
+            $category = $categoryMap[$data['categoryId']] ?? null;
+            if (!$category) {
+                continue;
+            }
+
+            $dto = new CategoryBreakdownDTO();
+            $dto->categoryId = $category->getId();
+            $dto->categoryName = $category->getName();
+            $dto->categoryColor = $category->getColor();
+            $dto->spentAmount = $this->moneyFactory->toFloat(Money::EUR($data['totalAmount']));
+            $dto->transactionCount = $data['transactionCount'];
+
+            $breakdowns[] = $dto;
+        }
+
+        // Sorteer op bedrag (hoogste eerst)
+        usort($breakdowns, fn($a, $b) => $b->spentAmount <=> $a->spentAmount);
+
+        return $breakdowns;
     }
 
 }

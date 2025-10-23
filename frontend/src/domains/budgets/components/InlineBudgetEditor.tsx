@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import type { Budget, UpdateBudgetVersion } from '../models/Budget';
 import { MonthPicker } from '../../../shared/components/MonthPicker';
+import { IconPicker } from '../../../shared/components/IconPicker';
 
 interface InlineBudgetEditorProps {
     budget: Budget;
-    onUpdateBudget: (budgetId: number, data: { name: string }) => Promise<void>;
+    onUpdateBudget: (budgetId: number, data: { name?: string; icon?: string | null }) => Promise<void>;
     onUpdateVersion?: (budgetId: number, versionId: number, data: UpdateBudgetVersion) => Promise<void>;
     isOverBudget?: boolean;
 }
@@ -14,6 +15,7 @@ interface InlineBudgetEditorProps {
 export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, isOverBudget }: InlineBudgetEditorProps) {
     const [isEditingName, setIsEditingName] = useState(false);
     const [tempName, setTempName] = useState(budget.name);
+    const [isEditingIcon, setIsEditingIcon] = useState(false);
     const [isEditingFromDate, setIsEditingFromDate] = useState(false);
     const [isEditingUntilDate, setIsEditingUntilDate] = useState(false);
     const [tempFromDate, setTempFromDate] = useState('');
@@ -113,6 +115,15 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
         setIsEditingUntilDate(false);
     };
 
+    const handleIconChange = async (icon: string | null) => {
+        try {
+            await onUpdateBudget(budget.id, { icon });
+            setIsEditingIcon(false);
+        } catch (error) {
+            console.error('Error updating budget icon:', error);
+        }
+    };
+
     const handleNameKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             saveName();
@@ -130,6 +141,36 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
 
     return (
         <div className="mb-4">
+            {/* Icon Editor */}
+            {isEditingIcon && (
+                <div className="mb-3">
+                    <IconPicker
+                        selectedIcon={budget.icon}
+                        onSelect={handleIconChange}
+                        label="Budget Icoon"
+                    />
+                    <button
+                        onClick={() => setIsEditingIcon(false)}
+                        className="mt-2 text-sm text-gray-600 hover:text-gray-800"
+                    >
+                        Annuleren
+                    </button>
+                </div>
+            )}
+
+            {/* Icon Display & Edit Button */}
+            {!isEditingIcon && (
+                <div className="mb-2">
+                    <button
+                        onClick={() => setIsEditingIcon(true)}
+                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                        title="Wijzig icoon"
+                    >
+                        {budget.icon ? '✏️ Wijzig icoon' : '+ Voeg icoon toe'}
+                    </button>
+                </div>
+            )}
+
             {/* Budget Name */}
             <div className="mb-2">
                 {isEditingName ? (
