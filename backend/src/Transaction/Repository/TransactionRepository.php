@@ -515,7 +515,8 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Haalt de totale DEBIT uitgaven op voor categorieën binnen een specifieke maand.
+     * Haalt de totale netto uitgaven op voor categorieën binnen een specifieke maand.
+     * DEBIT transacties tellen als uitgaven (positief), CREDIT transacties als compensatie (negatief).
      *
      * @param array $categoryIds Array met categorie IDs
      * @param string $monthYear Maand in YYYY-MM formaat
@@ -528,13 +529,11 @@ class TransactionRepository extends ServiceEntityRepository
         }
 
         $result = $this->createQueryBuilder('t')
-            ->select('SUM(ABS(t.amountInCents)) as total')
+            ->select('SUM(CASE WHEN t.transaction_type = \'CREDIT\' THEN -t.amountInCents ELSE t.amountInCents END) as total')
             ->where('t.category IN (:categoryIds)')
             ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
-            ->andWhere('t.transaction_type = :debitType')
             ->setParameter('categoryIds', $categoryIds)
             ->setParameter('monthYear', $monthYear)
-            ->setParameter('debitType', TransactionType::DEBIT)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -542,7 +541,8 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Haalt breakdown van uitgaven per categorie op voor een specifieke maand.
+     * Haalt breakdown van netto uitgaven per categorie op voor een specifieke maand.
+     * DEBIT transacties tellen als uitgaven (positief), CREDIT transacties als compensatie (negatief).
      *
      * @param array $categoryIds Array met categorie IDs
      * @param string $monthYear Maand in YYYY-MM formaat
@@ -557,15 +557,13 @@ class TransactionRepository extends ServiceEntityRepository
         $results = $this->createQueryBuilder('t')
             ->select(
                 'IDENTITY(t.category) AS categoryId',
-                'SUM(ABS(t.amountInCents)) AS totalAmount',
+                'SUM(CASE WHEN t.transaction_type = \'CREDIT\' THEN -t.amountInCents ELSE t.amountInCents END) AS totalAmount',
                 'COUNT(t.id) AS transactionCount'
             )
             ->where('t.category IN (:categoryIds)')
             ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
-            ->andWhere('t.transaction_type = :debitType')
             ->setParameter('categoryIds', $categoryIds)
             ->setParameter('monthYear', $monthYear)
-            ->setParameter('debitType', TransactionType::DEBIT)
             ->groupBy('t.category')
             ->getQuery()
             ->getResult();
@@ -580,8 +578,9 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Haalt historische maandelijkse uitgaven op voor categorieën.
+     * Haalt historische maandelijkse netto uitgaven op voor categorieën.
      * Sluit de eerste en huidige (incomplete) maand uit.
+     * DEBIT transacties tellen als uitgaven (positief), CREDIT transacties als compensatie (negatief).
      *
      * @param int $accountId
      * @param array $categoryIds Array met categorie IDs
@@ -601,14 +600,12 @@ class TransactionRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('t')
             ->select(
                 "SUBSTRING(t.date, 1, 7) AS month",
-                "SUM(ABS(t.amountInCents)) AS total"
+                "SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amountInCents ELSE t.amountInCents END) AS total"
             )
             ->where('t.account = :accountId')
             ->andWhere('t.category IN (:categoryIds)')
-            ->andWhere('t.transaction_type = :debitType')
             ->setParameter('accountId', $accountId)
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('debitType', TransactionType::DEBIT);
+            ->setParameter('categoryIds', $categoryIds);
 
         // Sluit eerste en huidige maand uit
         if ($firstMonth) {
