@@ -48,6 +48,9 @@ class Budget
     #[ORM\Column(type: "string", enumType: BudgetType::class)]
     private BudgetType $budgetType = BudgetType::EXPENSE;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $icon = null;
+
     // --- Getters & Setters ---
 
     public function getId(): ?int
@@ -198,6 +201,17 @@ class Budget
     public function setBudgetType(BudgetType $budgetType): static
     {
         $this->budgetType = $budgetType;
+        return $this;
+    }
+
+    public function getIcon(): ?string
+    {
+        return $this->icon;
+    }
+
+    public function setIcon(?string $icon): static
+    {
+        $this->icon = $icon;
         return $this;
     }
 }
