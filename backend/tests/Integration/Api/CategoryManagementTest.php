@@ -199,6 +199,68 @@ class CategoryManagementTest extends ApiTestCase
         $this->assertNull($deletedCategory);
     }
 
+    public function testDeleteCategoryWithTransactionsReturns409(): void
+    {
+        // Given - Category with transactions
+        $category = $this->createCategory('Groceries', TransactionType::DEBIT);
+        $this->createTransactionWithCategory($category, -2550, 'Albert Heijn');
+
+        // When - Try to delete category
+        $this->client->request(
+            'DELETE',
+            '/api/account/' . $this->account->getId() . '/categories/' . $category->getId()
+        );
+
+        // Then - Conflict error
+        $this->assertEquals(409, $this->client->getResponse()->getStatusCode());
+
+        // Verify category still exists
+        $entityManager = static::getContainer()->get('doctrine')->getManager();
+        $stillExists = $entityManager->getRepository(Category::class)->find($category->getId());
+        $this->assertNotNull($stillExists);
+    }
+
+    public function testPreviewDeleteWithoutTransactions(): void
+    {
+        // Given - Category without transactions
+        $category = $this->createCategory('Groceries', TransactionType::DEBIT);
+
+        // When - Preview delete
+        $this->client->request(
+            'GET',
+            '/api/account/' . $this->account->getId() . '/categories/' . $category->getId() . '/preview-delete'
+        );
+
+        // Then - Can delete
+        $data = $this->assertJsonResponse(200);
+
+        $this->assertTrue($data['canDelete']);
+        $this->assertEquals(0, $data['transactionCount']);
+        $this->assertArrayHasKey('message', $data);
+    }
+
+    public function testPreviewDeleteWithTransactions(): void
+    {
+        // Given - Category with transactions
+        $category = $this->createCategory('Groceries', TransactionType::DEBIT);
+        $this->createTransactionWithCategory($category, -2550, 'Albert Heijn');
+        $this->createTransactionWithCategory($category, -1875, 'Jumbo');
+
+        // When - Preview delete
+        $this->client->request(
+            'GET',
+            '/api/account/' . $this->account->getId() . '/categories/' . $category->getId() . '/preview-delete'
+        );
+
+        // Then - Cannot delete
+        $data = $this->assertJsonResponse(200);
+
+        $this->assertFalse($data['canDelete']);
+        $this->assertEquals(2, $data['transactionCount']);
+        $this->assertArrayHasKey('message', $data);
+        $this->assertStringContainsString('2 linked transaction', $data['message']);
+    }
+
     public function testGetCategoryWithTransactions(): void
     {
         // Given - Category with transactions
@@ -307,6 +369,161 @@ class CategoryManagementTest extends ApiTestCase
         $entityManager->flush();
 
         return $category;
+    }
+
+    public function testPreviewMerge(): void
+    {
+        // Given - Two categories with transactions
+        $source = $this->createCategory('Boodschappen oud', TransactionType::DEBIT);
+        $target = $this->createCategory('Boodschappen', TransactionType::DEBIT);
+
+        $this->createTransactionWithCategory($source, -2550, 'Albert Heijn');
+        $this->createTransactionWithCategory($source, -1875, 'Jumbo');
+        $this->createTransactionWithCategory($target, -3200, 'Lidl');
+
+        // When - Preview merge
+        $this->client->request(
+            'GET',
+            sprintf(
+                '/api/account/%d/categories/%d/merge-preview/%d',
+                $this->account->getId(),
+                $source->getId(),
+                $target->getId()
+            )
+        );
+
+        // Then - Preview data returned
+        $data = $this->assertJsonResponse(200);
+
+        $this->assertArrayHasKey('sourceCategory', $data);
+        $this->assertArrayHasKey('targetCategory', $data);
+        $this->assertEquals(2, $data['transactionsToMove']);
+        $this->assertEquals(1, $data['targetCurrentTransactionCount']);
+        $this->assertEquals(3, $data['targetNewTransactionCount']);
+        $this->assertArrayHasKey('totalAmount', $data);
+        $this->assertArrayHasKey('dateRange', $data);
+    }
+
+    public function testMergeCategoriesSuccessfully(): void
+    {
+        // Given - Two categories with transactions
+        $source = $this->createCategory('Boodschappen oud', TransactionType::DEBIT);
+        $target = $this->createCategory('Boodschappen', TransactionType::DEBIT);
+
+        $trans1 = $this->createTransactionWithCategory($source, -2550, 'Albert Heijn');
+        $trans2 = $this->createTransactionWithCategory($source, -1875, 'Jumbo');
+        $trans3 = $this->createTransactionWithCategory($target, -3200, 'Lidl');
+
+        $sourceId = $source->getId();
+
+        // When - Merge categories
+        $this->client->request(
+            'POST',
+            sprintf(
+                '/api/account/%d/categories/%d/merge/%d',
+                $this->account->getId(),
+                $sourceId,
+                $target->getId()
+            )
+        );
+
+        // Then - Merge successful
+        $data = $this->assertJsonResponse(200);
+
+        $this->assertTrue($data['success']);
+        $this->assertEquals(2, $data['transactionsMoved']);
+        $this->assertTrue($data['sourceDeleted']);
+        $this->assertArrayHasKey('message', $data);
+
+        // Verify source category is deleted
+        $entityManager = static::getContainer()->get('doctrine')->getManager();
+        $entityManager->clear(); // Clear cache to force fresh query
+
+        $deletedSource = $entityManager->getRepository(Category::class)->find($sourceId);
+        $this->assertNull($deletedSource);
+
+        // Verify all transactions now belong to target
+        $refreshedTarget = $entityManager->getRepository(Category::class)->find($target->getId());
+        $this->assertNotNull($refreshedTarget);
+
+        $targetTransactions = $entityManager->getRepository(Transaction::class)
+            ->findBy(['category' => $refreshedTarget]);
+        $this->assertCount(3, $targetTransactions);
+    }
+
+    public function testMergeCategoryIntoItselfReturns400(): void
+    {
+        // Given - One category
+        $category = $this->createCategory('Boodschappen', TransactionType::DEBIT);
+
+        // When - Try to merge into itself
+        $this->client->request(
+            'POST',
+            sprintf(
+                '/api/account/%d/categories/%d/merge/%d',
+                $this->account->getId(),
+                $category->getId(),
+                $category->getId()
+            )
+        );
+
+        // Then - Bad request
+        $this->assertEquals(400, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testMergeNonExistentCategoryReturns404(): void
+    {
+        // Given - One category
+        $category = $this->createCategory('Boodschappen', TransactionType::DEBIT);
+
+        // When - Try to merge with non-existent category
+        $this->client->request(
+            'POST',
+            sprintf(
+                '/api/account/%d/categories/%d/merge/%d',
+                $this->account->getId(),
+                $category->getId(),
+                99999
+            )
+        );
+
+        // Then - Not found
+        $this->assertEquals(404, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testMergeEmptySourceCategory(): void
+    {
+        // Given - Source without transactions, target with transactions
+        $source = $this->createCategory('Lege categorie', TransactionType::DEBIT);
+        $target = $this->createCategory('Boodschappen', TransactionType::DEBIT);
+        $this->createTransactionWithCategory($target, -3200, 'Lidl');
+
+        $sourceId = $source->getId();
+
+        // When - Merge empty source
+        $this->client->request(
+            'POST',
+            sprintf(
+                '/api/account/%d/categories/%d/merge/%d',
+                $this->account->getId(),
+                $sourceId,
+                $target->getId()
+            )
+        );
+
+        // Then - Merge successful
+        $data = $this->assertJsonResponse(200);
+
+        $this->assertTrue($data['success']);
+        $this->assertEquals(0, $data['transactionsMoved']);
+        $this->assertTrue($data['sourceDeleted']);
+
+        // Verify source is deleted
+        $entityManager = static::getContainer()->get('doctrine')->getManager();
+        $entityManager->clear();
+
+        $deletedSource = $entityManager->getRepository(Category::class)->find($sourceId);
+        $this->assertNull($deletedSource);
     }
 
     private function createTransactionWithCategory(

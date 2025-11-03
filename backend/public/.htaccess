@@ -1,5 +1,12 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Allow direct access to static files (icons, bundles, etc.)
+    RewriteCond %{REQUEST_URI} ^/icons/ [OR]
+    RewriteCond %{REQUEST_URI} ^/bundles/
+    RewriteRule ^ - [L]
+
+    # Route other requests through Symfony
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php/$1 [L]
