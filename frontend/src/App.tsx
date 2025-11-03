@@ -7,6 +7,7 @@ import WelcomeScreen from './components/WelcomeScreen';
 import BudgetsModule from './domains/budgets';
 import AccountManagement from './domains/accounts';
 import DashboardModule from './domains/dashboard';
+import CategoriesModule from './domains/categories';
 import { useAccount } from './app/context/AccountContext';
 import AccountSelector from './shared/components/AccountSelector';
 import logo from './assets/mister-munney-logo.png';
@@ -108,17 +109,29 @@ export default function App() {
                             >
                                 Patronen
                             </NavLink>
-                            <NavLink 
+                            <NavLink
                                 to="/budgets"
-                                className={({ isActive }) => 
+                                className={({ isActive }) =>
                                     `px-4 py-2 rounded-lg transition-colors font-medium ${
-                                        isActive 
-                                            ? 'bg-white/20 text-white' 
+                                        isActive
+                                            ? 'bg-white/20 text-white'
                                             : 'hover:bg-white/10'
                                     }`
                                 }
                             >
                                 Budgetten
+                            </NavLink>
+                            <NavLink
+                                to="/categories"
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-lg transition-colors font-medium ${
+                                        isActive
+                                            ? 'bg-white/20 text-white'
+                                            : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Categorieën
                             </NavLink>
                             <NavLink
                                 to="/accounts"
@@ -167,6 +180,7 @@ export default function App() {
                         <Route path="/transactions/*" element={<TransactionsModule />} />
                         <Route path="/patterns/*" element={<PatternModule />} />
                         <Route path="/budgets/*" element={<BudgetsModule />} />
+                        <Route path="/categories/*" element={<CategoriesModule />} />
                         <Route path="/accounts" element={<AccountManagement />} />
                     </Routes>
                 </main>
