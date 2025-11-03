@@ -192,6 +192,36 @@ class CategoryService
     }
 
     /**
+     * Geeft een preview van wat er gebeurt bij het verwijderen van een categorie.
+     *
+     * @param int $id ID van de categorie
+     * @param int $accountId ID van het account waartoe de categorie moet behoren
+     * @return array Associatieve array met informatie over de delete preview
+     *
+     * @throws NotFoundHttpException Als de categorie niet bestaat of niet bij het account hoort
+     */
+    public function previewDelete(int $id, int $accountId): array
+    {
+        $category = $this->getById($id, $accountId);
+
+        // Tel gekoppelde transacties
+        $transactionCount = $this->transactionRepository->count(['category' => $category]);
+
+        // Tel gekoppelde patronen
+        $patternCount = $this->patternRepository->count(['category' => $category]);
+
+        return [
+            'canDelete' => $transactionCount === 0,
+            'transactionCount' => $transactionCount,
+            'patternCount' => $patternCount,
+            'categoryName' => $category->getName(),
+            'message' => $transactionCount > 0
+                ? sprintf('This category has %d linked transaction(s) and cannot be deleted. Please merge it into another category first.', $transactionCount)
+                : 'This category can be safely deleted.'
+        ];
+    }
+
+    /**
      * Verwijdert een categorie op basis van ID binnen het opgegeven account.
      * Verwijdert ook patronen die deze categorie gebruiken en geen savingsAccount hebben.
      *
@@ -199,10 +229,24 @@ class CategoryService
      * @param int $accountId ID van het account waartoe de categorie moet behoren
      *
      * @throws NotFoundHttpException Als de categorie niet bestaat of niet bij het account hoort
+     * @throws ConflictHttpException Als de categorie nog gekoppelde transacties heeft
      */
     public function delete(int $id, int $accountId): void
     {
         $category = $this->getById($id, $accountId);
+
+        // Controleer of er transacties gekoppeld zijn
+        $transactionCount = $this->transactionRepository->count(['category' => $category]);
+
+        if ($transactionCount > 0) {
+            throw new ConflictHttpException(
+                sprintf(
+                    'Cannot delete category with %d linked transaction(s). Please merge this category into another category first.',
+                    $transactionCount
+                )
+            );
+        }
+
         // Vind alle patronen die deze categorie gebruiken
         $patterns = $this->patternRepository->findBy(['category' => $category]);
 
@@ -214,6 +258,148 @@ class CategoryService
         }
 
         $this->categoryRepository->remove($category);
+    }
+
+    /**
+     * Geeft een preview van wat er gebeurt bij het mergen van twee categorieën.
+     *
+     * @param int $sourceId ID van de bron categorie (wordt verwijderd)
+     * @param int $targetId ID van de doel categorie (ontvangt transacties)
+     * @param int $accountId ID van het account
+     * @return array Preview informatie
+     *
+     * @throws NotFoundHttpException Als een van de categorieën niet bestaat
+     * @throws BadRequestHttpException Als de categorieën niet samengevoegd kunnen worden
+     */
+    public function previewMerge(int $sourceId, int $targetId, int $accountId): array
+    {
+        // Valideer categorieën
+        $source = $this->getById($sourceId, $accountId);
+        $target = $this->getById($targetId, $accountId);
+
+        // Check dat het niet dezelfde categorie is
+        if ($sourceId === $targetId) {
+            throw new BadRequestHttpException('Cannot merge a category into itself');
+        }
+
+        // Check dat ze bij hetzelfde account horen
+        if ($source->getAccount()->getId() !== $target->getAccount()->getId()) {
+            throw new BadRequestHttpException('Categories must belong to the same account');
+        }
+
+        // Tel transacties
+        $transactionCount = $this->transactionRepository->count(['category' => $source]);
+
+        // Bereken totaalbedrag van te verplaatsen transacties
+        $transactions = $this->transactionRepository->findBy(['category' => $source]);
+        $totalAmountInCents = 0;
+        $firstDate = null;
+        $lastDate = null;
+
+        foreach ($transactions as $transaction) {
+            $totalAmountInCents += $transaction->getAmount()->getAmount();
+            $transactionDate = $transaction->getDate();
+
+            if ($firstDate === null || $transactionDate < $firstDate) {
+                $firstDate = $transactionDate;
+            }
+            if ($lastDate === null || $transactionDate > $lastDate) {
+                $lastDate = $transactionDate;
+            }
+        }
+
+        // Tel huidige transacties van target
+        $targetTransactionCount = $this->transactionRepository->count(['category' => $target]);
+
+        return [
+            'sourceCategory' => [
+                'id' => $source->getId(),
+                'name' => $source->getName(),
+                'color' => $source->getColor(),
+                'icon' => $source->getIcon(),
+            ],
+            'targetCategory' => [
+                'id' => $target->getId(),
+                'name' => $target->getName(),
+                'color' => $target->getColor(),
+                'icon' => $target->getIcon(),
+            ],
+            'transactionsToMove' => $transactionCount,
+            'totalAmount' => $this->moneyFactory->toFloat(
+                $this->moneyFactory->fromCents($totalAmountInCents)
+            ),
+            'dateRange' => [
+                'first' => $firstDate?->format('Y-m-d'),
+                'last' => $lastDate?->format('Y-m-d'),
+            ],
+            'targetCurrentTransactionCount' => $targetTransactionCount,
+            'targetNewTransactionCount' => $targetTransactionCount + $transactionCount,
+        ];
+    }
+
+    /**
+     * Merge twee categorieën: verplaats alle transacties van source naar target en verwijder source.
+     *
+     * @param int $sourceId ID van de bron categorie (wordt verwijderd)
+     * @param int $targetId ID van de doel categorie (ontvangt transacties)
+     * @param int $accountId ID van het account
+     * @return array Resultaat van de merge operatie
+     *
+     * @throws NotFoundHttpException Als een van de categorieën niet bestaat
+     * @throws BadRequestHttpException Als de categorieën niet samengevoegd kunnen worden
+     */
+    public function mergeCategories(int $sourceId, int $targetId, int $accountId): array
+    {
+        // Valideer categorieën (hergebruik logic van preview)
+        $source = $this->getById($sourceId, $accountId);
+        $target = $this->getById($targetId, $accountId);
+
+        // Check dat het niet dezelfde categorie is
+        if ($sourceId === $targetId) {
+            throw new BadRequestHttpException('Cannot merge a category into itself');
+        }
+
+        // Check dat ze bij hetzelfde account horen
+        if ($source->getAccount()->getId() !== $target->getAccount()->getId()) {
+            throw new BadRequestHttpException('Categories must belong to the same account');
+        }
+
+        // Haal alle transacties van source op
+        $transactions = $this->transactionRepository->findBy(['category' => $source]);
+        $transactionCount = count($transactions);
+
+        // Store source name before deletion
+        $sourceName = $source->getName();
+        $targetName = $target->getName();
+
+        // Verplaats alle transacties naar target (Doctrine gebruikt automatisch transactions bij flush)
+        foreach ($transactions as $transaction) {
+            $transaction->setCategory($target);
+        }
+
+        // Update alle patronen die naar source wijzen
+        $patterns = $this->patternRepository->findBy(['category' => $source]);
+        foreach ($patterns as $pattern) {
+            // Als pattern geen savingsAccount heeft, wijs het toe aan target
+            if ($pattern->getSavingsAccount() === null) {
+                $pattern->setCategory($target);
+            }
+        }
+
+        // Verwijder source categorie (dit triggert ook cascade deletes if configured)
+        $this->categoryRepository->remove($source);
+
+        return [
+            'success' => true,
+            'transactionsMoved' => $transactionCount,
+            'sourceDeleted' => true,
+            'message' => sprintf(
+                'Successfully merged %d transaction(s) from "%s" to "%s"',
+                $transactionCount,
+                $sourceName,
+                $targetName
+            ),
+        ];
     }
 
     /**

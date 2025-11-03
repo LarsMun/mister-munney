@@ -69,3 +69,34 @@ export function getCategoryStatistics(
         params: { months }
     }).then(res => res.data);
 }
+
+export async function updateCategory(
+    accountId: number,
+    categoryId: number,
+    updates: { name: string; color: string; icon: string | null }
+): Promise<Category> {
+    const response = await api.put(`/account/${accountId}/categories/${categoryId}`, updates);
+    toast.success('Categorie succesvol bijgewerkt', { id: 'category-update-success' });
+    return response.data;
+}
+
+export async function deleteCategory(accountId: number, categoryId: number): Promise<void> {
+    await api.delete(`/account/${accountId}/categories/${categoryId}`);
+    toast.success('Categorie succesvol verwijderd', { id: 'category-delete-success' });
+}
+
+export async function mergeCategories(
+    accountId: number,
+    sourceId: number,
+    targetId: number
+): Promise<{ success: boolean; transactionsMoved: number }> {
+    const response = await api.post(`/account/${accountId}/categories/${sourceId}/merge/${targetId}`);
+
+    const transactionsMoved = response.data.transactionsMoved || 0;
+    toast.success(
+        `Categorieën succesvol samengevoegd! ${transactionsMoved} transactie${transactionsMoved !== 1 ? 's' : ''} verplaatst.`,
+        { id: 'category-merge-success', duration: 4000 }
+    );
+
+    return response.data;
+}
