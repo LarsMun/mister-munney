@@ -247,6 +247,7 @@ class CategoryController extends AbstractController
     #[OA\Delete(
         path: '/api/account/{accountId}/categories/{id}',
         summary: 'Verwijder een categorie',
+        description: 'Verwijdert een categorie alleen als er geen transacties aan gekoppeld zijn',
         tags: ['Categories'],
         parameters: [
             new OA\Parameter(
@@ -266,14 +267,198 @@ class CategoryController extends AbstractController
         ],
         responses: [
             new OA\Response(response: 204, description: 'Categorie succesvol verwijderd'),
+            new OA\Response(response: 404, description: 'Categorie niet gevonden'),
+            new OA\Response(
+                response: 409,
+                description: 'Categorie heeft nog gekoppelde transacties',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'error', type: 'string', example: 'Cannot delete category with 45 linked transaction(s). Please merge this category into another category first.')
+                    ]
+                )
+            )
+        ]
+    )]
+    #[OA\Get(
+        path: '/api/account/{accountId}/categories/{id}/preview-delete',
+        summary: 'Preview van categorie verwijdering',
+        description: 'Geeft informatie over wat er gebeurt bij het verwijderen van een categorie',
+        tags: ['Categories'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 1)
+            ),
+            new OA\Parameter(
+                name: 'id',
+                description: 'ID van de categorie',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 7)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Delete preview informatie',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'canDelete', type: 'boolean', example: false),
+                        new OA\Property(property: 'transactionCount', type: 'integer', example: 45),
+                        new OA\Property(property: 'patternCount', type: 'integer', example: 2),
+                        new OA\Property(property: 'categoryName', type: 'string', example: 'Boodschappen'),
+                        new OA\Property(property: 'message', type: 'string', example: 'This category has 45 linked transaction(s) and cannot be deleted.')
+                    ]
+                )
+            ),
             new OA\Response(response: 404, description: 'Categorie niet gevonden')
         ]
     )]
+    #[Route('/{id}/preview-delete', name: 'preview_delete_category', methods: ['GET'])]
+    public function previewDelete(int $accountId, int $id): JsonResponse
+    {
+        $preview = $this->categoryService->previewDelete($id, $accountId);
+        return $this->json($preview);
+    }
+
     #[Route('/{id}', name: 'delete_category', methods: ['DELETE'])]
     public function delete(int $accountId, int $id): JsonResponse
     {
         $this->categoryService->delete($id, $accountId);
         return $this->json(null, 204);
+    }
+
+    #[OA\Get(
+        path: '/api/account/{accountId}/categories/{sourceId}/merge-preview/{targetId}',
+        summary: 'Preview van categorie merge operatie',
+        description: 'Geeft informatie over wat er gebeurt bij het mergen van twee categorieën',
+        tags: ['Categories'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 1)
+            ),
+            new OA\Parameter(
+                name: 'sourceId',
+                description: 'ID van de bron categorie (wordt verwijderd)',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 5)
+            ),
+            new OA\Parameter(
+                name: 'targetId',
+                description: 'ID van de doel categorie (ontvangt transacties)',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 3)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Merge preview informatie',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'sourceCategory',
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer', example: 5),
+                                new OA\Property(property: 'name', type: 'string', example: 'Boodschappen oud'),
+                                new OA\Property(property: 'color', type: 'string', example: '#FF0000'),
+                                new OA\Property(property: 'icon', type: 'string', example: '/backend/icons/cart.svg')
+                            ],
+                            type: 'object'
+                        ),
+                        new OA\Property(
+                            property: 'targetCategory',
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer', example: 3),
+                                new OA\Property(property: 'name', type: 'string', example: 'Boodschappen'),
+                            ],
+                            type: 'object'
+                        ),
+                        new OA\Property(property: 'transactionsToMove', type: 'integer', example: 245),
+                        new OA\Property(property: 'totalAmount', type: 'number', format: 'float', example: -2450.50),
+                        new OA\Property(
+                            property: 'dateRange',
+                            properties: [
+                                new OA\Property(property: 'first', type: 'string', format: 'date', example: '2024-01-01'),
+                                new OA\Property(property: 'last', type: 'string', format: 'date', example: '2025-10-31')
+                            ],
+                            type: 'object'
+                        ),
+                        new OA\Property(property: 'targetCurrentTransactionCount', type: 'integer', example: 143),
+                        new OA\Property(property: 'targetNewTransactionCount', type: 'integer', example: 388)
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: 'Ongeldige merge (zelfde categorie, verkeerd account)'),
+            new OA\Response(response: 404, description: 'Een van de categorieën niet gevonden')
+        ]
+    )]
+    #[Route('/{sourceId}/merge-preview/{targetId}', name: 'preview_merge_categories', methods: ['GET'])]
+    public function previewMerge(int $accountId, int $sourceId, int $targetId): JsonResponse
+    {
+        $preview = $this->categoryService->previewMerge($sourceId, $targetId, $accountId);
+        return $this->json($preview);
+    }
+
+    #[OA\Post(
+        path: '/api/account/{accountId}/categories/{sourceId}/merge/{targetId}',
+        summary: 'Merge twee categorieën',
+        description: 'Verplaatst alle transacties van source naar target en verwijdert source categorie',
+        tags: ['Categories'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 1)
+            ),
+            new OA\Parameter(
+                name: 'sourceId',
+                description: 'ID van de bron categorie (wordt verwijderd)',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 5)
+            ),
+            new OA\Parameter(
+                name: 'targetId',
+                description: 'ID van de doel categorie (ontvangt transacties)',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 3)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Merge succesvol',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(property: 'transactionsMoved', type: 'integer', example: 245),
+                        new OA\Property(property: 'sourceDeleted', type: 'boolean', example: true),
+                        new OA\Property(property: 'message', type: 'string', example: 'Successfully merged 245 transaction(s) from "Boodschappen oud" to "Boodschappen"')
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: 'Ongeldige merge (zelfde categorie, verkeerd account)'),
+            new OA\Response(response: 404, description: 'Een van de categorieën niet gevonden')
+        ]
+    )]
+    #[Route('/{sourceId}/merge/{targetId}', name: 'merge_categories', methods: ['POST'])]
+    public function merge(int $accountId, int $sourceId, int $targetId): JsonResponse
+    {
+        $result = $this->categoryService->mergeCategories($sourceId, $targetId, $accountId);
+        return $this->json($result);
     }
 
     #[OA\Get(
