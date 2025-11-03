@@ -154,7 +154,7 @@ class AiCategorizationController extends AbstractController
                 }
 
                 try {
-                    $this->transactionService->assignCategory($transactionId, $categoryId);
+                    $this->transactionService->setCategory($transactionId, $categoryId);
                     $success++;
                 } catch (\Exception $e) {
                     $failed++;
