@@ -16,8 +16,10 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
     const [isEditingName, setIsEditingName] = useState(false);
     const [tempName, setTempName] = useState(budget.name);
     const [isEditingIcon, setIsEditingIcon] = useState(false);
+    const [isEditingAmount, setIsEditingAmount] = useState(false);
     const [isEditingFromDate, setIsEditingFromDate] = useState(false);
     const [isEditingUntilDate, setIsEditingUntilDate] = useState(false);
+    const [tempAmount, setTempAmount] = useState('');
     const [tempFromDate, setTempFromDate] = useState('');
     const [tempUntilDate, setTempUntilDate] = useState('');
 
@@ -132,6 +134,44 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
         }
     };
 
+    const startAmountEdit = () => {
+        if (!activeVersion || !onUpdateVersion) return;
+        setIsEditingAmount(true);
+        setTempAmount(Math.abs(activeVersion.monthlyAmount).toString());
+    };
+
+    const saveAmount = async () => {
+        if (!activeVersion || !onUpdateVersion) return;
+
+        const numAmount = parseFloat(tempAmount);
+        if (isNaN(numAmount) || numAmount === Math.abs(activeVersion.monthlyAmount)) {
+            cancelAmountEdit();
+            return;
+        }
+
+        try {
+            // Preserve the sign (negative for expenses, positive for income)
+            const signedAmount = activeVersion.monthlyAmount < 0 ? -Math.abs(numAmount) : Math.abs(numAmount);
+            await onUpdateVersion(budget.id, activeVersion.id, { monthlyAmount: signedAmount });
+            setIsEditingAmount(false);
+        } catch (error) {
+            console.error('Error updating amount:', error);
+        }
+    };
+
+    const cancelAmountEdit = () => {
+        setIsEditingAmount(false);
+        setTempAmount('');
+    };
+
+    const handleAmountKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            saveAmount();
+        } else if (e.key === 'Escape') {
+            cancelAmountEdit();
+        }
+    };
+
     const formatMoney = (amount: number): string => {
         return new Intl.NumberFormat('nl-NL', {
             style: 'currency',
@@ -213,9 +253,45 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
                 )}
             </div>
 
-            {/* Current Budget Info */}
+            {/* Current Budget Info - Editable Amount */}
             <div className="text-2xl font-bold text-gray-900">
-                {activeVersion ? formatMoney(Math.abs(activeVersion.monthlyAmount)) : '€ 0,00'}
+                {isEditingAmount ? (
+                    <div className="flex items-center space-x-2">
+                        <span className="text-gray-700">€</span>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={tempAmount}
+                            onChange={(e) => setTempAmount(e.target.value)}
+                            onKeyDown={handleAmountKeyDown}
+                            onBlur={saveAmount}
+                            autoFocus
+                            className="w-40 px-2 py-1 border-2 border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-2xl font-bold"
+                        />
+                        <button
+                            onClick={saveAmount}
+                            className="text-green-600 hover:text-green-800"
+                            title="Opslaan"
+                        >
+                            ✓
+                        </button>
+                        <button
+                            onClick={cancelAmountEdit}
+                            className="text-red-600 hover:text-red-800"
+                            title="Annuleren"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                ) : (
+                    <span
+                        className={`${onUpdateVersion ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''}`}
+                        onClick={startAmountEdit}
+                        title={onUpdateVersion ? "Klik om bedrag te wijzigen" : undefined}
+                    >
+                        {activeVersion ? formatMoney(Math.abs(activeVersion.monthlyAmount)) : '€ 0,00'}
+                    </span>
+                )}
             </div>
 
             {/* Editable Date Range */}
