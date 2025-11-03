@@ -80,6 +80,28 @@ export default function CategoriesPage() {
         return sorted;
     }, [filteredCategories, sortField, sortDirection]);
 
+    // Groepeer categorieën per budget
+    const categoriesByBudget = useMemo(() => {
+        const groups = new Map<string, typeof sortedCategories>();
+
+        sortedCategories.forEach(item => {
+            const budgetKey = item.category.budgetName || 'Geen budget';
+            if (!groups.has(budgetKey)) {
+                groups.set(budgetKey, []);
+            }
+            groups.get(budgetKey)!.push(item);
+        });
+
+        // Sorteer de budget groepen: eerst budgetten met naam, dan "Geen budget"
+        const sortedGroups = Array.from(groups.entries()).sort((a, b) => {
+            if (a[0] === 'Geen budget') return 1;
+            if (b[0] === 'Geen budget') return -1;
+            return a[0].localeCompare(b[0]);
+        });
+
+        return sortedGroups;
+    }, [sortedCategories]);
+
     const handleSortChange = (field: SortField) => {
         if (sortField === field) {
             // Toggle direction if same field
@@ -243,13 +265,30 @@ export default function CategoriesPage() {
                 </div>
             </div>
 
-            {/* Category List */}
-            <CategoryList
-                categories={sortedCategories}
-                onRefresh={refreshCategories}
-                onCategoryClick={handleCategoryClick}
-                onMergeClick={handleMergeClick}
-            />
+            {/* Category List Grouped by Budget */}
+            <div className="space-y-6">
+                {categoriesByBudget.map(([budgetName, categories]) => (
+                    <div key={budgetName} className="space-y-3">
+                        {/* Budget Header */}
+                        <div className="border-b-2 border-gray-300 pb-2">
+                            <h2 className="text-xl font-semibold text-gray-800">
+                                {budgetName}
+                            </h2>
+                            <p className="text-sm text-gray-600">
+                                {categories.length} categorie{categories.length !== 1 ? 'ën' : ''}
+                            </p>
+                        </div>
+
+                        {/* Categories in this budget */}
+                        <CategoryList
+                            categories={categories}
+                            onRefresh={refreshCategories}
+                            onCategoryClick={handleCategoryClick}
+                            onMergeClick={handleMergeClick}
+                        />
+                    </div>
+                ))}
+            </div>
 
             {/* Transaction Drawer */}
             {selectedCategory && (
