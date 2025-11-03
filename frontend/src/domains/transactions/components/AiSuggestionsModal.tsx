@@ -244,7 +244,10 @@ function SuggestionRow({ suggestion, onToggle, disabled }: {
             <input
                 type="checkbox"
                 checked={suggestion.selected}
-                onChange={onToggle}
+                onChange={(e) => {
+                    e.stopPropagation();
+                    onToggle();
+                }}
                 className="w-5 h-5 text-purple-500"
                 disabled={disabled}
             />
