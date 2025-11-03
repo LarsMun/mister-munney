@@ -6,4 +6,6 @@ export type Category = {
     createdAt: string;
     updatedAt: string;
     accountId: number;
+    budgetId: number | null;
+    budgetName: string | null;
 };
