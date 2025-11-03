@@ -5,6 +5,7 @@ import type { Budget, CreateBudgetVersion, UpdateBudgetVersion } from '../models
 import { CategoryStatistics } from '../../categories/models/CategoryStatistics';
 import { InlineBudgetEditor } from './InlineBudgetEditor';
 import { AddBudgetVersionModal } from './AddBudgetVersionModal';
+import { BudgetVersionListItem } from './BudgetVersionListItem';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import { API_URL } from '../../../lib/api';
@@ -272,48 +273,13 @@ export function BudgetCard({
                 {showVersions && budget.versions.length > 1 && (
                     <div className="mt-2 space-y-2 bg-gray-50 rounded-lg p-3 max-h-64 overflow-y-auto">
                         {sortedVersions.map((version) => (
-                            <div
+                            <BudgetVersionListItem
                                 key={version.id}
-                                className={`flex justify-between items-start p-2 rounded ${
-                                    version.isCurrent ? 'bg-green-50 border border-green-200' : 'bg-white'
-                                }`}
-                            >
-                                <div className="flex-1">
-                                    <div className="flex items-center space-x-2">
-                                        <span className="font-medium text-gray-900">
-                                            {formatMoney(Math.abs(version.monthlyAmount))}
-                                        </span>
-                                        {version.isCurrent && (
-                                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                                                Actief
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-gray-600 mt-1">
-                                        {version.effectiveFromMonth}
-                                        {version.effectiveUntilMonth ? ` tot ${version.effectiveUntilMonth}` : ' - open'}
-                                    </div>
-                                    {version.changeReason && (
-                                        <div className="text-xs text-gray-500 mt-1 italic">
-                                            "{version.changeReason}"
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Delete button - disabled if it's the last version */}
-                                <button
-                                    onClick={() => handleDeleteVersionClick(version.id)}
-                                    disabled={budget.versions.length <= 1}
-                                    className={`ml-2 text-xs px-2 py-1 rounded transition-colors ${
-                                        budget.versions.length <= 1
-                                            ? 'text-gray-300 cursor-not-allowed'
-                                            : 'text-red-600 hover:bg-red-50 hover:text-red-700'
-                                    }`}
-                                    title={budget.versions.length <= 1 ? 'Kan laatste versie niet verwijderen' : 'Verwijder versie'}
-                                >
-                                    🗑️
-                                </button>
-                            </div>
+                                version={version}
+                                canDelete={budget.versions.length > 1}
+                                onUpdate={onUpdateVersion}
+                                onDelete={handleDeleteVersionClick}
+                            />
                         ))}
                     </div>
                 )}
