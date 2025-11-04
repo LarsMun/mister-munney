@@ -5,12 +5,15 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { AccountProvider } from './app/context/AccountContext';
+import { FeatureFlagProvider } from './shared/contexts/FeatureFlagContext';
 
 createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-        <AccountProvider>
-            <App />
-        </AccountProvider>
+        <FeatureFlagProvider>
+            <AccountProvider>
+                <App />
+            </AccountProvider>
+        </FeatureFlagProvider>
     </React.StrictMode>
 );
 
