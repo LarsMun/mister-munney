@@ -5,29 +5,38 @@ import ConfirmDialog from "../components/ConfirmDialog.tsx";
 type ConfirmOptions = {
     title: string;
     description?: string;
+    checkbox?: {
+        label: string;
+        defaultChecked?: boolean;
+    };
+};
+
+type ConfirmResult = {
+    confirmed: boolean;
+    checkboxValue?: boolean;
 };
 
 export function useConfirmDialog() {
     const [isOpen, setIsOpen] = useState(false);
     const [options, setOptions] = useState<ConfirmOptions | null>(null);
-    const [resolver, setResolver] = useState<(result: boolean) => void>(() => () => {});
+    const [resolver, setResolver] = useState<(result: ConfirmResult) => void>(() => () => {});
 
     const confirm = useCallback((opts: ConfirmOptions) => {
         setOptions(opts);
         setIsOpen(true);
-        return new Promise<boolean>((resolve) => {
+        return new Promise<ConfirmResult>((resolve) => {
             setResolver(() => resolve);
         });
     }, []);
 
-    const handleConfirm = () => {
+    const handleConfirm = (checkboxValue?: boolean) => {
         setIsOpen(false);
-        resolver(true);
+        resolver({ confirmed: true, checkboxValue });
     };
 
     const handleCancel = () => {
         setIsOpen(false);
-        resolver(false);
+        resolver({ confirmed: false });
     };
 
     const Confirm = isOpen && options ? (
@@ -35,6 +44,7 @@ export function useConfirmDialog() {
             open={isOpen}
             title={options.title}
             description={options.description}
+            checkbox={options.checkbox}
             onCancel={handleCancel}
             onConfirm={handleConfirm}
         />
