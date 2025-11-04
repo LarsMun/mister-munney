@@ -208,8 +208,9 @@ class BudgetInsightsService
         $monthsList = array_reverse($monthsList); // Oldest first
 
         // Query transactions grouped by month
+        // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
         $qb = $this->entityManager->createQueryBuilder();
-        $qb->select("SUBSTRING(t.date, 1, 7) as month", 'SUM(t.amountInCents) as total')
+        $qb->select("SUBSTRING(t.date, 1, 7) as month", "SUM(CASE WHEN t.transaction_type = 'credit' THEN -t.amountInCents ELSE t.amountInCents END) as total")
             ->from('App\Entity\Transaction', 't')
             ->where('t.category IN (:categoryIds)')
             ->andWhere('SUBSTRING(t.date, 1, 7) IN (:months)')
@@ -242,8 +243,9 @@ class BudgetInsightsService
 
         $categoryIds = array_map(fn($cat) => $cat->getId(), $categories->toArray());
 
+        // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
         $qb = $this->entityManager->createQueryBuilder();
-        $qb->select('SUM(t.amountInCents) as total')
+        $qb->select("SUM(CASE WHEN t.transaction_type = 'credit' THEN -t.amountInCents ELSE t.amountInCents END) as total")
             ->from('App\Entity\Transaction', 't')
             ->where('t.category IN (:categoryIds)')
             ->andWhere('t.date >= :start')
