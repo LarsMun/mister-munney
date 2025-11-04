@@ -578,6 +578,46 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Haalt category breakdown op voor een datumbereik.
+     * DEBIT transacties tellen als uitgaven (positief), CREDIT transacties als compensatie (negatief).
+     *
+     * @param array $categoryIds Array met categorie IDs
+     * @param string $startDate Start datum in YYYY-MM-DD formaat
+     * @param string $endDate Eind datum in YYYY-MM-DD formaat
+     * @return array Array met ['categoryId' => int, 'totalAmount' => int (cents), 'transactionCount' => int]
+     */
+    public function getCategoryBreakdownForDateRange(array $categoryIds, string $startDate, string $endDate): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        $results = $this->createQueryBuilder('t')
+            ->select(
+                'IDENTITY(t.category) AS categoryId',
+                'SUM(CASE WHEN t.transaction_type = \'CREDIT\' THEN -t.amountInCents ELSE t.amountInCents END) AS totalAmount',
+                'COUNT(t.id) AS transactionCount'
+            )
+            ->where('t.category IN (:categoryIds)')
+            ->andWhere('t.date >= :startDate')
+            ->andWhere('t.date <= :endDate')
+            ->setParameter('categoryIds', $categoryIds)
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->groupBy('t.category')
+            ->getQuery()
+            ->getResult();
+
+        return array_map(function ($row) {
+            return [
+                'categoryId' => (int) $row['categoryId'],
+                'totalAmount' => (int) $row['totalAmount'],
+                'transactionCount' => (int) $row['transactionCount']
+            ];
+        }, $results);
+    }
+
+    /**
      * Haalt historische maandelijkse netto uitgaven op voor categorieën.
      * Sluit de eerste en huidige (incomplete) maand uit.
      * DEBIT transacties tellen als uitgaven (positief), CREDIT transacties als compensatie (negatief).
