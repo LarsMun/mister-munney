@@ -1,16 +1,27 @@
 // src/components/ConfirmDialog.tsx
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useState } from "react";
 
 type Props = {
     open: boolean;
     title: string;
     description?: string;
-    onConfirm: () => void;
+    onConfirm: (checkboxValue?: boolean) => void;
     onCancel: () => void;
+    checkbox?: {
+        label: string;
+        defaultChecked?: boolean;
+    };
 };
 
-export default function ConfirmDialog({ open, title, description, onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ open, title, description, onConfirm, onCancel, checkbox }: Props) {
+    const [checkboxValue, setCheckboxValue] = useState(checkbox?.defaultChecked ?? false);
+
+    const handleConfirm = () => {
+        onConfirm(checkbox ? checkboxValue : undefined);
+    };
+
     return (
         <Dialog.Root open={open} onOpenChange={onCancel}>
             <Dialog.Portal>
@@ -25,6 +36,20 @@ export default function ConfirmDialog({ open, title, description, onConfirm, onC
                         </button>
                     </div>
                     {description && <div className="text-sm text-gray-600">{description}</div>}
+                    {checkbox && (
+                        <div className="flex items-center gap-2 pt-2">
+                            <input
+                                type="checkbox"
+                                id="confirm-checkbox"
+                                checked={checkboxValue}
+                                onChange={(e) => setCheckboxValue(e.target.checked)}
+                                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                            />
+                            <label htmlFor="confirm-checkbox" className="text-sm text-gray-700 cursor-pointer">
+                                {checkbox.label}
+                            </label>
+                        </div>
+                    )}
                     <div className="flex justify-end gap-2 pt-4">
                         <button
                             onClick={onCancel}
@@ -33,7 +58,7 @@ export default function ConfirmDialog({ open, title, description, onConfirm, onC
                             Annuleren
                         </button>
                         <button
-                            onClick={onConfirm}
+                            onClick={handleConfirm}
                             className="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
                         >
                             Verwijderen
