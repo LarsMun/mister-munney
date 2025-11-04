@@ -60,9 +60,15 @@ export async function getBudgetSummaries(accountId: number, monthYear: string): 
 export async function getCategoryBreakdown(
     accountId: number,
     budgetId: number,
-    monthYear: string
+    startDate: string,
+    endDate: string
 ): Promise<CategoryBreakdown[]> {
-    const res = await api.get(`/account/${accountId}/budget/${budgetId}/breakdown/${monthYear}`);
+    const res = await api.get(`/account/${accountId}/budget/${budgetId}/breakdown-range`, {
+        params: {
+            startDate,
+            endDate
+        }
+    });
     return res.data;
 }
 
