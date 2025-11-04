@@ -123,12 +123,10 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
     // Handler for expanding/collapsing categories
     const handleToggle = async () => {
         if (!isExpanded && breakdown.length === 0 && accountId && startDate && endDate) {
-            // Fetch breakdown data on first expand
+            // Fetch breakdown data on first expand using date range
             setIsLoadingBreakdown(true);
             try {
-                // Convert date range to month format for API
-                const monthYear = startDate.substring(0, 7); // "YYYY-MM"
-                const data = await getCategoryBreakdown(accountId, budget.id, monthYear);
+                const data = await getCategoryBreakdown(accountId, budget.id, startDate, endDate);
                 setBreakdown(data);
             } catch (error) {
                 console.error('Error fetching category breakdown:', error);

@@ -440,4 +440,63 @@ class BudgetService
         return $breakdowns;
     }
 
+    /**
+     * Haalt de category breakdown op voor een specifiek budget in een datumbereik.
+     *
+     * @param int $accountId
+     * @param int $budgetId
+     * @param string $startDate Start datum in YYYY-MM-DD formaat
+     * @param string $endDate Eind datum in YYYY-MM-DD formaat
+     * @return array Array van CategoryBreakdownDTO objecten
+     * @throws NotFoundHttpException
+     */
+    public function getCategoryBreakdownForBudgetRange(int $accountId, int $budgetId, string $startDate, string $endDate): array
+    {
+        $account = $this->getAccountById($accountId);
+
+        // Haal budget op met categories
+        $budget = $this->budgetRepository->findWithVersionsAndCategories($budgetId, $account);
+        if (!$budget) {
+            throw new NotFoundHttpException("Budget with ID {$budgetId} not found for account {$accountId}");
+        }
+
+        // Verzamel category IDs
+        $categoryIds = [];
+        $categoryMap = [];
+        foreach ($budget->getCategories() as $category) {
+            $categoryIds[] = $category->getId();
+            $categoryMap[$category->getId()] = $category;
+        }
+
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        // Haal breakdown data op voor datumbereik
+        $breakdownData = $this->transactionRepository->getCategoryBreakdownForDateRange($categoryIds, $startDate, $endDate);
+
+        // Map naar DTOs
+        $breakdowns = [];
+        foreach ($breakdownData as $data) {
+            $category = $categoryMap[$data['categoryId']] ?? null;
+            if (!$category) {
+                continue;
+            }
+
+            $dto = new CategoryBreakdownDTO();
+            $dto->categoryId = $category->getId();
+            $dto->categoryName = $category->getName();
+            $dto->categoryColor = $category->getColor();
+            $dto->spentAmount = $this->moneyFactory->toFloat(Money::EUR($data['totalAmount']));
+            $dto->transactionCount = $data['transactionCount'];
+
+            $breakdowns[] = $dto;
+        }
+
+        // Sorteer op bedrag (hoogste eerst)
+        usort($breakdowns, fn($a, $b) => $b->spentAmount <=> $a->spentAmount);
+
+        return $breakdowns;
+    }
+
 }
