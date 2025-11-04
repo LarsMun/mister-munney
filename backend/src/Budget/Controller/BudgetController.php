@@ -562,4 +562,53 @@ class BudgetController extends AbstractController
         return $this->json($breakdown);
     }
 
+    #[Route('/{budgetId}/breakdown-range', name: 'get_budget_category_breakdown_range', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/account/{accountId}/budget/{budgetId}/breakdown-range',
+        description: 'Haalt de breakdown van uitgaven per categorie op voor een specifiek budget in een datumbereik',
+        summary: 'Toon categorie breakdown voor budget (datumbereik)',
+        parameters: [
+            new OA\Parameter(name: 'accountId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'budgetId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'startDate', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'endDate', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'date')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Category breakdown met bedragen en transactie counts',
+                content: new OA\JsonContent(
+                    type: 'array',
+                    items: new OA\Items(
+                        properties: [
+                            new OA\Property(property: 'categoryId', type: 'integer'),
+                            new OA\Property(property: 'categoryName', type: 'string'),
+                            new OA\Property(property: 'categoryColor', type: 'string'),
+                            new OA\Property(property: 'spentAmount', type: 'number'),
+                            new OA\Property(property: 'transactionCount', type: 'integer')
+                        ]
+                    )
+                )
+            )
+        ]
+    )]
+    public function getCategoryBreakdownRange(
+        int $accountId,
+        int $budgetId,
+        Request $request
+    ): JsonResponse {
+        $startDate = $request->query->get('startDate');
+        $endDate = $request->query->get('endDate');
+
+        if (!$startDate || !$endDate) {
+            return $this->json([
+                'error' => 'Both startDate and endDate are required'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $breakdown = $this->budgetService->getCategoryBreakdownForBudgetRange($accountId, $budgetId, $startDate, $endDate);
+
+        return $this->json($breakdown);
+    }
+
 }
