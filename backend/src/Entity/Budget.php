@@ -51,6 +51,12 @@ class Budget
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $icon = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $description = null;
+
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 2])]
+    private int $durationMonths = 2;
+
     // --- Getters & Setters ---
 
     public function getId(): ?int
@@ -213,5 +219,32 @@ class Budget
     {
         $this->icon = $icon;
         return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): static
+    {
+        $this->description = $description;
+        return $this;
+    }
+
+    public function getDurationMonths(): int
+    {
+        return $this->durationMonths;
+    }
+
+    public function setDurationMonths(int $durationMonths): static
+    {
+        $this->durationMonths = $durationMonths;
+        return $this;
+    }
+
+    public function isProject(): bool
+    {
+        return $this->budgetType === BudgetType::PROJECT;
     }
 }
