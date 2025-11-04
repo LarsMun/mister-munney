@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import type { Transaction } from "../models/Transaction";
 import type { SummaryType } from "../models/SummaryType";
 import type { TreeMapDataType } from "../models/TreeMapDataType";
+import { formatDateToLocalString } from "../../../shared/utils/DateFormat";
 
 export function useTransactions() {
     const { accountId } = useAccount();
@@ -24,8 +25,8 @@ export function useTransactions() {
                 setMonths(availableMonths);
                 if (availableMonths.length > 0) {
                     const [year, month] = availableMonths[0].split("-");
-                    const start = `${year}-${month}-01`;
-                    const end = new Date(Number(year), Number(month), 0).toISOString().slice(0, 10);
+                    const start = formatDateToLocalString(new Date(Number(year), Number(month) - 1, 1));
+                    const end = formatDateToLocalString(new Date(Number(year), Number(month), 0));
                     setStartDate(start);
                     setEndDate(end);
                 }
@@ -46,16 +47,7 @@ export function useTransactions() {
         try {
             const { data, summary, treeMapData } = await getTransactions(accountId, start, end);
 
-            if (data.length === 0) {
-                toast.success("Geen transacties in deze periode, laatste beschikbare maand wordt getoond.");
-                if (months.length > 0) {
-                    const [year, month] = months[0].split("-");
-                    setStartDate(`${year}-${month}-01`);
-                    setEndDate(new Date(Number(year), Number(month), 0).toISOString().slice(0, 10));
-                }
-                return;
-            }
-
+            // Always set the data, even if empty - don't auto-redirect
             setTransactions(data);
             setSummary(summary);
             setTreeMapData(treeMapData);
