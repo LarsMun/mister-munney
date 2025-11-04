@@ -4,7 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Munney is a personal finance management application built with Symfony 7.2 (PHP 8.3) and React 19 (TypeScript). It allows users to import bank transactions via CSV, auto-categorize them using pattern matching, track budgets, and visualize spending through interactive charts.
+Munney is a personal finance management application built with Symfony 7.2 (PHP 8.3) and React 19 (TypeScript). It allows users to:
+- Import bank transactions via CSV
+- Auto-categorize transactions using pattern matching
+- Track budgets with behavioral insights
+- Manage projects with external payments
+- Visualize spending through interactive charts
+- Leverage AI-powered categorization (optional)
+
+### Key Features
+
+**Adaptive Dashboard** (Feature Flag: `living_dashboard`)
+- Dynamic budget classification (Active vs Older based on transaction history)
+- Behavioral insights with rolling median baselines
+- Neutral coaching messages based on spending patterns
+- Mini-charts (sparklines) showing 6-month trends
+
+**Projects** (Feature Flag: `projects`)
+- PROJECT-type budgets for one-time initiatives (renovations, events)
+- External payment tracking (off-ledger payments from mortgage depot, insurer, etc.)
+- Comprehensive project aggregation (tracked transactions + external payments)
+- Time-series visualization (monthly bars + cumulative line)
+- File attachment support for payment receipts
+
+**Behavioral Insights** (Feature Flag: `behavioral_insights`)
+- Rolling 6-month median as "normal" baseline
+- Three-tier classification: Stable (<10%), Slight (10-30%), Anomaly (>30%)
+- Dutch neutral coaching messages
+- Visual indicators without judgmental language
 
 ## Development Setup
 
@@ -107,8 +134,9 @@ The backend follows a **Domain-Driven Design** structure with vertical slices. E
 ```
 backend/src/
 ├── Account/
-├── Budget/
+├── Budget/          # ⭐ Enhanced with Projects & Insights
 ├── Category/
+├── FeatureFlag/     # 🆕 Runtime feature toggles
 ├── Pattern/
 ├── SavingsAccount/
 └── Transaction/
@@ -124,9 +152,34 @@ Each domain contains:
 
 **Shared directories:**
 - **Entity/** - Doctrine entities (database models) shared across domains
-- **Enum/** - Application-wide enums (e.g., `TransactionType`)
+- **Enum/** - Application-wide enums (e.g., `TransactionType`, `BudgetType`, `ProjectStatus`, `PayerSource`)
 - **Money/** - Contains `MoneyFactory` for Money PHP library operations
 - **Mapper/** - Contains `PayloadMapper` for common mapping operations
+
+#### New Budget Domain Services
+
+**ActiveBudgetService** - Determines which budgets are "active" vs "older"
+- For EXPENSE/INCOME budgets: Active if has ≥1 transaction in last N months (default: 2)
+- For PROJECT budgets: Active if status=ACTIVE OR current date within date range
+- Configurable via `MUNNEY_ACTIVE_BUDGET_MONTHS` env var
+
+**BudgetInsightsService** - Computes behavioral insights
+- `computeNormal()`: Rolling median over last 6 complete months
+- `computeBudgetInsight()`: Compares current month to normal baseline
+- `getSparklineData()`: Returns monthly totals as float array for mini-charts
+- Thresholds: <10% = stable, 10-30% = slight, ≥30% = anomaly
+- Dutch neutral messaging: "Stabiel", "Iets hoger/lager", "Opvallend hoger/lager"
+
+**ProjectAggregatorService** - Aggregates project data
+- `getProjectTotals()`: Sums tracked (via categories) + external payments
+- `getProjectEntries()`: Merges transactions + external payments, sorted by date
+- `getProjectTimeSeries()`: Monthly bars (tracked/external/total) + cumulative line
+- Respects project date range (startDate/endDate) for filtering
+
+**AttachmentStorageService** - Manages file uploads
+- Stores receipts for external payments in `public/uploads/external_payments/`
+- Validates file types (PDF, JPG, PNG) and size (max 10MB)
+- Generates unique filenames to prevent collisions
 
 **Key architectural patterns:**
 1. **Money PHP Library**: All financial calculations use the Money PHP library (via `MoneyFactory`) for precision - NEVER use floats for money
@@ -165,9 +218,48 @@ frontend/src/
 1. **API Communication**: Uses `fetch` via functions in `lib/api.ts` (can be extended per domain)
 2. **UI Components**: Built with Radix UI primitives + Tailwind CSS
 3. **State Management**: React hooks (useState, useEffect) - no global state library
-4. **Routing**: React Router DOM for navigation
-5. **Toast Notifications**: react-hot-toast for user feedback
-6. **Charts**: Recharts library for data visualization
+4. **Feature Flags**: FeatureFlagContext provides runtime feature toggles via `useFeatureFlag()` hook
+5. **Routing**: React Router DOM for navigation
+6. **Toast Notifications**: react-hot-toast for user feedback
+7. **Charts**: Recharts library for data visualization, react-sparklines for mini-charts
+
+#### New Dashboard Components (Adaptive Dashboard)
+
+**domains/dashboard/components/**
+- `ActiveBudgetsGrid.tsx` - Grid layout for active EXPENSE/INCOME budgets
+- `BehavioralInsightsPanel.tsx` - Displays top 3 behavioral insights with neutral messaging
+- `OlderBudgetsPanel.tsx` - Collapsible panel for inactive budgets
+- `BudgetInsightBadge.tsx` - Visual indicator for insight level (stable/slight/anomaly)
+- `SparklineChart.tsx` - Mini 6-month trend visualization
+
+**domains/budgets/components/**
+- `ProjectsSection.tsx` - Main projects overview with active/completed tabs
+- `ProjectCard.tsx` - Individual project card with progress indicator
+- `ProjectDetailView.tsx` - Detailed project view with time-series chart
+- `ProjectCreateForm.tsx` - Modal form for creating new projects
+- `ExternalPaymentForm.tsx` - Form for adding external payments with file upload
+- `ExternalPaymentsList.tsx` - List of external payments with attachment links
+
+**domains/budgets/services/**
+- `AdaptiveDashboardService.ts` - API calls for active/older budgets and projects
+  - `fetchActiveBudgets(months?: number): Promise<ActiveBudget[]>`
+  - `fetchOlderBudgets(months?: number): Promise<OlderBudget[]>`
+  - `fetchProjects(status?: string): Promise<ProjectDetails[]>`
+  - `createProject(data: CreateProjectRequest): Promise<ProjectDetails>`
+  - `addExternalPayment(budgetId: number, formData: FormData): Promise<void>`
+
+**domains/budgets/models/**
+- `AdaptiveBudget.ts` - TypeScript interfaces:
+  - `ActiveBudget` - Budget with insights and sparkline data
+  - `OlderBudget` - Simplified budget data for inactive budgets
+  - `ProjectDetails` - Full project data with aggregated totals
+  - `BehavioralInsight` - Insight level, message, deltaPercent, sparklineData
+
+**shared/contexts/**
+- `FeatureFlagContext.tsx` - Provides feature flag state to entire app
+  - Fetches flags from `/api/feature-flags` on mount
+  - Exposes `useFeatureFlag(name: string): boolean` hook
+  - Caches flags in React context for performance
 
 ### Database
 
@@ -238,6 +330,102 @@ OpenAPI/Swagger documentation available at:
 - Development: http://localhost:8686/api/doc
 - Uses `nelmio/api-doc-bundle` with annotations in Controllers
 
+### Key API Endpoints
+
+#### Budget Endpoints
+
+**GET /api/budgets/active**
+- Fetches active budgets (EXPENSE/INCOME with recent activity, or PROJECTS with active status)
+- Query params:
+  - `months` (optional, default: 2): Number of months to look back for activity
+  - `budgetType` (optional): Filter by BudgetType (EXPENSE, INCOME, PROJECT)
+- Response includes behavioral insights (if feature flag enabled)
+```json
+[
+  {
+    "id": 1,
+    "name": "Groceries",
+    "budgetType": "EXPENSE",
+    "amount": "500.00",
+    "spent": "450.00",
+    "remaining": "50.00",
+    "percentageUsed": 90.0,
+    "insight": {
+      "level": "slight",
+      "message": "Iets hoger dan normaal",
+      "deltaPercent": 12.5,
+      "sparklineData": [300.0, 320.0, 310.0, 330.0, 340.0, 450.0]
+    }
+  }
+]
+```
+
+**GET /api/budgets/older**
+- Fetches inactive budgets (budgets without recent transactions)
+- Query params:
+  - `months` (optional, default: 2): Cutoff for determining "older"
+- Returns simplified budget data without insights
+
+**POST /api/budgets**
+- Creates a new budget
+- Body:
+```json
+{
+  "name": "Kitchen Renovation",
+  "budgetType": "PROJECT",
+  "amount": "15000.00",
+  "startDate": "2025-01-01",
+  "endDate": "2025-12-31",
+  "status": "ACTIVE"
+}
+```
+
+**GET /api/budgets/{id}/details**
+- Fetches detailed project information (for PROJECT budgets)
+- Response includes:
+  - Tracked total (from categorized transactions)
+  - External payments total
+  - Category breakdown
+  - Recent entries (merged transactions + external payments)
+
+**POST /api/budgets/{id}/external-payments**
+- Adds an external payment to a project
+- Multipart form data:
+  - `amount`: Decimal string (e.g., "1500.00")
+  - `paidOn`: Date string (YYYY-MM-DD)
+  - `payerSource`: Enum (MORTGAGE_DEPOT, INSURER, EMPLOYER, FAMILY, INHERITANCE, OTHER)
+  - `note`: Description text
+  - `attachment`: File upload (optional, PDF/JPG/PNG, max 10MB)
+
+**GET /api/budgets/{id}/time-series**
+- Fetches time series data for project visualization
+- Response:
+```json
+{
+  "monthlyBars": [
+    {"month": "2025-01", "tracked": 1200.0, "external": 500.0, "total": 1700.0},
+    {"month": "2025-02", "tracked": 800.0, "external": 0.0, "total": 800.0}
+  ],
+  "cumulativeLine": [
+    {"month": "2025-01", "cumulative": 1700.0},
+    {"month": "2025-02", "cumulative": 2500.0}
+  ]
+}
+```
+
+#### Feature Flag Endpoints
+
+**GET /api/feature-flags**
+- Lists all feature flags with their current state
+- Response:
+```json
+[
+  {"name": "living_dashboard", "isEnabled": true},
+  {"name": "projects", "isEnabled": true},
+  {"name": "behavioral_insights", "isEnabled": false}
+]
+```
+
 ## Common Patterns
 
 ### Adding a New Feature to Existing Domain
@@ -269,6 +457,75 @@ Patterns use string matching on transaction descriptions. Pattern entities are l
 - CORS is configured in backend via `nelmio/cors-bundle`
 - See `.env.example` and README.md for full configuration details
 
+### Feature Flags Configuration
+
+Feature flags enable/disable features at runtime without code deployment. They are stored in the database and can be overridden via environment variables.
+
+**Environment Variables** (in `.env`):
+```env
+# Adaptive Dashboard with behavioral insights
+MUNNEY_FEATURE_LIVING_DASHBOARD=true
+
+# Projects functionality (PROJECT budgets + external payments)
+MUNNEY_FEATURE_PROJECTS=true
+
+# Behavioral insights on budget cards
+MUNNEY_FEATURE_BEHAVIORAL_INSIGHTS=true
+
+# Active budget lookback window (default: 2 months)
+MUNNEY_ACTIVE_BUDGET_MONTHS=2
+```
+
+**Database Management**:
+Feature flags are seeded during migration (`Version20250101000003.php`) with default values. To update flags at runtime:
+
+```bash
+# Via Symfony console (manual toggle)
+docker exec money-backend php bin/console doctrine:query:sql \
+  "UPDATE feature_flag SET is_enabled = 1 WHERE name = 'living_dashboard'"
+
+# Or via API (GET /api/feature-flags to view)
+```
+
+**Frontend Usage**:
+```typescript
+import { useFeatureFlag } from '../../shared/contexts/FeatureFlagContext';
+
+function MyComponent() {
+  const livingDashboardEnabled = useFeatureFlag('living_dashboard');
+  const projectsEnabled = useFeatureFlag('projects');
+
+  if (!livingDashboardEnabled) {
+    return <LegacyDashboard />;
+  }
+
+  return (
+    <>
+      <AdaptiveDashboard />
+      {projectsEnabled && <ProjectsSection />}
+    </>
+  );
+}
+```
+
+**Backend Usage**:
+```php
+use App\FeatureFlag\Service\FeatureFlagService;
+
+public function __construct(
+    private readonly FeatureFlagService $featureFlagService
+) {}
+
+public function myAction(): Response
+{
+    if ($this->featureFlagService->isEnabled('living_dashboard')) {
+        // New adaptive dashboard logic
+    } else {
+        // Legacy dashboard logic
+    }
+}
+```
+
 ## Code Style
 
 - **Backend**: PSR-12 coding standards
@@ -285,10 +542,11 @@ Patterns use string matching on transaction descriptions. Pattern entities are l
 
 ### High Priority (Testing)
 2. **Missing Test Coverage**:
-   - **Budget Domain**: No tests (0% coverage) - complex financial calculations are untested
+   - **Budget Domain**: ✅ Now has good coverage (35 tests) for ActiveBudgetService and BudgetInsightsService
    - **Pattern Domain**: No tests (0% coverage) - SQL generation and pattern matching untested
    - **AI Services**: No tests for `AiPatternDiscoveryService` or `AiCategorizationService`
-   - Recommendation: Prioritize Budget and Pattern domain tests as they contain critical business logic
+   - **Budget API**: No integration tests for new endpoints (/active, /older, external payments)
+   - Recommendation: Prioritize Pattern domain and Budget API integration tests
 
 ### Medium Priority (Code Quality)
 3. **Code Duplication**: Entity lookup pattern repeated 40+ times across services
@@ -334,19 +592,117 @@ docker exec money-backend vendor/bin/phpunit --filter testSetCategoryUpdatesTran
 - **DatabaseTestCase**: Base class for repository tests (handles database setup/teardown)
 - **WebTestCase**: Base class for web tests
 
-### Current Test Coverage (as of 2025)
+### Current Test Coverage (as of January 2025)
 - **Account**: ✅ Good (10 API tests)
 - **Category**: ✅ Good (16 API tests)
 - **SavingsAccount**: ✅ Good (12 API tests)
 - **Transaction**: ✅ Excellent (22 API tests + 3 repository tests + 3 unit tests)
 - **MoneyFactory**: ✅ Good (4 unit tests)
-- **Budget**: ❌ None
+- **Budget**: ✅ Good (21 ActiveBudgetService tests + 14 BudgetInsightsService tests)
 - **Pattern**: ❌ None
 - **AI Services**: ❌ None
 
-Total: 69 tests, 366 assertions (as of latest run)
+Total: 112 tests, 496 assertions (as of latest run)
+
+### Test Patterns and Examples
+
+**DatabaseTestCase Usage**: For testing services that interact with the database
+
+```php
+use App\Tests\TestCase\DatabaseTestCase;
+
+class ActiveBudgetServiceTest extends DatabaseTestCase
+{
+    private ActiveBudgetService $activeBudgetService;
+    private Account $testAccount;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->activeBudgetService = $this->container->get(ActiveBudgetService::class);
+
+        // Create test account
+        $this->testAccount = new Account();
+        $this->testAccount->setName('Test Account')
+            ->setAccountNumber('NL91TEST' . uniqid())
+            ->setIsDefault(true);
+        $this->entityManager->persist($this->testAccount);
+        $this->entityManager->flush();
+    }
+
+    public function testGetActiveBudgetsReturnsExpenseBudgetsWithRecentTransactions(): void
+    {
+        // Create EXPENSE budget with category
+        $budget = $this->createBudget('Groceries', BudgetType::EXPENSE);
+        $category = $this->createCategory('Food', $budget);
+
+        // Add transaction from 1 month ago
+        $this->createTransaction($category, -5000, new DateTimeImmutable('-1 month'));
+        $this->entityManager->flush();
+
+        // Get active budgets (default 2 months lookback)
+        $activeBudgets = $this->activeBudgetService->getActiveBudgets();
+
+        $this->assertCount(1, $activeBudgets);
+        $this->assertEquals('Groceries', $activeBudgets[0]->getName());
+    }
+
+    // Helper methods for test data creation
+    private function createBudget(string $name, BudgetType $type): Budget { /* ... */ }
+    private function createCategory(string $name, Budget $budget): Category { /* ... */ }
+    private function createTransaction(Category $category, int $amountInCents, DateTimeImmutable $date): Transaction { /* ... */ }
+}
+```
+
+**Important Testing Notes**:
+1. **Money Handling**: Always use `Money::EUR($cents)` and `setAmount(Money $money)`, never `setAmountInCents()`
+2. **Bidirectional Relationships**: When creating Category-Budget relationships, ALWAYS set both sides:
+   ```php
+   $category->setBudget($budget);
+   $budget->addCategory($category);  // Critical!
+   ```
+3. **DateTime vs DateTimeImmutable**: Transaction entity expects `DateTime`, convert with `DateTime::createFromImmutable()`
+4. **Required Transaction Fields**: Always set hash, notes, balanceAfter, transactionCode, mutationType
+5. **Doctrine DQL Limitations**: Use `SUBSTRING(date, 1, 7)` instead of `DATE_FORMAT(date, '%Y-%m')` for database compatibility
 
 ## Recent Architectural Changes
+
+### Adaptive Dashboard Implementation (January 2025)
+A major feature release implementing behavioral insights and project tracking:
+
+**New Entities:**
+- `ExternalPayment` - Off-ledger payments linked to PROJECT budgets
+- `FeatureFlag` - Runtime feature toggles stored in database
+
+**New Enums:**
+- `BudgetType::PROJECT` - Added PROJECT type alongside EXPENSE/INCOME
+- `ProjectStatus` - PLANNING, ACTIVE, ON_HOLD, COMPLETED, CANCELLED
+- `PayerSource` - MORTGAGE_DEPOT, INSURER, EMPLOYER, FAMILY, INHERITANCE, OTHER
+
+**New Services:**
+- `ActiveBudgetService` - Classification of budgets as active/older based on transaction history
+- `BudgetInsightsService` - Rolling median calculations with behavioral coaching
+- `ProjectAggregatorService` - Aggregates tracked + external payments for projects
+- `AttachmentStorageService` - File upload handling for payment receipts
+- `FeatureFlagService` - Runtime feature flag management
+
+**Behavioral Insights Algorithm:**
+1. Computes "normal" baseline as rolling 6-month median of spending
+2. Compares current month to baseline, calculates delta percentage
+3. Classifies as: Stable (<10%), Slight (10-30%), Anomaly (≥30%)
+4. Generates neutral Dutch coaching messages (no judgmental language)
+5. Provides 6-month sparkline data for trend visualization
+
+**Feature Flags:**
+- `living_dashboard` - Enables adaptive dashboard with insights
+- `projects` - Enables PROJECT budgets and external payments
+- `behavioral_insights` - Shows insight badges on budget cards
+
+**Migration Path:**
+- Existing EXPENSE/INCOME budgets work unchanged
+- Legacy dashboard remains available when `living_dashboard=false`
+- Feature flags stored in database with env var fallback
+- Migrations: Version20250101000001 (ExternalPayment), Version20250101000002 (Budget extensions), Version20250101000003 (FeatureFlag)
 
 ### Removal of TransactionType Constraint on Categories (2024-2025)
 Previously, categories were strictly tied to either CREDIT or DEBIT transaction types. This constraint has been removed:
@@ -360,3 +716,8 @@ Previously, categories were strictly tied to either CREDIT or DEBIT transaction 
 - **Account ← Category**: No inverse relationship (Account doesn't track Categories collection)
   - This is intentional - unidirectional relationship is sufficient
   - Categories are queried via CategoryRepository when needed
+- **Budget ↔ Category**: Bidirectional ManyToMany relationship
+  - Budget has `getCategories()` collection
+  - Category has `getBudget()` reference (nullable)
+  - When creating test data, ALWAYS set both sides: `$category->setBudget($budget); $budget->addCategory($category);`
+- **ExternalPayment → Budget**: ManyToOne relationship (payments belong to projects)

@@ -1,5 +1,5 @@
 // src/domains/transactions/components/PeriodPicker.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {formatDateToLocalString, formatMonthFull} from "../../../shared/utils/DateFormat";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -14,6 +14,7 @@ export default function PeriodPicker({ months, onChange }: Props) {
     const [selectedMonth, setSelectedMonth] = useState<string>("01");
     const [selectedQuarter, setSelectedQuarter] = useState<"1" | "2" | "3" | "4">("1");
     const [selectedHalf, setSelectedHalf] = useState<"1" | "2">("1");
+    const previousDatesRef = useRef<{ start: string; end: string } | null>(null);
     const lastMonth = months.length > 0 ? months[0] : null;
     const [lastYear, lastMonthNumber] = lastMonth ? lastMonth.split("-").map(Number) : [null, null];
     const lastDate = lastYear && lastMonthNumber ? new Date(lastYear, lastMonthNumber - 1) : null;
@@ -38,14 +39,14 @@ export default function PeriodPicker({ months, onChange }: Props) {
         return start <= lastDate;
     });
 
-    // Zet automatisch nieuwste jaar & maand bij laden
+    // Zet automatisch nieuwste jaar & maand bij laden (alleen eerste keer)
     useEffect(() => {
-        if (months.length > 0) {
+        if (months.length > 0 && !selectedYear) {
             const [year, month] = months[0].split('-');
             setSelectedYear(year);
             setSelectedMonth(month);
         }
-    }, [months]);
+    }, [months, selectedYear]);
 
     // Reageer bij wijziging van selectie
     useEffect(() => {
@@ -81,8 +82,14 @@ export default function PeriodPicker({ months, onChange }: Props) {
 
 
         if (startDate && endDate) {
-            onChange(startDate, endDate);
+            // Only call onChange if dates actually changed
+            const prev = previousDatesRef.current;
+            if (!prev || prev.start !== startDate || prev.end !== endDate) {
+                previousDatesRef.current = { start: startDate, end: endDate };
+                onChange(startDate, endDate);
+            }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [periodType, selectedYear, selectedMonth, selectedQuarter, selectedHalf]);
 
     // Logica voor vorige/volgende periode navigatie
