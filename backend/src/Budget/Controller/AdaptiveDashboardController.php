@@ -62,11 +62,12 @@ class AdaptiveDashboardController extends AbstractController
         $type = $request->query->get('type'); // optional: EXPENSE, INCOME, PROJECT
         $startDate = $request->query->get('startDate'); // YYYY-MM-DD
         $endDate = $request->query->get('endDate'); // YYYY-MM-DD
+        $accountId = $request->query->getInt('accountId'); // Filter by account
 
         $budgetType = $type ? BudgetType::from($type) : null;
 
-        // Get active budgets
-        $activeBudgets = $this->activeBudgetService->getActiveBudgets($months, $budgetType);
+        // Get active budgets filtered by account
+        $activeBudgets = $this->activeBudgetService->getActiveBudgets($months, $budgetType, $accountId);
 
         // Separate by type
         $expenseIncomeBudgets = array_filter(
@@ -128,10 +129,11 @@ class AdaptiveDashboardController extends AbstractController
 
         $months = $request->query->getInt('months', 2);
         $type = $request->query->get('type');
+        $accountId = $request->query->getInt('accountId'); // Filter by account
 
         $budgetType = $type ? BudgetType::from($type) : null;
 
-        $olderBudgets = $this->activeBudgetService->getOlderBudgets($months, $budgetType);
+        $olderBudgets = $this->activeBudgetService->getOlderBudgets($months, $budgetType, $accountId);
 
         // Simple DTOs without insights
         $dtos = array_map(function (Budget $budget) {
@@ -324,11 +326,18 @@ class AdaptiveDashboardController extends AbstractController
         }
 
         $statusFilter = $request->query->get('status'); // optional filter
+        $accountId = $request->query->getInt('accountId'); // Filter by account
 
         // Get all PROJECT type budgets
         $qb = $this->budgetRepository->createQueryBuilder('b')
             ->where('b.budgetType = :type')
             ->setParameter('type', BudgetType::PROJECT);
+
+        // Filter by account if specified
+        if ($accountId > 0) {
+            $qb->andWhere('b.account = :accountId')
+               ->setParameter('accountId', $accountId);
+        }
 
         $projects = $qb->getQuery()->getResult();
 
