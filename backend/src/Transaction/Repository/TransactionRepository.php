@@ -545,6 +545,7 @@ class TransactionRepository extends ServiceEntityRepository
             ->select('SUM(CASE WHEN t.transaction_type = \'CREDIT\' THEN -t.amountInCents ELSE t.amountInCents END) as total')
             ->where('t.category IN (:categoryIds)')
             ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
+            ->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0')
             ->setParameter('categoryIds', $categoryIds)
             ->setParameter('monthYear', $monthYear)
             ->getQuery()
@@ -575,6 +576,7 @@ class TransactionRepository extends ServiceEntityRepository
             )
             ->where('t.category IN (:categoryIds)')
             ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
+            ->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0')
             ->setParameter('categoryIds', $categoryIds)
             ->setParameter('monthYear', $monthYear)
             ->groupBy('t.category')
@@ -614,6 +616,7 @@ class TransactionRepository extends ServiceEntityRepository
             ->where('t.category IN (:categoryIds)')
             ->andWhere('t.date >= :startDate')
             ->andWhere('t.date <= :endDate')
+            ->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0')
             ->setParameter('categoryIds', $categoryIds)
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate)
@@ -657,6 +660,7 @@ class TransactionRepository extends ServiceEntityRepository
             )
             ->where('t.account = :accountId')
             ->andWhere('t.category IN (:categoryIds)')
+            ->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0')
             ->setParameter('accountId', $accountId)
             ->setParameter('categoryIds', $categoryIds);
 
