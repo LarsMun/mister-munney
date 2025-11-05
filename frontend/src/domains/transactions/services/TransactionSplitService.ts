@@ -146,30 +146,3 @@ export async function deleteSplit(
     }
 }
 
-/**
- * Extract text from PDF file using browser APIs
- */
-export async function extractTextFromPdf(file: File): Promise<string> {
-    // For now, we'll just read the file as text
-    // In a real implementation, you might want to use a library like pdf.js
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = async (e) => {
-            try {
-                const text = e.target?.result as string;
-                // For now, just return the text
-                // TODO: Implement proper PDF text extraction using pdf.js or similar
-                resolve(text);
-            } catch (error) {
-                reject(error);
-            }
-        };
-
-        reader.onerror = () => {
-            reject(new Error('Failed to read file'));
-        };
-
-        reader.readAsText(file);
-    });
-}

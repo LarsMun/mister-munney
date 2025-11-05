@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { parseCreditCardPdf, ParseResult } from '../services/TransactionSplitService';
 
@@ -26,17 +26,6 @@ export default function CreditCardUploadModal({
 
     if (!isOpen) return null;
 
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (!file.name.toLowerCase().endsWith('.pdf')) {
-            toast.error('Alleen PDF bestanden zijn toegestaan');
-            return;
-        }
-
-        toast.info('PDF geüpload. Kopieer de tekst uit het PDF bestand en plak deze hieronder.');
-    };
 
     const handleParse = async () => {
         if (!pdfText.trim()) {
@@ -115,24 +104,7 @@ export default function CreditCardUploadModal({
                         </ol>
                     </div>
 
-                    {/* File Upload (Optional) */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            PDF Bestand (optioneel - ter referentie)
-                        </label>
-                        <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
-                                <Upload className="w-4 h-4" />
-                                <span className="text-sm">Selecteer PDF</span>
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={handleFileUpload}
-                                    className="hidden"
-                                />
-                            </label>
-                        </div>
-                    </div>
+                    {/* Note: No automatic PDF parsing - manual copy/paste required */}
 
                     {/* Text Area */}
                     <div className="mb-6">
