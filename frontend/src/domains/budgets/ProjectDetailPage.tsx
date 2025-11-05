@@ -130,18 +130,26 @@ export default function ProjectDetailPage() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                    <div className="bg-red-50 rounded-lg p-4">
+                        <p className="text-sm text-red-600 font-medium mb-1">Getrackte uitgaven (DEBIT)</p>
+                        <p className="text-2xl font-bold text-red-900">{project.totals.trackedDebit}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-4">
+                        <p className="text-sm text-green-600 font-medium mb-1">Getrackte inkomsten (CREDIT)</p>
+                        <p className="text-2xl font-bold text-green-900">{project.totals.trackedCredit}</p>
+                    </div>
                     <div className="bg-blue-50 rounded-lg p-4">
-                        <p className="text-sm text-blue-600 font-medium mb-1">Getrackte uitgaven</p>
+                        <p className="text-sm text-blue-600 font-medium mb-1">Netto getrackt</p>
                         <p className="text-2xl font-bold text-blue-900">{project.totals.tracked}</p>
                     </div>
                     <div className="bg-purple-50 rounded-lg p-4">
                         <p className="text-sm text-purple-600 font-medium mb-1">Externe betalingen</p>
                         <p className="text-2xl font-bold text-purple-900">{project.totals.external}</p>
                     </div>
-                    <div className="bg-green-50 rounded-lg p-4">
-                        <p className="text-sm text-green-600 font-medium mb-1">Totaal</p>
-                        <p className="text-2xl font-bold text-green-900">{project.totals.total}</p>
+                    <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-300">
+                        <p className="text-sm text-gray-600 font-medium mb-1">Totaal</p>
+                        <p className="text-2xl font-bold text-gray-900">{project.totals.total}</p>
                     </div>
                 </div>
             </div>
