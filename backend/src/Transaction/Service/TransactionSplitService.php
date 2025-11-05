@@ -54,7 +54,8 @@ class TransactionSplitService
         }
 
         // Validate that splits sum to parent (within 1 cent tolerance)
-        if (abs($splitsTotal - $parentAmountFloat) > 0.01) {
+        // Compare absolute values since both parent and splits are negative for expenses
+        if (abs(abs($splitsTotal) - abs($parentAmountFloat)) > 0.01) {
             throw new BadRequestHttpException(
                 sprintf(
                     "Split transactions sum (%.2f) does not match parent transaction amount (%.2f)",
