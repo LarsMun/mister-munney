@@ -234,30 +234,34 @@ class TransactionRepository extends ServiceEntityRepository
             return \Money\Money::EUR(0);
         }
 
-        $result = $this->createQueryBuilder('t')
-            ->select('
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        $sql = "
+            SELECT
                 SUM(
                     CASE
-                        WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
-                        THEN ABS(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                        ELSE ABS(t.amountInCents)
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
+                        THEN ABS(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        ELSE ABS(t.amount_in_cents)
                     END
                 ) as total
-            ')
-            ->where('t.category IN (:categoryIds)')
-            ->andWhere('t.date BETWEEN :startDate AND :endDate')
-            ->andWhere('t.transactionType = :debitType')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-                OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate)
-            ->setParameter('debitType', \App\Enum\TransactionType::DEBIT)
-            ->getQuery()
-            ->getSingleScalarResult();
+            FROM transaction t
+            WHERE t.category_id IN ($placeholders)
+              AND t.date BETWEEN ? AND ?
+              AND t.transaction_type = ?
+              AND (
+                  (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                  OR
+                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+              )
+        ";
+
+        $params = array_merge(
+            $categoryIds,
+            [$startDate->format('Y-m-d'), $endDate->format('Y-m-d'), 'DEBIT']
+        );
+
+        $result = $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchOne();
 
         return \Money\Money::EUR((int) ($result ?? 0));
     }
@@ -328,28 +332,32 @@ class TransactionRepository extends ServiceEntityRepository
      */
     public function getMonthlyTotalsByCategory(int $accountId, int $categoryId, ?int $monthLimit = null): array
     {
-        $qb = $this->createQueryBuilder('t')
-            ->select(
-                "SUBSTRING(t.date, 1, 7) AS month",
-                "SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amountInCents ELSE -t.amountInCents END) AS total"
-            )
-            ->where('t.account = :accountId')
-            ->setParameter('accountId', $accountId);
+        $sql = "
+            SELECT
+                SUBSTRING(t.date, 1, 7) AS month,
+                SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END) AS total
+            FROM transaction t
+            WHERE t.account_id = ?
+        ";
+
+        $params = [$accountId];
 
         // Filter op categorie
         if ($categoryId === 0) {
-            $qb->andWhere('t.category IS NULL');
+            $sql .= " AND t.category_id IS NULL";
         } else {
-            $qb->andWhere('t.category = :categoryId')
-                ->setParameter('categoryId', $categoryId);
+            $sql .= " AND t.category_id = ?";
+            $params[] = $categoryId;
         }
 
         // Exclude split parents only if adjusted amount is zero
-        $qb->andWhere('
-            (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-            OR
-            (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-        ');
+        $sql .= "
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                OR
+                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+        ";
 
         // Als monthLimit is ingesteld, filter op datum
         if ($monthLimit !== null && $monthLimit > 0) {
@@ -358,14 +366,16 @@ class TransactionRepository extends ServiceEntityRepository
             $startDate->modify('first day of this month');
             $startDate->setTime(0, 0, 0);
 
-            $qb->andWhere('t.date >= :startDate')
-                ->setParameter('startDate', $startDate);
+            $sql .= " AND t.date >= ?";
+            $params[] = $startDate->format('Y-m-d');
         }
 
-        $qb->groupBy('month')
-            ->orderBy('month', 'DESC');
+        $sql .= "
+            GROUP BY month
+            ORDER BY month DESC
+        ";
 
-        return $qb->getQuery()->getResult();
+        return $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
     }
 
     /**
@@ -378,35 +388,37 @@ class TransactionRepository extends ServiceEntityRepository
      */
     public function getCategoryStatistics(int $accountId, ?int $monthLimit = null): array
     {
-        $qb = $this->createQueryBuilder('t')
-            ->select(
-                'COALESCE(c.id, 0) AS categoryId',
-                'COALESCE(c.name, \'Niet ingedeeld\') AS categoryName',
-                'COALESCE(c.color, \'#CCCCCC\') AS categoryColor',
-                'COALESCE(c.icon, \'help-circle\') AS categoryIcon',
-                'COUNT(t.id) AS transactionCount',
-                'SUM(
+        $sql = "
+            SELECT
+                COALESCE(c.id, 0) AS categoryId,
+                COALESCE(c.name, 'Niet ingedeeld') AS categoryName,
+                COALESCE(c.color, '#CCCCCC') AS categoryColor,
+                COALESCE(c.icon, 'help-circle') AS categoryIcon,
+                COUNT(t.id) AS transactionCount,
+                SUM(
                     CASE
-                        WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
-                            CASE WHEN t.transaction_type = \'CREDIT\'
-                            THEN (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                            ELSE -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = \'CREDIT\' THEN t.amountInCents ELSE -t.amountInCents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END
                     END
-                ) AS totalAmount',
-                'AVG(CASE WHEN t.transaction_type = \'CREDIT\' THEN t.amountInCents ELSE -t.amountInCents END) AS averagePerTransaction'
-            )
-            ->leftJoin('t.category', 'c')
-            ->where('t.account = :accountId')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-                OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('accountId', $accountId);
+                ) AS totalAmount,
+                AVG(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END) AS averagePerTransaction
+            FROM transaction t
+            LEFT JOIN category c ON t.category_id = c.id
+            WHERE t.account_id = ?
+              AND (
+                  (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                  OR
+                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+              )
+        ";
+
+        $params = [$accountId];
 
         // Als monthLimit is ingesteld, filter op datum
         if ($monthLimit !== null && $monthLimit > 0) {
@@ -415,14 +427,16 @@ class TransactionRepository extends ServiceEntityRepository
             $startDate->modify('first day of this month');
             $startDate->setTime(0, 0, 0);
 
-            $qb->andWhere('t.date >= :startDate')
-                ->setParameter('startDate', $startDate);
+            $sql .= " AND t.date >= ?";
+            $params[] = $startDate->format('Y-m-d');
         }
 
-        $qb->groupBy('c.id, c.name, c.color, c.icon')
-            ->orderBy('totalAmount', 'ASC');  // ASC want negatieve getallen (uitgaven) moeten bovenaan
+        $sql .= "
+            GROUP BY c.id, c.name, c.color, c.icon
+            ORDER BY totalAmount ASC
+        ";
 
-        return $qb->getQuery()->getResult();
+        return $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
     }
 
     /**
@@ -577,35 +591,37 @@ class TransactionRepository extends ServiceEntityRepository
             return 0;
         }
 
-        $result = $this->createQueryBuilder('t')
-            ->select('
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        $sql = "
+            SELECT
                 SUM(
                     CASE
                         -- If parent with splits: use adjusted amount (parent - categorized children)
-                        WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
-                            CASE WHEN t.transaction_type = \'CREDIT\'
-                            THEN -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                            ELSE (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         -- Regular transaction or child: use full amount
                         ELSE
-                            CASE WHEN t.transaction_type = \'CREDIT\' THEN -t.amountInCents ELSE t.amountInCents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
                     END
                 ) as total
-            ')
-            ->where('t.category IN (:categoryIds)')
-            ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
-            // Exclude parent only if adjusted amount is zero (all children categorized)
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-                OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('monthYear', $monthYear)
-            ->getQuery()
-            ->getSingleScalarResult();
+            FROM transaction t
+            WHERE t.category_id IN ($placeholders)
+              AND SUBSTRING(t.date, 1, 7) = ?
+              AND (
+                  (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                  OR
+                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+              )
+        ";
+
+        $params = array_merge($categoryIds, [$monthYear]);
+
+        $result = $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchOne();
 
         return (int) ($result ?? 0);
     }
@@ -624,35 +640,38 @@ class TransactionRepository extends ServiceEntityRepository
             return [];
         }
 
-        $results = $this->createQueryBuilder('t')
-            ->select(
-                'IDENTITY(t.category) AS categoryId',
-                'SUM(
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        $sql = "
+            SELECT
+                t.category_id AS categoryId,
+                SUM(
                     CASE
-                        WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
-                            CASE WHEN t.transaction_type = \'CREDIT\'
-                            THEN -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                            ELSE (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = \'CREDIT\' THEN -t.amountInCents ELSE t.amountInCents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
                     END
-                ) AS totalAmount',
-                'COUNT(t.id) AS transactionCount'
-            )
-            ->where('t.category IN (:categoryIds)')
-            ->andWhere('SUBSTRING(t.date, 1, 7) = :monthYear')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-                OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('monthYear', $monthYear)
-            ->groupBy('t.category')
-            ->getQuery()
-            ->getResult();
+                ) AS totalAmount,
+                COUNT(t.id) AS transactionCount
+            FROM transaction t
+            WHERE t.category_id IN ($placeholders)
+              AND SUBSTRING(t.date, 1, 7) = ?
+              AND (
+                  (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                  OR
+                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+              )
+            GROUP BY t.category_id
+        ";
+
+        $params = array_merge($categoryIds, [$monthYear]);
+
+        $results = $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
 
         return array_map(function ($row) {
             return [
@@ -678,37 +697,39 @@ class TransactionRepository extends ServiceEntityRepository
             return [];
         }
 
-        $results = $this->createQueryBuilder('t')
-            ->select(
-                'IDENTITY(t.category) AS categoryId',
-                'SUM(
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        $sql = "
+            SELECT
+                t.category_id AS categoryId,
+                SUM(
                     CASE
-                        WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
-                            CASE WHEN t.transaction_type = \'CREDIT\'
-                            THEN -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                            ELSE (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = \'CREDIT\' THEN -t.amountInCents ELSE t.amountInCents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
                     END
-                ) AS totalAmount',
-                'COUNT(t.id) AS transactionCount'
-            )
-            ->where('t.category IN (:categoryIds)')
-            ->andWhere('t.date >= :startDate')
-            ->andWhere('t.date <= :endDate')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-                OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate)
-            ->groupBy('t.category')
-            ->getQuery()
-            ->getResult();
+                ) AS totalAmount,
+                COUNT(t.id) AS transactionCount
+            FROM transaction t
+            WHERE t.category_id IN ($placeholders)
+              AND t.date >= ?
+              AND t.date <= ?
+              AND (
+                  (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                  OR
+                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+              )
+            GROUP BY t.category_id
+        ";
+
+        $params = array_merge($categoryIds, [$startDate, $endDate]);
+
+        $results = $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
 
         return array_map(function ($row) {
             return [
@@ -739,49 +760,56 @@ class TransactionRepository extends ServiceEntityRepository
         $firstMonth = $this->getFirstTransactionMonth($accountId);
         $currentMonth = (new \DateTime())->format('Y-m');
 
-        $qb = $this->createQueryBuilder('t')
-            ->select(
-                "SUBSTRING(t.date, 1, 7) AS month",
-                "SUM(
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        $sql = "
+            SELECT
+                SUBSTRING(t.date, 1, 7) AS month,
+                SUM(
                     CASE
-                        WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                            ELSE (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
+                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amountInCents ELSE t.amountInCents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
                     END
-                ) AS total"
-            )
-            ->where('t.account = :accountId')
-            ->andWhere('t.category IN (:categoryIds)')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-                OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('accountId', $accountId)
-            ->setParameter('categoryIds', $categoryIds);
+                ) AS total
+            FROM transaction t
+            WHERE t.account_id = ?
+              AND t.category_id IN ($placeholders)
+              AND (
+                  (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                  OR
+                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+              )
+        ";
+
+        $params = [$accountId];
+        $params = array_merge($params, $categoryIds);
 
         // Sluit eerste en huidige maand uit
         if ($firstMonth) {
-            $qb->andWhere('SUBSTRING(t.date, 1, 7) > :firstMonth')
-                ->setParameter('firstMonth', $firstMonth);
+            $sql .= " AND SUBSTRING(t.date, 1, 7) > ?";
+            $params[] = $firstMonth;
         }
 
-        $qb->andWhere('SUBSTRING(t.date, 1, 7) < :currentMonth')
-            ->setParameter('currentMonth', $currentMonth);
+        $sql .= " AND SUBSTRING(t.date, 1, 7) < ?";
+        $params[] = $currentMonth;
 
-        $qb->groupBy('month')
-            ->orderBy('month', 'DESC');
+        $sql .= "
+            GROUP BY month
+            ORDER BY month DESC
+        ";
 
         if ($monthLimit !== null && $monthLimit > 0) {
-            $qb->setMaxResults($monthLimit);
+            $sql .= " LIMIT ?";
+            $params[] = $monthLimit;
         }
 
-        return $qb->getQuery()->getResult();
+        return $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
     }
 
     /**
@@ -796,40 +824,41 @@ class TransactionRepository extends ServiceEntityRepository
     {
         $currentMonth = (new \DateTime())->format('Y-m');
 
-        $qb = $this->createQueryBuilder('t')
-            ->select("
+        $sql = "
+            SELECT
                 SUM(
                     CASE
-                        WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                            ELSE -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
+                            THEN (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN t.amountInCents ELSE -t.amountInCents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END
                     END
                 ) AS total
-            ")
-            ->where('t.account = :accountId')
-            ->andWhere('SUBSTRING(t.date, 1, 7) = :currentMonth')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
-                OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('accountId', $accountId)
-            ->setParameter('currentMonth', $currentMonth);
+            FROM transaction t
+            WHERE t.account_id = ?
+              AND SUBSTRING(t.date, 1, 7) = ?
+              AND (
+                  (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                  OR
+                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+              )
+        ";
+
+        $params = [$accountId, $currentMonth];
 
         // Filter op categorie
         if ($categoryId === 0) {
-            $qb->andWhere('t.category IS NULL');
+            $sql .= " AND t.category_id IS NULL";
         } else {
-            $qb->andWhere('t.category = :categoryId')
-                ->setParameter('categoryId', $categoryId);
+            $sql .= " AND t.category_id = ?";
+            $params[] = $categoryId;
         }
 
-        $result = $qb->getQuery()->getSingleScalarResult();
+        $result = $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchOne();
 
         return (int) ($result ?? 0);
     }

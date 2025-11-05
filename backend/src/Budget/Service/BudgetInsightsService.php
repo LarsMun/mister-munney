@@ -207,37 +207,41 @@ class BudgetInsightsService
 
         $monthsList = array_reverse($monthsList); // Oldest first
 
-        // Query transactions grouped by month
+        // Build placeholders for IN clause
+        $categoryPlaceholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $monthPlaceholders = implode(',', array_fill(0, count($monthsList), '?'));
+
+        // Native SQL query - DQL doesn't support subqueries in SELECT clause
         // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
         // Include parents with adjusted amount (parent - categorized children)
-        $qb = $this->entityManager->createQueryBuilder();
-        $qb->select("SUBSTRING(t.date, 1, 7) as month", "
-            SUM(
-                CASE
-                    WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
-                    THEN
-                        CASE WHEN t.transaction_type = 'credit'
-                        THEN -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                        ELSE (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                        END
-                    ELSE
-                        CASE WHEN t.transaction_type = 'credit' THEN -t.amountInCents ELSE t.amountInCents END
-                END
-            ) as total
-        ")
-            ->from('App\Entity\Transaction', 't')
-            ->where('t.category IN (:categoryIds)')
-            ->andWhere('SUBSTRING(t.date, 1, 7) IN (:months)')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
+        $sql = "
+            SELECT
+                SUBSTRING(t.date, 1, 7) as month,
+                SUM(
+                    CASE
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
+                        THEN
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            END
+                        ELSE
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                    END
+                ) as total
+            FROM transaction t
+            WHERE t.category_id IN ($categoryPlaceholders)
+            AND SUBSTRING(t.date, 1, 7) IN ($monthPlaceholders)
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->groupBy('month')
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('months', $monthsList);
+                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+            GROUP BY month
+        ";
 
-        $results = $qb->getQuery()->getResult();
+        $params = array_merge($categoryIds, $monthsList);
+        $results = $this->entityManager->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
 
         // Build map with defaults of 0
         $totals = array_fill_keys($monthsList, 0);
@@ -262,37 +266,39 @@ class BudgetInsightsService
 
         $categoryIds = array_map(fn($cat) => $cat->getId(), $categories->toArray());
 
+        // Build placeholders for IN clause
+        $categoryPlaceholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        // Native SQL query - DQL doesn't support subqueries in SELECT clause
         // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
         // Include parents with adjusted amount (parent - categorized children)
-        $qb = $this->entityManager->createQueryBuilder();
-        $qb->select("
-            SUM(
-                CASE
-                    WHEN (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) > 0
-                    THEN
-                        CASE WHEN t.transaction_type = 'credit'
-                        THEN -(t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                        ELSE (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0))
-                        END
-                    ELSE
-                        CASE WHEN t.transaction_type = 'credit' THEN -t.amountInCents ELSE t.amountInCents END
-                END
-            ) as total
-        ")
-            ->from('App\Entity\Transaction', 't')
-            ->where('t.category IN (:categoryIds)')
-            ->andWhere('t.date >= :start')
-            ->andWhere('t.date <= :end')
-            ->andWhere('
-                (SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0
+        $sql = "
+            SELECT
+                SUM(
+                    CASE
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
+                        THEN
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            END
+                        ELSE
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                    END
+                ) as total
+            FROM transaction t
+            WHERE t.category_id IN ($categoryPlaceholders)
+            AND t.date >= ?
+            AND t.date <= ?
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amountInCents - COALESCE((SELECT SUM(ABS(st.amountInCents)) FROM App\Entity\Transaction st WHERE st.parentTransaction = t AND st.category IS NOT NULL), 0)) != 0
-            ')
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('start', $start)
-            ->setParameter('end', $end);
+                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+        ";
 
-        $result = $qb->getQuery()->getSingleScalarResult();
+        $params = array_merge($categoryIds, [$start->format('Y-m-d'), $end->format('Y-m-d')]);
+        $result = $this->entityManager->getConnection()->executeQuery($sql, $params)->fetchOne();
 
         return $this->moneyFactory->fromCents((int) ($result ?? 0));
     }
