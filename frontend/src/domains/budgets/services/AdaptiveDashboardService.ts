@@ -21,13 +21,15 @@ export async function fetchActiveBudgets(
     months?: number,
     type?: BudgetType,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    accountId?: number
 ): Promise<ActiveBudget[]> {
     const params = new URLSearchParams();
     if (months !== undefined) params.append('months', months.toString());
     if (type) params.append('type', type);
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (accountId !== undefined) params.append('accountId', accountId.toString());
 
     const response = await fetch(
         `${prefix}/budgets/active?${params.toString()}`
@@ -45,11 +47,13 @@ export async function fetchActiveBudgets(
  */
 export async function fetchOlderBudgets(
     months?: number,
-    type?: BudgetType
+    type?: BudgetType,
+    accountId?: number
 ): Promise<OlderBudget[]> {
     const params = new URLSearchParams();
     if (months !== undefined) params.append('months', months.toString());
     if (type) params.append('type', type);
+    if (accountId !== undefined) params.append('accountId', accountId.toString());
 
     const response = await fetch(
         `${prefix}/budgets/older?${params.toString()}`
@@ -66,10 +70,12 @@ export async function fetchOlderBudgets(
  * Fetch all projects (PROJECT-type budgets)
  */
 export async function fetchProjects(
-    status?: ProjectStatus
+    status?: ProjectStatus,
+    accountId?: number
 ): Promise<ProjectDetails[]> {
     const params = new URLSearchParams();
     if (status) params.append('status', status);
+    if (accountId !== undefined) params.append('accountId', accountId.toString());
 
     const response = await fetch(
         `${prefix}/budgets?${params.toString()}`
