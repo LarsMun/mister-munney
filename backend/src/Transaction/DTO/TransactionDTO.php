@@ -22,4 +22,7 @@ class TransactionDTO
     public ?string $tag;
     public ?CategoryDTO $category = null;
     public ?SavingsAccountDTO $savingsAccount = null;
+    public bool $hasSplits = false;
+    public int $splitCount = 0;
+    public ?int $parentTransactionId = null;
 }
