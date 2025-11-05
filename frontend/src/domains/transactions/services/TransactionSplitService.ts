@@ -32,8 +32,11 @@ export interface SplitTransaction {
     transactionCode: string;
     notes: string;
     tag: string;
-    categoryId: number | null;
-    categoryName: string | null;
+    category?: {
+        id: number;
+        name: string;
+        color?: string | null;
+    } | null;
 }
 
 /**
