@@ -241,8 +241,8 @@ class TransactionRepository extends ServiceEntityRepository
                 SUM(
                     CASE
                         WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
-                        THEN ABS(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        ELSE ABS(t.amount_in_cents)
+                        THEN ABS(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        ELSE ABS(t.amount)
                     END
                 ) as total
             FROM transaction t
@@ -252,7 +252,7 @@ class TransactionRepository extends ServiceEntityRepository
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
-                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                  (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
               )
         ";
 
@@ -335,7 +335,7 @@ class TransactionRepository extends ServiceEntityRepository
         $sql = "
             SELECT
                 SUBSTRING(t.date, 1, 7) AS month,
-                SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END) AS total
+                SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount ELSE -t.amount END) AS total
             FROM transaction t
             WHERE t.account_id = ?
         ";
@@ -355,7 +355,7 @@ class TransactionRepository extends ServiceEntityRepository
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
             )
         ";
 
@@ -400,21 +400,21 @@ class TransactionRepository extends ServiceEntityRepository
                         WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                            ELSE -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            THEN (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount ELSE -t.amount END
                     END
                 ) AS totalAmount,
-                AVG(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END) AS averagePerTransaction
+                AVG(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount ELSE -t.amount END) AS averagePerTransaction
             FROM transaction t
             LEFT JOIN category c ON t.category_id = c.id
             WHERE t.account_id = ?
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
-                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                  (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
               )
         ";
 
@@ -601,12 +601,12 @@ class TransactionRepository extends ServiceEntityRepository
                         WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         -- Regular transaction or child: use full amount
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
                     END
                 ) as total
             FROM transaction t
@@ -615,7 +615,7 @@ class TransactionRepository extends ServiceEntityRepository
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
-                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                  (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
               )
         ";
 
@@ -650,11 +650,11 @@ class TransactionRepository extends ServiceEntityRepository
                         WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
                     END
                 ) AS totalAmount,
                 COUNT(t.id) AS transactionCount
@@ -664,7 +664,7 @@ class TransactionRepository extends ServiceEntityRepository
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
-                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                  (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
               )
             GROUP BY t.category_id
         ";
@@ -707,11 +707,11 @@ class TransactionRepository extends ServiceEntityRepository
                         WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
                     END
                 ) AS totalAmount,
                 COUNT(t.id) AS transactionCount
@@ -722,7 +722,7 @@ class TransactionRepository extends ServiceEntityRepository
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
-                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                  (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
               )
             GROUP BY t.category_id
         ";
@@ -770,11 +770,11 @@ class TransactionRepository extends ServiceEntityRepository
                         WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                            ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
                     END
                 ) AS total
             FROM transaction t
@@ -783,7 +783,7 @@ class TransactionRepository extends ServiceEntityRepository
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
-                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                  (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
               )
         ";
 
@@ -831,11 +831,11 @@ class TransactionRepository extends ServiceEntityRepository
                         WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                         THEN
                             CASE WHEN t.transaction_type = 'CREDIT'
-                            THEN (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                            ELSE -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            THEN (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                             END
                         ELSE
-                            CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount_in_cents ELSE -t.amount_in_cents END
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount ELSE -t.amount END
                     END
                 ) AS total
             FROM transaction t
@@ -844,7 +844,7 @@ class TransactionRepository extends ServiceEntityRepository
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
-                  (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                  (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
               )
         ";
 
