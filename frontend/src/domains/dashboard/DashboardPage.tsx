@@ -190,14 +190,24 @@ export default function DashboardPage() {
                     />
                 </header>
 
-                {/* Full Width Chart */}
+                {/* Full Width Chart - Collapsible */}
                 <div className="mb-8">
                     {summary?.daily && summary.daily.length > 0 && (
-                        <CompactTransactionChart
-                            data={summary.daily}
-                            title="Balans Overzicht (Huidige Periode)"
-                            height={400}
-                        />
+                        <details className="bg-white rounded-lg shadow">
+                            <summary className="cursor-pointer p-6 font-semibold text-gray-800 hover:bg-gray-50 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-400" aria-hidden="true">▶</span>
+                                    <span>Balans Overzicht (Huidige Periode)</span>
+                                </div>
+                            </summary>
+                            <div className="p-6 pt-0">
+                                <CompactTransactionChart
+                                    data={summary.daily}
+                                    title=""
+                                    height={400}
+                                />
+                            </div>
+                        </details>
                     )}
                 </div>
 
@@ -271,14 +281,24 @@ export default function DashboardPage() {
                 />
             </header>
 
-            {/* Full Width Chart */}
+            {/* Full Width Chart - Collapsible */}
             <div className="mb-8">
                 {summary.daily && summary.daily.length > 0 && (
-                    <CompactTransactionChart
-                        data={summary.daily}
-                        title="Balans Overzicht (Huidige Periode)"
-                        height={400}
-                    />
+                    <details className="bg-white rounded-lg shadow">
+                        <summary className="cursor-pointer p-6 font-semibold text-gray-800 hover:bg-gray-50 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-400" aria-hidden="true">▶</span>
+                                <span>Balans Overzicht (Huidige Periode)</span>
+                            </div>
+                        </summary>
+                        <div className="p-6 pt-0">
+                            <CompactTransactionChart
+                                data={summary.daily}
+                                title=""
+                                height={400}
+                            />
+                        </div>
+                    </details>
                 )}
             </div>
 
