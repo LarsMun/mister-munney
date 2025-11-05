@@ -69,44 +69,27 @@ class CreditCardPdfParserService
                 $year = $matches[3];
                 $restOfLine = trim($matches[4]);
 
-                // Extract description and type/amount
-                // Pattern: "DESCRIPTION Type Amount"
-                // Types: "Betaling", "Incasso", "Ontvangst", etc.
-                $parts = preg_split('/\s+(Betaling|Incasso|Ontvangst)\s+/', $restOfLine, -1, PREG_SPLIT_DELIM_CAPTURE);
+                // Try to extract amount immediately (it's at the end of the line after +/-)
+                $amount = $this->extractAmount($restOfLine);
 
-                if (count($parts) >= 2) {
-                    $description = trim($parts[0]);
-                    $type = $parts[1] ?? 'Betaling';
-
-                    // Try to find amount on the same line or next line
-                    $amountStr = $parts[2] ?? '';
-                    $amount = $this->extractAmount($amountStr);
-
-                    $currentTransaction = [
-                        'geboekt_op' => "$year-$month-$day",
-                        'description' => $description,
-                        'type' => $type,
-                        'amount' => $amount,
-                        'transactie_datum' => null,
-                        'card_number' => null,
-                        'original_amount' => null,
-                        'exchange_rate' => null,
-                        'exchange_fee' => null,
-                    ];
-                } else {
-                    // Description only, amount might be on next line
-                    $currentTransaction = [
-                        'geboekt_op' => "$year-$month-$day",
-                        'description' => $restOfLine,
-                        'type' => null,
-                        'amount' => null,
-                        'transactie_datum' => null,
-                        'card_number' => null,
-                        'original_amount' => null,
-                        'exchange_rate' => null,
-                        'exchange_fee' => null,
-                    ];
+                // Remove amount and type from description
+                // Pattern: Remove everything after the last occurrence of Betaling/Incasso/Ontvangst
+                $description = preg_replace('/\s+(Betaling|Incasso|Ontvangst)\s+[-+]?[\d\.,]+\s*$/', '', $restOfLine);
+                if (empty(trim($description))) {
+                    // Fallback: just use everything before the amount
+                    $description = $restOfLine;
                 }
+
+                $currentTransaction = [
+                    'geboekt_op' => "$year-$month-$day",
+                    'description' => trim($description),
+                    'amount' => $amount,
+                    'transactie_datum' => null,
+                    'card_number' => null,
+                    'original_amount' => null,
+                    'exchange_rate' => null,
+                    'exchange_fee' => null,
+                ];
             }
             // Check for transaction details on subsequent lines
             elseif ($currentTransaction !== null) {
@@ -133,11 +116,6 @@ class CreditCardPdfParserService
                 elseif (preg_match('/Koersopslag\s*\(EUR\):\s*([\d,\.]+)/', $line, $matches)) {
                     $currentTransaction['exchange_fee'] = $matches[1];
                 }
-                // Check for type and amount if not yet set
-                elseif ($currentTransaction['type'] === null && preg_match('/(Betaling|Incasso|Ontvangst)\s+([-+]?[\d,\.]+)/', $line, $matches)) {
-                    $currentTransaction['type'] = $matches[1];
-                    $currentTransaction['amount'] = $this->extractAmount($matches[2]);
-                }
                 // Try to extract amount if still missing
                 elseif ($currentTransaction['amount'] === null) {
                     $amount = $this->extractAmount($line);
@@ -160,26 +138,22 @@ class CreditCardPdfParserService
     /**
      * Extract amount from a string
      * Handles formats like: "-21,19", "+416,66", "21,19", etc.
-     * Only extracts if amount appears after "Betaling", "Incasso", or "Ontvangst" keywords
+     * The +/- sign determines the transaction type:
+     * - Negative (-) = DEBIT (expense, paid out)
+     * - Positive (+) = CREDIT (refund, income)
      */
     private function extractAmount(string $text): ?float
     {
-        // Only extract amounts that are clearly part of transaction lines
-        // Match patterns like: -21,19 or +416,66 or 21,19
-        // But only after seeing Betaling/Incasso/Ontvangst keywords in context
-        if (preg_match('/([-+])([\d\.]+),([\d]{2})\s*$/i', $text, $matches)) {
+        // Match patterns like: -21,19 or +416,66 or -1.234,56
+        // Sign is required (+ or -)
+        if (preg_match('/([-+])([\d\.]+),([\d]{2})/', $text, $matches)) {
             $sign = $matches[1];
             $euros = str_replace('.', '', $matches[2]); // Remove thousand separators
             $cents = $matches[3];
             $amount = floatval("$euros.$cents");
 
-            // Negative amounts in statements are expenses (paid out)
-            // Positive amounts are credits
-            if ($sign === '-') {
-                return -abs($amount);
-            } elseif ($sign === '+') {
-                return abs($amount);
-            }
+            // Preserve the sign: negative for expenses, positive for refunds
+            return $sign === '-' ? -abs($amount) : abs($amount);
         }
 
         return null;
@@ -187,6 +161,9 @@ class CreditCardPdfParserService
 
     /**
      * Convert parsed transactions to standard format for import
+     * Transaction type is determined by the amount sign:
+     * - Negative amount = DEBIT (expense)
+     * - Positive amount = CREDIT (refund/income)
      */
     private function convertToStandardFormat(array $transactions): array
     {
