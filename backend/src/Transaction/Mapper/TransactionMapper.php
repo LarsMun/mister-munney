@@ -65,6 +65,11 @@ class TransactionMapper
             $dto->savingsAccount = $saDto;
         }
 
+        // Add split information
+        $dto->hasSplits = $transaction->hasSplits();
+        $dto->splitCount = $transaction->getSplits()->count();
+        $dto->parentTransactionId = $transaction->getParentTransaction()?->getId();
+
         return $dto;
     }
 

@@ -67,6 +67,18 @@ class Transaction
     #[ORM\JoinColumn(nullable: true, onDelete: "SET NULL")]
     private ?SavingsAccount $savingsAccount = null;
 
+    #[ORM\ManyToOne(targetEntity: Transaction::class, inversedBy: 'splits')]
+    #[ORM\JoinColumn(name: 'parent_transaction_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    private ?Transaction $parentTransaction = null;
+
+    #[ORM\OneToMany(targetEntity: Transaction::class, mappedBy: 'parentTransaction', cascade: ['persist', 'remove'])]
+    private $splits;
+
+    public function __construct()
+    {
+        $this->splits = new \Doctrine\Common\Collections\ArrayCollection();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -255,5 +267,50 @@ class Transaction
     public function getSavingsAccountId(): ?int
     {
         return $this->savingsAccount?->getId();
+    }
+
+    public function getParentTransaction(): ?Transaction
+    {
+        return $this->parentTransaction;
+    }
+
+    public function setParentTransaction(?Transaction $parentTransaction): static
+    {
+        $this->parentTransaction = $parentTransaction;
+        return $this;
+    }
+
+    public function getSplits()
+    {
+        return $this->splits;
+    }
+
+    public function addSplit(Transaction $split): static
+    {
+        if (!$this->splits->contains($split)) {
+            $this->splits[] = $split;
+            $split->setParentTransaction($this);
+        }
+        return $this;
+    }
+
+    public function removeSplit(Transaction $split): static
+    {
+        if ($this->splits->removeElement($split)) {
+            if ($split->getParentTransaction() === $this) {
+                $split->setParentTransaction(null);
+            }
+        }
+        return $this;
+    }
+
+    public function hasSplits(): bool
+    {
+        return $this->splits->count() > 0;
+    }
+
+    public function isSplit(): bool
+    {
+        return $this->parentTransaction !== null;
     }
 }
