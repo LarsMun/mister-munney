@@ -209,11 +209,13 @@ class BudgetInsightsService
 
         // Query transactions grouped by month
         // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
+        // Exclude parent transactions with splits to avoid double counting
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select("SUBSTRING(t.date, 1, 7) as month", "SUM(CASE WHEN t.transaction_type = 'credit' THEN -t.amountInCents ELSE t.amountInCents END) as total")
             ->from('App\Entity\Transaction', 't')
             ->where('t.category IN (:categoryIds)')
             ->andWhere('SUBSTRING(t.date, 1, 7) IN (:months)')
+            ->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0')
             ->groupBy('month')
             ->setParameter('categoryIds', $categoryIds)
             ->setParameter('months', $monthsList);
@@ -244,12 +246,14 @@ class BudgetInsightsService
         $categoryIds = array_map(fn($cat) => $cat->getId(), $categories->toArray());
 
         // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
+        // Exclude parent transactions with splits to avoid double counting
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select("SUM(CASE WHEN t.transaction_type = 'credit' THEN -t.amountInCents ELSE t.amountInCents END) as total")
             ->from('App\Entity\Transaction', 't')
             ->where('t.category IN (:categoryIds)')
             ->andWhere('t.date >= :start')
             ->andWhere('t.date <= :end')
+            ->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0')
             ->setParameter('categoryIds', $categoryIds)
             ->setParameter('start', $start)
             ->setParameter('end', $end);

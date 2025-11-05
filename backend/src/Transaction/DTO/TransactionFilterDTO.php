@@ -20,4 +20,5 @@ class TransactionFilterDTO
     public ?string $transactionType = null; // 'credit' of 'debit'
     public ?string $sortBy = 'date';
     public ?string $sortDirection = 'DESC';
+    public bool $excludeSplitParents = false; // exclude parent transactions that have splits (for budget calculations)
 }
