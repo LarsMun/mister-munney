@@ -71,8 +71,8 @@ class CreditCardPdfParserService
 
                 // Extract description and type/amount
                 // Pattern: "DESCRIPTION Type Amount"
-                // Types: "Betaling", "Incasso", etc.
-                $parts = preg_split('/\s+(Betaling|Incasso)\s+/', $restOfLine, -1, PREG_SPLIT_DELIM_CAPTURE);
+                // Types: "Betaling", "Incasso", "Ontvangst", etc.
+                $parts = preg_split('/\s+(Betaling|Incasso|Ontvangst)\s+/', $restOfLine, -1, PREG_SPLIT_DELIM_CAPTURE);
 
                 if (count($parts) >= 2) {
                     $description = trim($parts[0]);
@@ -134,7 +134,7 @@ class CreditCardPdfParserService
                     $currentTransaction['exchange_fee'] = $matches[1];
                 }
                 // Check for type and amount if not yet set
-                elseif ($currentTransaction['type'] === null && preg_match('/(Betaling|Incasso)\s+([-+]?[\d,\.]+)/', $line, $matches)) {
+                elseif ($currentTransaction['type'] === null && preg_match('/(Betaling|Incasso|Ontvangst)\s+([-+]?[\d,\.]+)/', $line, $matches)) {
                     $currentTransaction['type'] = $matches[1];
                     $currentTransaction['amount'] = $this->extractAmount($matches[2]);
                 }
@@ -160,13 +160,13 @@ class CreditCardPdfParserService
     /**
      * Extract amount from a string
      * Handles formats like: "-21,19", "+416,66", "21,19", etc.
-     * Only extracts if amount appears after "Betaling" or "Incasso" keywords
+     * Only extracts if amount appears after "Betaling", "Incasso", or "Ontvangst" keywords
      */
     private function extractAmount(string $text): ?float
     {
         // Only extract amounts that are clearly part of transaction lines
         // Match patterns like: -21,19 or +416,66 or 21,19
-        // But only after seeing Betaling/Incasso keywords in context
+        // But only after seeing Betaling/Incasso/Ontvangst keywords in context
         if (preg_match('/([-+])([\d\.]+),([\d]{2})\s*$/i', $text, $matches)) {
             $sign = $matches[1];
             $euros = str_replace('.', '', $matches[2]); // Remove thousand separators
