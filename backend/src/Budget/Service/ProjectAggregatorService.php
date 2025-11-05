@@ -145,11 +145,11 @@ class ProjectAggregatorService
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                     THEN
                         CASE WHEN t.transaction_type = 'CREDIT'
-                        THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                         END
                     ELSE
-                        CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                        CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
                 END
             ) as total
             FROM transaction t
@@ -157,7 +157,7 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
             )
         ";
 
@@ -207,11 +207,11 @@ class ProjectAggregatorService
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                     THEN
                         CASE WHEN t.transaction_type = 'CREDIT'
-                        THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                         END
                     ELSE
-                        CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                        CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
                 END
             ) as total
             FROM transaction t
@@ -220,7 +220,7 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
             )
             GROUP BY c.id, c.name
         ";
@@ -258,7 +258,7 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
             )
         ";
 
@@ -333,11 +333,11 @@ class ProjectAggregatorService
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                     THEN
                         CASE WHEN t.transaction_type = 'CREDIT'
-                        THEN -(t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        ELSE (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
                         END
                     ELSE
-                        CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount_in_cents ELSE t.amount_in_cents END
+                        CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
                 END
             ) as total
             FROM transaction t
@@ -346,7 +346,7 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount_in_cents - COALESCE((SELECT SUM(ABS(st.amount_in_cents)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
             )
             GROUP BY month
         ";
