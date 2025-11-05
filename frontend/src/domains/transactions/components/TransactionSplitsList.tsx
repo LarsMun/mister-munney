@@ -3,6 +3,8 @@ import { ChevronDown, ChevronUp, Trash2, Split as SplitIcon } from 'lucide-react
 import toast from 'react-hot-toast';
 import { getSplits, deleteSplits, SplitTransaction } from '../services/TransactionSplitService';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
+import { useCategories } from '../../categories/hooks/useCategories';
+import CategoryCombobox from '../../categories/components/CategoryCombobox';
 
 interface TransactionSplitsListProps {
     accountId: number;
@@ -22,6 +24,8 @@ export default function TransactionSplitsList({
     const [splits, setSplits] = useState<SplitTransaction[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const { categories, setCategories } = useCategories(accountId);
 
     useEffect(() => {
         if (isExpanded && splits.length === 0) {
@@ -92,18 +96,13 @@ export default function TransactionSplitsList({
                             {splits.map((split) => (
                                 <div
                                     key={split.id}
-                                    className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                    className="grid grid-cols-12 gap-3 py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                                 >
-                                    <div className="flex-1 min-w-0">
+                                    <div className="col-span-5 min-w-0">
                                         <div className="flex items-center gap-2">
                                             <p className="text-sm font-medium text-gray-900 truncate">
                                                 {split.description}
                                             </p>
-                                            {split.categoryName && (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                                    {split.categoryName}
-                                                </span>
-                                            )}
                                         </div>
                                         <div className="flex items-center gap-3 mt-1">
                                             <p className="text-xs text-gray-500">
@@ -120,12 +119,22 @@ export default function TransactionSplitsList({
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3 ml-4">
+                                    <div className="col-span-2 flex items-center">
                                         <p className={`text-sm font-semibold whitespace-nowrap ${
                                             parseFloat(split.amount) < 0 ? 'text-red-600' : 'text-green-600'
                                         }`}>
                                             {formatMoney(split.amount)}
                                         </p>
+                                    </div>
+                                    <div className="col-span-5 flex items-center" onClick={(e) => e.stopPropagation()}>
+                                        <CategoryCombobox
+                                            transactionId={split.id}
+                                            categoryId={split.category?.id ?? null}
+                                            refresh={loadSplits}
+                                            categories={categories}
+                                            setCategories={setCategories}
+                                            transactionType={split.transactionType}
+                                        />
                                     </div>
                                 </div>
                             ))}
