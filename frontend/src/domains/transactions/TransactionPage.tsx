@@ -198,10 +198,11 @@ export default function TransactionPage() {
                 categories={categories.map(c => ({ id: c.id, name: c.name, color: c.color }))}
             />
 
-            {summary && startDate && (
+            {summary && startDate && endDate && (
                 <SummaryBar
                     summary={summary}
-                    selectedMonth={startDate.slice(0, 7)}
+                    startDate={startDate}
+                    endDate={endDate}
                     handleFileUpload={importTransactions}
                 />
             )}

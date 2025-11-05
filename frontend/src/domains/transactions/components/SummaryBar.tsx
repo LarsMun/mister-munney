@@ -6,17 +6,50 @@ import {SummaryType} from "../models/SummaryType.ts";
 
 interface Props {
     summary: SummaryType;
-    selectedMonth: string;
+    startDate: string;
+    endDate: string;
     handleFileUpload: (file: File) => void;
 }
 
-export default function SummaryBar({ summary, handleFileUpload}: Props) {
+const formatPeriod = (startDate: string, endDate: string): string => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const monthNames = [
+        'Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni',
+        'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'
+    ];
+
+    // Check if same month and year
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${monthNames[start.getMonth()]} ${start.getFullYear()}`;
+    }
+
+    // Different months or years - show range
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    const startMonth = monthNames[start.getMonth()];
+    const endMonth = monthNames[end.getMonth()];
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+
+    if (startYear === endYear) {
+        if (start.getMonth() === end.getMonth()) {
+            return `${startDay}-${endDay} ${startMonth} ${startYear}`;
+        }
+        return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+    }
+
+    return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+};
+
+export default function SummaryBar({ summary, startDate, endDate, handleFileUpload}: Props) {
     const [showUpload, setShowUpload] = useState(false);
 
     return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm text-gray-700 gap-2 sm:gap-4 bg-white border border-gray-200 rounded-t-lg px-4 py-2">
-            <div className="text-blue-600 underline cursor-pointer" onClick={() => setShowUpload(true)}>
-                Transacties importeren
+            <div className="text-2xl font-bold text-gray-900">
+                {formatPeriod(startDate, endDate)}
             </div>
 
             <AnimatePresence mode="wait">
