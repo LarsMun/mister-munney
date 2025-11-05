@@ -168,6 +168,12 @@ class TransactionRepository extends ServiceEntityRepository
         $this->entityManager->flush();
     }
 
+    public function delete(Transaction $transaction): void
+    {
+        $this->entityManager->remove($transaction);
+        $this->entityManager->flush();
+    }
+
     public function findByAccountAndDateRange(int $accountId, ?\DateTimeInterface $startDate = null, ?\DateTimeInterface $endDate = null): array
     {
         $qb = $this->createQueryBuilder('t')

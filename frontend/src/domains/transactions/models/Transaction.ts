@@ -23,4 +23,7 @@ export type Transaction = {
         color?: string | null;
         targetAmount?: number | null;
     };
+    hasSplits?: boolean;
+    splitCount?: number;
+    parentTransactionId?: number | null;
 };
