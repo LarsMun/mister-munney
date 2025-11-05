@@ -21,11 +21,16 @@ class ProjectAggregatorService
      */
     public function getProjectTotals(Budget $project): array
     {
-        $tracked = $this->getTrackedTotal($project);
+        $trackedDebit = $this->getTrackedDebitTotal($project);
+        $trackedCredit = $this->getTrackedCreditTotal($project);
+        $tracked = $trackedDebit->subtract($trackedCredit); // Net tracked (debit - credit)
+
         $external = $this->getExternalTotal($project);
         $total = $tracked->add($external);
 
         return [
+            'trackedDebit' => $this->moneyFactory->toString($trackedDebit),
+            'trackedCredit' => $this->moneyFactory->toString($trackedCredit),
             'tracked' => $this->moneyFactory->toString($tracked),
             'external' => $this->moneyFactory->toString($external),
             'total' => $this->moneyFactory->toString($total),
@@ -122,9 +127,9 @@ class ProjectAggregatorService
     }
 
     /**
-     * Get total from tracked transactions (via categories)
+     * Get total from DEBIT tracked transactions (expenses)
      */
-    private function getTrackedTotal(Budget $project): Money
+    private function getTrackedDebitTotal(Budget $project): Money
     {
         $categories = $project->getCategories();
 
@@ -137,23 +142,60 @@ class ProjectAggregatorService
         // Build placeholders for IN clause
         $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
 
-        // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
+        // Only DEBIT transactions (expenses)
         // Include parents with adjusted amount (parent - categorized children)
         $sql = "
             SELECT SUM(
                 CASE
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
-                    THEN
-                        CASE WHEN t.transaction_type = 'CREDIT'
-                        THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        END
-                    ELSE
-                        CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
+                    THEN (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                    ELSE t.amount
                 END
             ) as total
             FROM transaction t
             WHERE t.category_id IN ($placeholders)
+            AND t.transaction_type = 'DEBIT'
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                OR
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+        ";
+
+        $result = $this->entityManager->getConnection()->executeQuery($sql, $categoryIds)->fetchOne();
+
+        return $this->moneyFactory->fromCents((int) ($result ?? 0));
+    }
+
+    /**
+     * Get total from CREDIT tracked transactions (income/refunds)
+     */
+    private function getTrackedCreditTotal(Budget $project): Money
+    {
+        $categories = $project->getCategories();
+
+        if ($categories->isEmpty()) {
+            return $this->moneyFactory->zero();
+        }
+
+        $categoryIds = array_map(fn($cat) => $cat->getId(), $categories->toArray());
+
+        // Build placeholders for IN clause
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        // Only CREDIT transactions (income/refunds)
+        // Include parents with adjusted amount (parent - categorized children)
+        $sql = "
+            SELECT SUM(
+                CASE
+                    WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
+                    THEN (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                    ELSE t.amount
+                END
+            ) as total
+            FROM transaction t
+            WHERE t.category_id IN ($placeholders)
+            AND t.transaction_type = 'CREDIT'
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
