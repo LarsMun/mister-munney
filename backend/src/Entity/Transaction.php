@@ -291,8 +291,8 @@ class Transaction
 
     public function addSplit(Transaction $split): static
     {
-        if (!$this->splits->contains($split)) {
-            $this->splits[] = $split;
+        if (!$this->getSplits()->contains($split)) {
+            $this->getSplits()->add($split);
             $split->setParentTransaction($this);
         }
         return $this;
@@ -300,7 +300,7 @@ class Transaction
 
     public function removeSplit(Transaction $split): static
     {
-        if ($this->splits->removeElement($split)) {
+        if ($this->getSplits()->removeElement($split)) {
             if ($split->getParentTransaction() === $this) {
                 $split->setParentTransaction(null);
             }
