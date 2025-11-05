@@ -144,11 +144,21 @@ class ProjectAggregatorService
 
         // Only DEBIT transactions (expenses)
         // Include parents with adjusted amount (parent - categorized children)
+        // For children: DEBIT adds to total, CREDIT subtracts (refunds reduce total)
         $sql = "
             SELECT SUM(
                 CASE
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
-                    THEN (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                    THEN (t.amount - COALESCE((
+                        SELECT SUM(
+                            CASE WHEN st.transaction_type = 'DEBIT'
+                            THEN ABS(st.amount)
+                            ELSE -ABS(st.amount)
+                            END
+                        )
+                        FROM transaction st
+                        WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                    ), 0))
                     ELSE t.amount
                 END
             ) as total
@@ -158,7 +168,16 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((
+                    SELECT SUM(
+                        CASE WHEN st.transaction_type = 'DEBIT'
+                        THEN ABS(st.amount)
+                        ELSE -ABS(st.amount)
+                        END
+                    )
+                    FROM transaction st
+                    WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                ), 0)) != 0
             )
         ";
 
@@ -185,11 +204,21 @@ class ProjectAggregatorService
 
         // Only CREDIT transactions (income/refunds)
         // Include parents with adjusted amount (parent - categorized children)
+        // For children: DEBIT subtracts from total, CREDIT adds (both reduce parent amount)
         $sql = "
             SELECT SUM(
                 CASE
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
-                    THEN (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                    THEN (t.amount - COALESCE((
+                        SELECT SUM(
+                            CASE WHEN st.transaction_type = 'CREDIT'
+                            THEN ABS(st.amount)
+                            ELSE -ABS(st.amount)
+                            END
+                        )
+                        FROM transaction st
+                        WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                    ), 0))
                     ELSE t.amount
                 END
             ) as total
@@ -199,7 +228,16 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((
+                    SELECT SUM(
+                        CASE WHEN st.transaction_type = 'CREDIT'
+                        THEN ABS(st.amount)
+                        ELSE -ABS(st.amount)
+                        END
+                    )
+                    FROM transaction st
+                    WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                ), 0)) != 0
             )
         ";
 
@@ -242,6 +280,7 @@ class ProjectAggregatorService
 
         // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
         // Include parents with adjusted amount (parent - categorized children)
+        // For children: DEBIT adds to children total, CREDIT subtracts (refunds reduce total)
         $sql = "
             SELECT c.id, c.name,
             SUM(
@@ -249,8 +288,26 @@ class ProjectAggregatorService
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                     THEN
                         CASE WHEN t.transaction_type = 'CREDIT'
-                        THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        THEN -(t.amount - COALESCE((
+                            SELECT SUM(
+                                CASE WHEN st.transaction_type = 'CREDIT'
+                                THEN ABS(st.amount)
+                                ELSE -ABS(st.amount)
+                                END
+                            )
+                            FROM transaction st
+                            WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                        ), 0))
+                        ELSE (t.amount - COALESCE((
+                            SELECT SUM(
+                                CASE WHEN st.transaction_type = 'DEBIT'
+                                THEN ABS(st.amount)
+                                ELSE -ABS(st.amount)
+                                END
+                            )
+                            FROM transaction st
+                            WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                        ), 0))
                         END
                     ELSE
                         CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
@@ -262,7 +319,16 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((
+                    SELECT SUM(
+                        CASE WHEN t.transaction_type = 'DEBIT'
+                        THEN CASE WHEN st.transaction_type = 'DEBIT' THEN ABS(st.amount) ELSE -ABS(st.amount) END
+                        ELSE CASE WHEN st.transaction_type = 'CREDIT' THEN ABS(st.amount) ELSE -ABS(st.amount) END
+                        END
+                    )
+                    FROM transaction st
+                    WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                ), 0)) != 0
             )
             GROUP BY c.id, c.name
         ";
@@ -293,6 +359,7 @@ class ProjectAggregatorService
         $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
 
         // Exclude parent transactions only if adjusted amount is zero (fully categorized)
+        // For children: same type as parent adds to total, opposite type subtracts
         $sql = "
             SELECT t.id
             FROM transaction t
@@ -300,7 +367,16 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((
+                    SELECT SUM(
+                        CASE WHEN t.transaction_type = 'DEBIT'
+                        THEN CASE WHEN st.transaction_type = 'DEBIT' THEN ABS(st.amount) ELSE -ABS(st.amount) END
+                        ELSE CASE WHEN st.transaction_type = 'CREDIT' THEN ABS(st.amount) ELSE -ABS(st.amount) END
+                        END
+                    )
+                    FROM transaction st
+                    WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                ), 0)) != 0
             )
         ";
 
@@ -368,6 +444,7 @@ class ProjectAggregatorService
 
         // CREDIT transactions are subtracted (refunds), DEBIT transactions are added (expenses)
         // Include parents with adjusted amount (parent - categorized children)
+        // For children: DEBIT adds to children total, CREDIT subtracts (refunds reduce total)
         $sql = "
             SELECT SUBSTRING(t.date, 1, 7) as month,
             SUM(
@@ -375,8 +452,26 @@ class ProjectAggregatorService
                     WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
                     THEN
                         CASE WHEN t.transaction_type = 'CREDIT'
-                        THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
-                        ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                        THEN -(t.amount - COALESCE((
+                            SELECT SUM(
+                                CASE WHEN st.transaction_type = 'CREDIT'
+                                THEN ABS(st.amount)
+                                ELSE -ABS(st.amount)
+                                END
+                            )
+                            FROM transaction st
+                            WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                        ), 0))
+                        ELSE (t.amount - COALESCE((
+                            SELECT SUM(
+                                CASE WHEN st.transaction_type = 'DEBIT'
+                                THEN ABS(st.amount)
+                                ELSE -ABS(st.amount)
+                                END
+                            )
+                            FROM transaction st
+                            WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                        ), 0))
                         END
                     ELSE
                         CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
@@ -388,7 +483,16 @@ class ProjectAggregatorService
             AND (
                 (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                 OR
-                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+                (t.amount - COALESCE((
+                    SELECT SUM(
+                        CASE WHEN t.transaction_type = 'DEBIT'
+                        THEN CASE WHEN st.transaction_type = 'DEBIT' THEN ABS(st.amount) ELSE -ABS(st.amount) END
+                        ELSE CASE WHEN st.transaction_type = 'CREDIT' THEN ABS(st.amount) ELSE -ABS(st.amount) END
+                        END
+                    )
+                    FROM transaction st
+                    WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL
+                ), 0)) != 0
             )
             GROUP BY month
         ";
