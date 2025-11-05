@@ -29,12 +29,30 @@ class CreditCardPdfParserService
 
         $currentTransaction = null;
         $datePattern = '/^(\d{2})-(\d{2})-(\d{4})\s+(.+)/'; // DD-MM-YYYY format
+        $inTransactionSection = false;
 
         foreach ($lines as $line) {
             $line = trim($line);
 
             // Skip empty lines
             if (empty($line)) {
+                continue;
+            }
+
+            // Detect start of transaction section (after the header line)
+            if (preg_match('/Geboekt op\s+Naam.*Type.*Bedrag/i', $line)) {
+                $inTransactionSection = true;
+                continue;
+            }
+
+            // Skip header information and footer
+            if (!$inTransactionSection) {
+                continue;
+            }
+
+            // Stop parsing at footer indicators
+            if (preg_match('/Dit product valt onder|Pagina \d+ van \d+|ING Bank N\.V\.|A-PAYPS02/i', $line)) {
+                $inTransactionSection = false;
                 continue;
             }
 
@@ -142,22 +160,26 @@ class CreditCardPdfParserService
     /**
      * Extract amount from a string
      * Handles formats like: "-21,19", "+416,66", "21,19", etc.
+     * Only extracts if amount appears after "Betaling" or "Incasso" keywords
      */
     private function extractAmount(string $text): ?float
     {
+        // Only extract amounts that are clearly part of transaction lines
         // Match patterns like: -21,19 or +416,66 or 21,19
-        if (preg_match('/([-+]?)([\d\.]+),([\d]{2})/', $text, $matches)) {
-            $sign = ($matches[1] === '+') ? 1 : -1;
+        // But only after seeing Betaling/Incasso keywords in context
+        if (preg_match('/([-+])([\d\.]+),([\d]{2})\s*$/i', $text, $matches)) {
+            $sign = $matches[1];
             $euros = str_replace('.', '', $matches[2]); // Remove thousand separators
             $cents = $matches[3];
             $amount = floatval("$euros.$cents");
 
             // Negative amounts in statements are expenses (paid out)
             // Positive amounts are credits
-            if ($matches[1] === '-' || $sign === -1) {
+            if ($sign === '-') {
                 return -abs($amount);
+            } elseif ($sign === '+') {
+                return abs($amount);
             }
-            return abs($amount);
         }
 
         return null;
