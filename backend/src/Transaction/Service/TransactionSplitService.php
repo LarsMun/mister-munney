@@ -7,6 +7,8 @@ use App\Entity\Account;
 use App\Enum\TransactionType;
 use App\Money\MoneyFactory;
 use App\Transaction\Repository\TransactionRepository;
+use App\Pattern\Repository\PatternRepository;
+use App\Pattern\Service\PatternAssignService;
 use DateTime;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -18,7 +20,9 @@ class TransactionSplitService
 {
     public function __construct(
         private readonly TransactionRepository $transactionRepository,
-        private readonly MoneyFactory $moneyFactory
+        private readonly MoneyFactory $moneyFactory,
+        private readonly PatternRepository $patternRepository,
+        private readonly PatternAssignService $patternAssignService
     ) {
     }
 
@@ -105,7 +109,24 @@ class TransactionSplitService
         // Save parent (cascades to splits)
         $this->transactionRepository->save($parentTransaction);
 
+        // Apply patterns to newly created splits
+        $this->applyPatternsToSplits($parentTransaction);
+
         return $parentTransaction;
+    }
+
+    /**
+     * Apply account patterns to split transactions
+     */
+    private function applyPatternsToSplits(Transaction $parentTransaction): void
+    {
+        $account = $parentTransaction->getAccount();
+        $patterns = $this->patternRepository->findByAccountId($account->getId());
+
+        // Apply each pattern - they will only affect matching uncategorized splits
+        foreach ($patterns as $pattern) {
+            $this->patternAssignService->assignSinglePattern($pattern);
+        }
     }
 
     /**
@@ -144,6 +165,9 @@ class TransactionSplitService
         $parentTransaction->addSplit($split);
 
         $this->transactionRepository->save($parentTransaction);
+
+        // Apply patterns to the newly created split
+        $this->applyPatternsToSplits($parentTransaction);
 
         return $split;
     }
