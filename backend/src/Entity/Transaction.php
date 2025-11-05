@@ -282,6 +282,10 @@ class Transaction
 
     public function getSplits()
     {
+        // Lazy initialization for existing entities loaded from database
+        if ($this->splits === null) {
+            $this->splits = new \Doctrine\Common\Collections\ArrayCollection();
+        }
         return $this->splits;
     }
 
@@ -306,7 +310,7 @@ class Transaction
 
     public function hasSplits(): bool
     {
-        return $this->splits->count() > 0;
+        return $this->getSplits()->count() > 0;
     }
 
     public function isSplit(): bool
