@@ -37,6 +37,7 @@ export default function TransactionPage() {
     const {
         months,
         startDate,
+        endDate,
         setStartDate,
         setEndDate,
         summary,
