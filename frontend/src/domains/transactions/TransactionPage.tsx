@@ -114,7 +114,8 @@ export default function TransactionPage() {
     const transactionsToFilter = (!hasFilters || filterByPeriod) ? transactions : allTransactions;
 
     const filteredTransactions = transactionsToFilter.filter(t => {
-        // Exclude split transactions - they should only appear under their parent
+        // Exclude ONLY split child transactions - parent transactions should be visible
+        // even if they have splits (they show adjusted amounts in budgets)
         if (t.parentTransactionId !== null && t.parentTransactionId !== undefined) {
             return false;
         }
