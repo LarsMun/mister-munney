@@ -92,7 +92,15 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             {/* Totals Split */}
             <div className="space-y-2 mb-4">
                 <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700">Getrackte uitgaven:</span>
+                    <span className="text-gray-700">Getrackte uitgaven (DEBIT):</span>
+                    <span className="font-semibold text-red-600">{project.totals.trackedDebit}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700">Getrackte inkomsten (CREDIT):</span>
+                    <span className="font-semibold text-green-600">{project.totals.trackedCredit}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700">Netto getrackt:</span>
                     <span className="font-semibold text-gray-900">{project.totals.tracked}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
