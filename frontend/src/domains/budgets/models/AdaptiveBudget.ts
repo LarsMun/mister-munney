@@ -34,6 +34,8 @@ export interface OlderBudget {
 }
 
 export interface ProjectTotals {
+    trackedDebit: string;
+    trackedCredit: string;
     tracked: string;
     external: string;
     total: string;
