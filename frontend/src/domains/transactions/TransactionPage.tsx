@@ -114,6 +114,11 @@ export default function TransactionPage() {
     const transactionsToFilter = (!hasFilters || filterByPeriod) ? transactions : allTransactions;
 
     const filteredTransactions = transactionsToFilter.filter(t => {
+        // Exclude split transactions - they should only appear under their parent
+        if (t.parentTransactionId !== null && t.parentTransactionId !== undefined) {
+            return false;
+        }
+
         // Apply "without category" filter first
         if (filters.withoutCategory && t.category) {
             return false;
