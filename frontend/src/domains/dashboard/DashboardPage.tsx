@@ -15,6 +15,38 @@ import OlderBudgetsPanel from './components/OlderBudgetsPanel';
 import ProjectsSection from '../budgets/components/ProjectsSection';
 import ProjectCreateForm from '../budgets/components/ProjectCreateForm';
 
+const formatPeriod = (startDate: string, endDate: string): string => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const monthNames = [
+        'Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni',
+        'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'
+    ];
+
+    // Check if same month and year
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${monthNames[start.getMonth()]} ${start.getFullYear()}`;
+    }
+
+    // Different months or years - show range
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    const startMonth = monthNames[start.getMonth()];
+    const endMonth = monthNames[end.getMonth()];
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+
+    if (startYear === endYear) {
+        if (start.getMonth() === end.getMonth()) {
+            return `${startDay}-${endDay} ${startMonth} ${startYear}`;
+        }
+        return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+    }
+
+    return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+};
+
 export default function DashboardPage() {
     const { accountId } = useAccount();
     const livingDashboardEnabled = useFeatureFlag('living_dashboard');
@@ -226,9 +258,14 @@ export default function DashboardPage() {
                 ) : expenseIncomeBudgets.length > 0 && (
                     <div className="mb-8">
                         <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                                Actieve Budgetten ({expenseIncomeBudgets.length})
-                            </h3>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-bold text-gray-900">
+                                    {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
+                                </h2>
+                                <h3 className="text-lg font-semibold text-gray-800">
+                                    Actieve Budgetten ({expenseIncomeBudgets.length})
+                                </h3>
+                            </div>
                             <ActiveBudgetsGrid
                                 budgets={expenseIncomeBudgets}
                                 accountId={accountId}
