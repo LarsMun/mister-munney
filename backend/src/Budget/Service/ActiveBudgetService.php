@@ -27,10 +27,17 @@ class ActiveBudgetService
     /**
      * Get all active budgets (EXPENSE/INCOME with recent transactions, or ACTIVE projects)
      */
-    public function getActiveBudgets(?int $months = null, ?BudgetType $type = null): array
+    public function getActiveBudgets(?int $months = null, ?BudgetType $type = null, ?int $accountId = null): array
     {
         $months = $months ?? $this->defaultMonths;
-        $allBudgets = $this->budgetRepository->findAll();
+
+        // Filter by account if specified
+        if ($accountId !== null) {
+            $allBudgets = $this->budgetRepository->findBy(['account' => $accountId]);
+        } else {
+            $allBudgets = $this->budgetRepository->findAll();
+        }
+
         $active = [];
 
         foreach ($allBudgets as $budget) {
@@ -50,10 +57,17 @@ class ActiveBudgetService
     /**
      * Get all older/inactive budgets
      */
-    public function getOlderBudgets(?int $months = null, ?BudgetType $type = null): array
+    public function getOlderBudgets(?int $months = null, ?BudgetType $type = null, ?int $accountId = null): array
     {
         $months = $months ?? $this->defaultMonths;
-        $allBudgets = $this->budgetRepository->findAll();
+
+        // Filter by account if specified
+        if ($accountId !== null) {
+            $allBudgets = $this->budgetRepository->findBy(['account' => $accountId]);
+        } else {
+            $allBudgets = $this->budgetRepository->findAll();
+        }
+
         $older = [];
 
         foreach ($allBudgets as $budget) {
