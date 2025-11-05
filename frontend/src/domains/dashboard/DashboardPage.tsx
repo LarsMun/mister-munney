@@ -113,16 +113,16 @@ export default function DashboardPage() {
         setIsLoadingAdaptive(true);
         try {
             // Fetch active budgets (EXPENSE/INCOME with insights) using selected period
-            const activeData = await fetchActiveBudgets(2, undefined, startDate, endDate);
+            const activeData = await fetchActiveBudgets(2, undefined, startDate, endDate, accountId);
             setActiveBudgets(activeData);
 
             // Fetch older budgets
-            const olderData = await fetchOlderBudgets(2);
+            const olderData = await fetchOlderBudgets(2, undefined, accountId);
             setOlderBudgets(olderData);
 
             // Fetch projects if feature enabled
             if (projectsEnabled) {
-                const projectsData = await fetchProjects(); // Fetch all projects (ACTIVE + COMPLETED)
+                const projectsData = await fetchProjects(undefined, accountId); // Fetch all projects (ACTIVE + COMPLETED)
                 setProjects(projectsData);
             }
         } catch (error) {
