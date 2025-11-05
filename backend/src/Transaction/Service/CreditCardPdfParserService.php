@@ -249,6 +249,7 @@ class CreditCardPdfParserService
 
     /**
      * Validate that parsed transactions sum to the expected total
+     * Compares absolute values since incasso and charges both have same sign
      */
     public function validateTotal(array $transactions, float $expectedTotal): bool
     {
@@ -257,7 +258,8 @@ class CreditCardPdfParserService
             $sum += $tx['amount'];
         }
 
+        // Compare absolute values (incasso is negative, charges are negative)
         // Allow for small rounding differences (within 1 cent)
-        return abs($sum - $expectedTotal) < 0.01;
+        return abs(abs($sum) - abs($expectedTotal)) < 0.01;
     }
 }
