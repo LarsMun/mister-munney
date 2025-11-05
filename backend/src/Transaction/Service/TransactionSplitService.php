@@ -75,7 +75,7 @@ class TransactionSplitService
             $split->setDescription($splitInfo['description']);
 
             // Set amount
-            $amountMoney = $this->moneyFactory->create($splitInfo['amount']);
+            $amountMoney = $this->moneyFactory->fromFloat($splitInfo['amount']);
             $split->setAmount($amountMoney);
 
             // Set transaction type
@@ -130,7 +130,7 @@ class TransactionSplitService
         $split->setDate($date);
         $split->setDescription($description);
 
-        $amountMoney = $this->moneyFactory->create($amount);
+        $amountMoney = $this->moneyFactory->fromFloat($amount);
         $split->setAmount($amountMoney);
 
         $split->setTransactionType($amount < 0 ? TransactionType::DEBIT : TransactionType::CREDIT);
