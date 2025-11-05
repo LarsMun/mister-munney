@@ -75,9 +75,12 @@ class TransactionRepository extends ServiceEntityRepository
                 ->setParameter('accountId', $filter->accountId);
         }
 
-        // Exclude parent transactions that have splits (to avoid double counting)
-        // The splits themselves will be counted instead
-        $qb->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0');
+        // Optionally exclude parent transactions that have splits (to avoid double counting in budgets)
+        // For transaction lists: keep parents visible
+        // For budget calculations: exclude parents, count only the splits
+        if ($filter->excludeSplitParents) {
+            $qb->andWhere('(SELECT COUNT(st.id) FROM App\Entity\Transaction st WHERE st.parentTransaction = t) = 0');
+        }
 
         if ($filter->search) {
             $words = preg_split('/\s+/', trim($filter->search));
