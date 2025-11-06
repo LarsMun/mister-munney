@@ -73,8 +73,9 @@ class CreditCardPdfParserService
                 $amount = $this->extractAmount($restOfLine);
 
                 // Remove amount and type from description
-                // Pattern: Remove everything after the last occurrence of Betaling/Incasso/Ontvangst
-                $description = preg_replace('/\s+(Betaling|Incasso|Ontvangst)\s+[-+]?[\d\.,]+\s*$/', '', $restOfLine);
+                // Pattern: Remove everything after the last occurrence of Betaling/Incasso/Ontvangst/Kosten
+                // Allows for optional spaces between sign and amount (e.g., "- 8,35" or "-8,35")
+                $description = preg_replace('/\s+(Betaling|Incasso|Ontvangst|Kosten)\s+[-+]?\s*[\d\.,]+\s*$/', '', $restOfLine);
                 if (empty(trim($description))) {
                     // Fallback: just use everything before the amount
                     $description = $restOfLine;
@@ -137,16 +138,16 @@ class CreditCardPdfParserService
 
     /**
      * Extract amount from a string
-     * Handles formats like: "-21,19", "+416,66", "21,19", etc.
+     * Handles formats like: "-21,19", "+416,66", "- 8,35", "+ 315,49", etc.
      * The +/- sign determines the transaction type:
      * - Negative (-) = DEBIT (expense, paid out)
      * - Positive (+) = CREDIT (refund, income)
      */
     private function extractAmount(string $text): ?float
     {
-        // Match patterns like: -21,19 or +416,66 or -1.234,56
-        // Sign is required (+ or -)
-        if (preg_match('/([-+])([\d\.]+),([\d]{2})/', $text, $matches)) {
+        // Match patterns like: -21,19 or +416,66 or - 8,35 or + 315,49 or -1.234,56
+        // Sign is required (+ or -), with optional spaces between sign and number
+        if (preg_match('/([-+])\s*([\d\.]+),([\d]{2})/', $text, $matches)) {
             $sign = $matches[1];
             $euros = str_replace('.', '', $matches[2]); // Remove thousand separators
             $cents = $matches[3];
