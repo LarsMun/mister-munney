@@ -40,14 +40,12 @@ class PayPalWebPasteParserService
 
         $currentYear = null;
         $currentMonth = null;
-        $i = 0;
 
-        while ($i < count($lines)) {
+        for ($i = 0; $i < count($lines); $i++) {
             $line = trim($lines[$i]);
 
             // Skip empty lines
             if (empty($line)) {
-                $i++;
                 continue;
             }
 
@@ -56,27 +54,21 @@ class PayPalWebPasteParserService
                 $monthAbbrev = strtolower($matches[1]);
                 $currentYear = $matches[2];
                 $currentMonth = self::MONTH_MAP[$monthAbbrev] ?? null;
-                $i++;
                 continue;
             }
 
-            // Try to parse a transaction (3 lines: merchant, amount, date)
-            if ($i + 2 < count($lines)) {
-                $merchantLine = trim($lines[$i]);
-                $amountLine = trim($lines[$i + 1]);
-                $dateLine = trim($lines[$i + 2]);
+            // Check if this line is an amount line (−€ or −$)
+            if ($this->isAmountLine($line) && $i > 0 && $i + 1 < count($lines)) {
+                $merchantLine = trim($lines[$i - 1]);
+                $amountLine = $line;
+                $dateLine = trim($lines[$i + 1]);
 
                 $transaction = $this->parseTransaction($merchantLine, $amountLine, $dateLine, $currentYear, $currentMonth);
 
                 if ($transaction !== null) {
                     $transactions[] = $transaction;
-                    $i += 3; // Skip the 3 lines we just processed
-                    continue;
                 }
             }
-
-            // If not a transaction, skip this line
-            $i++;
         }
 
         return $transactions;
@@ -115,6 +107,14 @@ class PayPalWebPasteParserService
             'merchant' => $merchant,
             'amount' => $amount, // In euros (negative for expenses)
         ];
+    }
+
+    /**
+     * Check if a line looks like an amount line
+     */
+    private function isAmountLine(string $line): bool
+    {
+        return preg_match('/^−[€$]\s*[\d,\.]+(\s+[A-Z]{3})?$/', $line) === 1;
     }
 
     /**
