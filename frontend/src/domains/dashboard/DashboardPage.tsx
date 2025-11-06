@@ -237,7 +237,7 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                <div className="mb-8 justify-right">
+                <div className="mb-8 flex justify-end">
                     <PeriodPicker
                         months={months}
                         onChange={handlePeriodChange}
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                     <OlderBudgetsPanel budgets={olderBudgets} />
                 </div>
 
-                <div className="mb-8" align="right">
+                <div className="mb-8 flex justify-end">
                     <PeriodPicker
                         months={months}
                         onChange={handlePeriodChange}
