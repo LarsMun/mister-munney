@@ -237,7 +237,7 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                <div className="mb-8" align="right">
+                <div className="mb-8 justify-right">
                     <PeriodPicker
                         months={months}
                         onChange={handlePeriodChange}
