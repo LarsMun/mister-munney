@@ -84,8 +84,8 @@ class PayPalImportService
         $child->setDate(DateTime::createFromFormat('Y-m-d', $pastedTx['date']));
         $child->setDescription($pastedTx['merchant']);
 
-        // Set amount
-        $amountMoney = $this->moneyFactory->fromFloat($pastedTx['amount']);
+        // Set amount (use absolute value - transaction type determines debit/credit)
+        $amountMoney = $this->moneyFactory->fromFloat(abs($pastedTx['amount']));
         $child->setAmount($amountMoney);
 
         // Set transaction type (always DEBIT for PayPal expenses)
