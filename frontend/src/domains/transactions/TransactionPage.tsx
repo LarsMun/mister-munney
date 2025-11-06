@@ -168,15 +168,8 @@ export default function TransactionPage() {
         <div className="min-h-screen bg-gray-50 p-6">
             <Toaster position="top-center" />
 
-            <header className="flex flex-wrap justify-between items-center gap-4 mb-4">
+            <header className="mb-4">
                 <h1 className="text-2xl font-bold">Transacties</h1>
-                <PeriodPicker
-                    months={months}
-                    onChange={(newStartDate, newEndDate) => {
-                        setStartDate(newStartDate);
-                        setEndDate(newEndDate);
-                    }}
-                />
             </header>
 
             <TransactionFilterForm
@@ -189,6 +182,16 @@ export default function TransactionPage() {
                 filteredTransactions={filteredTransactions}
                 onOpenAiSuggestions={() => setAiModalOpen(true)}
             />
+
+            <div className="mb-4 flex justify-end">
+                <PeriodPicker
+                    months={months}
+                    onChange={(newStartDate, newEndDate) => {
+                        setStartDate(newStartDate);
+                        setEndDate(newEndDate);
+                    }}
+                />
+            </div>
 
             <AiSuggestionsModal
                 accountId={accountId!}
@@ -211,13 +214,25 @@ export default function TransactionPage() {
             {filteredTransactions.length === 0 ? (
                 <p className="text-gray-500">Geen transacties gevonden.</p>
             ) : (
-                <TransactionTable
-                    accountId={accountId!}
-                    transactions={filteredTransactions}
-                    refresh={handleRefresh}
-                    onFilterByDescription={handleFilterByDescription}
-                    onFilterByNotes={handleFilterByNotes}
-                />
+                <>
+                    <TransactionTable
+                        accountId={accountId!}
+                        transactions={filteredTransactions}
+                        refresh={handleRefresh}
+                        onFilterByDescription={handleFilterByDescription}
+                        onFilterByNotes={handleFilterByNotes}
+                    />
+
+                    <div className="mt-4 flex justify-end">
+                        <PeriodPicker
+                            months={months}
+                            onChange={(newStartDate, newEndDate) => {
+                                setStartDate(newStartDate);
+                                setEndDate(newEndDate);
+                            }}
+                        />
+                    </div>
+                </>
             )}
         </div>
     );
