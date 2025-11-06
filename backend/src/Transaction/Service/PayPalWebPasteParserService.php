@@ -111,20 +111,22 @@ class PayPalWebPasteParserService
 
     /**
      * Check if a line looks like an amount line
+     * Matches both Unicode minus (−) and regular hyphen-minus (-)
      */
     private function isAmountLine(string $line): bool
     {
-        return preg_match('/^−[€$]\s*[\d,\.]+(\s+[A-Z]{3})?$/', $line) === 1;
+        return preg_match('/^[−\-][€$]\s*[\d,\.]+(\s+[A-Z]{3})?$/u', $line) === 1;
     }
 
     /**
      * Parse amount from PayPal web format
-     * Handles: "−€ 22,52", "−$ 3,78 USD"
+     * Handles: "−€ 22,52", "−$ 3,78 USD", "-€ 22,52"
+     * Supports both Unicode minus (−) and regular hyphen-minus (-)
      */
     private function parseAmount(string $text): ?float
     {
-        // Match patterns like: −€ 22,52 or −$ 3,78 USD
-        if (preg_match('/−[€$]\s*([\d,\.]+)/', $text, $matches)) {
+        // Match patterns like: −€ 22,52 or −$ 3,78 USD or -€ 22,52
+        if (preg_match('/[−\-][€$]\s*([\d,\.]+)/u', $text, $matches)) {
             $amountStr = $matches[1];
 
             // Replace comma with dot for decimal separator
