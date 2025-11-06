@@ -97,13 +97,15 @@ class PayPalMatchingService
      */
     private function fetchPayPalTransactions(int $accountId): array
     {
-        // Find all transactions with "PayPal Europe" in description
+        // Find all transactions with "paypal" in description (case-insensitive)
+        // Exclude transactions that are child transactions or already have splits
         return $this->transactionRepository->createQueryBuilder('t')
             ->where('t.account = :accountId')
-            ->andWhere('t.description LIKE :paypal')
-            ->andWhere('t.parentTransaction IS NULL') // Not a child transaction
+            ->andWhere('LOWER(t.description) LIKE :paypal')
+            ->andWhere('t.parentTransaction IS NULL') // Not a child transaction itself
+            ->andWhere('SIZE(t.splits) = 0') // Don't match transactions that already have splits
             ->setParameter('accountId', $accountId)
-            ->setParameter('paypal', '%PayPal Europe%')
+            ->setParameter('paypal', '%paypal%')
             ->orderBy('t.date', 'ASC')
             ->getQuery()
             ->getResult();
