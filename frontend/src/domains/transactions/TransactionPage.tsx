@@ -8,6 +8,7 @@ import SummaryBar from "./components/SummaryBar.tsx";
 import PeriodPicker from "./components/PeriodPicker.tsx";
 import TransactionFilterForm from "./components/TransactionFilterForm.tsx";
 import AiSuggestionsModal from "./components/AiSuggestionsModal.tsx";
+import PayPalPasteModal from "./components/PayPalPasteModal.tsx";
 import { getAllTransactions } from "./services/TransactionsService";
 import { matchesPattern } from "../patterns/utils/matchesPattern";
 import type { Transaction } from "./models/Transaction";
@@ -55,6 +56,7 @@ export default function TransactionPage() {
     const [filterByPeriod, setFilterByPeriod] = useState(false);
     const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
     const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [payPalModalOpen, setPayPalModalOpen] = useState(false);
     const { categories } = useCategories(accountId!);
 
     // Apply URL parameters on mount
@@ -183,7 +185,13 @@ export default function TransactionPage() {
                 onOpenAiSuggestions={() => setAiModalOpen(true)}
             />
 
-            <div className="mb-4 flex justify-end">
+            <div className="mb-4 flex justify-end gap-3">
+                <button
+                    onClick={() => setPayPalModalOpen(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                >
+                    PayPal Importeren
+                </button>
                 <PeriodPicker
                     months={months}
                     onChange={(newStartDate, newEndDate) => {
@@ -200,6 +208,13 @@ export default function TransactionPage() {
                 onSuccess={handleRefresh}
                 transactions={allTransactions}
                 categories={categories.map(c => ({ id: c.id, name: c.name, color: c.color }))}
+            />
+
+            <PayPalPasteModal
+                isOpen={payPalModalOpen}
+                onClose={() => setPayPalModalOpen(false)}
+                accountId={accountId!}
+                onSuccess={handleRefresh}
             />
 
             {summary && startDate && endDate && (
