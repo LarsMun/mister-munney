@@ -101,7 +101,7 @@ class PayPalMatchingService
         return $this->transactionRepository->createQueryBuilder('t')
             ->where('t.account = :accountId')
             ->andWhere('t.description LIKE :paypal')
-            ->andWhere('t.parentTransactionId IS NULL') // Not a child transaction
+            ->andWhere('t.parentTransaction IS NULL') // Not a child transaction
             ->setParameter('accountId', $accountId)
             ->setParameter('paypal', '%PayPal Europe%')
             ->orderBy('t.date', 'ASC')
