@@ -29,7 +29,6 @@ class CreditCardPdfParserService
 
         $currentTransaction = null;
         $datePattern = '/^(\d{2})-(\d{2})-(\d{4})\s+(.+)/'; // DD-MM-YYYY format
-        $inTransactionSection = false;
 
         foreach ($lines as $line) {
             $line = trim($line);
@@ -39,20 +38,14 @@ class CreditCardPdfParserService
                 continue;
             }
 
-            // Detect start of transaction section (after the header line)
-            if (preg_match('/Geboekt op\s+Naam.*Type.*Bedrag/i', $line)) {
-                $inTransactionSection = true;
+            // Skip common header/footer lines that aren't transactions
+            if (preg_match('/^(Afschrift Creditcard|A-CCRTR|pagina|Hr |Emmastraat|ALKMAAR|Periode|Rekeningnummer|Overeenkomstnummer|Kredietlimiet|Bestedingsruimte|Geboekt op|Dit product valt onder|Op ING\.nl|Wil je persoonlijk|Op \d{2}-\d{2}-\d{4} schrijven|This ING message|depositogarantiestelsel|ing\.nl)/i', $line)) {
                 continue;
             }
 
-            // Skip header information and footer
-            if (!$inTransactionSection) {
-                continue;
-            }
-
-            // Stop parsing at footer indicators
-            if (preg_match('/Dit product valt onder|Pagina \d+ van \d+|ING Bank N\.V\.|A-PAYPS02/i', $line)) {
-                $inTransactionSection = false;
+            // Skip lines that are clearly table headers
+            if (preg_match('/^\d{1,3}\.\d{2,3},\d{2}\s+\d{1,3}\.\d{2,3},\d{2}$/', $line)) {
+                // Skip lines like "1.500,00 1.500,00" (credit limit table)
                 continue;
             }
 
