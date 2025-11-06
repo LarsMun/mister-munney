@@ -212,14 +212,8 @@ export default function DashboardPage() {
         return (
             <div className="min-h-screen bg-gray-50 p-6">
                 <Toaster position="top-center" />
-
-                {/* Header with Period Picker */}
                 <header className="flex flex-wrap justify-between items-center gap-4 mb-4">
                     <h1 className="text-2xl font-bold">Dashboard</h1>
-                    <PeriodPicker
-                        months={months}
-                        onChange={handlePeriodChange}
-                    />
                 </header>
 
                 {/* Full Width Chart - Collapsible */}
@@ -241,6 +235,13 @@ export default function DashboardPage() {
                             </div>
                         </details>
                     )}
+                </div>
+
+                <div className="mb-8" align="right">
+                    <PeriodPicker
+                        months={months}
+                        onChange={handlePeriodChange}
+                    />
                 </div>
 
                 {/* Active Budgets Grid (EXPENSE/INCOME only) */}
@@ -299,6 +300,13 @@ export default function DashboardPage() {
                 {/* Older Budgets Panel (collapsible) */}
                 <div className="mb-8">
                     <OlderBudgetsPanel budgets={olderBudgets} />
+                </div>
+
+                <div className="mb-8" align="right">
+                    <PeriodPicker
+                        months={months}
+                        onChange={handlePeriodChange}
+                    />
                 </div>
             </div>
         );
