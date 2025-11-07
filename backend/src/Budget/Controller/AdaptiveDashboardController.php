@@ -48,6 +48,55 @@ class AdaptiveDashboardController extends AbstractController
     }
 
     /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
+    }
+
+    /**
+     * Verify that the authenticated user owns the budget (through budget's account)
+     */
+    private function verifyBudgetOwnership(int $budgetId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $budget = $this->budgetRepository->find($budgetId);
+        if (!$budget) {
+            return $this->json(['error' => 'Budget not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $account = $budget->getAccount();
+        if (!$account) {
+            return $this->json(['error' => 'Budget has no associated account'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
+    }
+
+    /**
      * Get active budgets (EXPENSE/INCOME with recent activity, or ACTIVE projects)
      */
     #[Route('/active', name: 'get_active_budgets', methods: ['GET'])]
@@ -63,6 +112,13 @@ class AdaptiveDashboardController extends AbstractController
         $startDate = $request->query->get('startDate'); // YYYY-MM-DD
         $endDate = $request->query->get('endDate'); // YYYY-MM-DD
         $accountId = $request->query->getInt('accountId'); // Filter by account
+
+        // Verify account ownership if accountId is provided
+        if ($accountId > 0) {
+            if ($error = $this->verifyAccountOwnership($accountId)) {
+                return $error;
+            }
+        }
 
         $budgetType = $type ? BudgetType::from($type) : null;
 
@@ -131,6 +187,13 @@ class AdaptiveDashboardController extends AbstractController
         $type = $request->query->get('type');
         $accountId = $request->query->getInt('accountId'); // Filter by account
 
+        // Verify account ownership if accountId is provided
+        if ($accountId > 0) {
+            if ($error = $this->verifyAccountOwnership($accountId)) {
+                return $error;
+            }
+        }
+
         $budgetType = $type ? BudgetType::from($type) : null;
 
         $olderBudgets = $this->activeBudgetService->getOlderBudgets($months, $budgetType, $accountId);
@@ -181,6 +244,11 @@ class AdaptiveDashboardController extends AbstractController
             throw new NotFoundHttpException("Account with ID {$createDTO->accountId} not found");
         }
 
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($createDTO->accountId)) {
+            return $error;
+        }
+
         // Create project budget
         $project = new Budget();
         $project->setName($createDTO->name);
@@ -214,6 +282,11 @@ class AdaptiveDashboardController extends AbstractController
         // Check feature flag
         if (!$this->featureFlagService->isEnabled('projects')) {
             throw new AccessDeniedHttpException('Projects feature is disabled');
+        }
+
+        // Verify budget ownership
+        if ($error = $this->verifyBudgetOwnership($id)) {
+            return $error;
         }
 
         // Get project
@@ -283,6 +356,11 @@ class AdaptiveDashboardController extends AbstractController
             throw new AccessDeniedHttpException('Projects feature is disabled');
         }
 
+        // Verify budget ownership
+        if ($error = $this->verifyBudgetOwnership($id)) {
+            return $error;
+        }
+
         $project = $this->budgetRepository->find($id);
 
         if (!$project) {
@@ -327,6 +405,13 @@ class AdaptiveDashboardController extends AbstractController
 
         $statusFilter = $request->query->get('status'); // optional filter
         $accountId = $request->query->getInt('accountId'); // Filter by account
+
+        // Verify account ownership if accountId is provided
+        if ($accountId > 0) {
+            if ($error = $this->verifyAccountOwnership($accountId)) {
+                return $error;
+            }
+        }
 
         // Get all PROJECT type budgets
         $qb = $this->budgetRepository->createQueryBuilder('b')
@@ -379,6 +464,11 @@ class AdaptiveDashboardController extends AbstractController
             throw new AccessDeniedHttpException('Projects feature is disabled');
         }
 
+        // Verify budget ownership
+        if ($error = $this->verifyBudgetOwnership($id)) {
+            return $error;
+        }
+
         $project = $this->budgetRepository->find($id);
 
         if (!$project) {
@@ -404,6 +494,11 @@ class AdaptiveDashboardController extends AbstractController
         // Check feature flag
         if (!$this->featureFlagService->isEnabled('projects')) {
             throw new AccessDeniedHttpException('Projects feature is disabled');
+        }
+
+        // Verify budget ownership
+        if ($error = $this->verifyBudgetOwnership($id)) {
+            return $error;
         }
 
         $project = $this->budgetRepository->find($id);

@@ -15,19 +15,8 @@ class CreateBudgetDTO
     public int $accountId;
 
     #[Assert\NotBlank(message: 'Budget type is verplicht')]
-    #[Assert\Choice(choices: ['EXPENSE', 'INCOME'], message: 'Budget type moet EXPENSE of INCOME zijn')]
+    #[Assert\Choice(choices: ['EXPENSE', 'INCOME', 'PROJECT'], message: 'Budget type moet EXPENSE, INCOME of PROJECT zijn')]
     public string $budgetType = 'EXPENSE';
-
-    #[Assert\NotBlank(message: 'Bedrag is verplicht')]
-    #[Assert\Positive(message: 'Bedrag moet een positief getal zijn')]
-    public float $monthlyAmount;
-
-    #[Assert\NotBlank(message: 'Startdatum is verplicht')]
-    #[Assert\Regex(pattern: '/^\d{4}-\d{2}$/', message: 'Datum moet jjjj-mm zijn')]
-    public string $effectiveFromMonth;
-
-    #[Assert\Length(max: 500)]
-    public ?string $changeReason = null;
 
     #[Assert\Length(max: 255)]
     public ?string $icon = null;

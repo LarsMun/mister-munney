@@ -7,7 +7,6 @@ import { CreateBudgetModal } from './components/CreateBudgetModal';
 import { AvailableCategories } from './components/AvailableCategories';
 import { useAccount } from '../../app/context/AccountContext';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
-import { isCurrentlyActive, isFuture, isExpired } from './services/BudgetsService';
 import { useMonthlyStatistics } from '../transactions/hooks/useMonthlyStatistics';
 import MonthlyStatisticsCard from '../transactions/components/MonthlyStatisticsCard';
 import { useCategoryStatistics } from '../categories/hooks/useCategoryStatistics';
@@ -23,9 +22,6 @@ export default function BudgetsPage() {
         createBudget,
         updateBudget,
         deleteBudget,
-        createBudgetVersion,
-        updateBudgetVersion,
-        deleteBudgetVersion,
         assignCategories,
         removeCategory,
         refresh
@@ -45,16 +41,16 @@ export default function BudgetsPage() {
         statistics: categoryStats
     } = useCategoryStatistics(accountId || null, 'all');
 
-    // Groepeer budgetten op status
-    const { activeBudgets, futureBudgets, expiredBudgets } = useMemo(() => {
-        const active = budgets.filter(isCurrentlyActive);
-        const future = budgets.filter(isFuture);
-        const expired = budgets.filter(isExpired);
+    // Groepeer budgetten op type
+    const { expenseBudgets, incomeBudgets, projectBudgets } = useMemo(() => {
+        const expenses = budgets.filter(b => b.budgetType === 'EXPENSE');
+        const income = budgets.filter(b => b.budgetType === 'INCOME');
+        const projects = budgets.filter(b => b.budgetType === 'PROJECT');
 
         return {
-            activeBudgets: active,
-            futureBudgets: future,
-            expiredBudgets: expired
+            expenseBudgets: expenses,
+            incomeBudgets: income,
+            projectBudgets: projects
         };
     }, [budgets]);
 
@@ -158,9 +154,6 @@ export default function BudgetsPage() {
                             onDelete={handleDeleteBudgetClick}
                             onDrop={handleCategoryDrop}
                             onRemoveCategory={handleRemoveCategory}
-                            onCreateVersion={createBudgetVersion}
-                            onUpdateVersion={updateBudgetVersion}
-                            onDeleteVersion={deleteBudgetVersion}
                         />
                     ))}
                 </div>
@@ -240,25 +233,25 @@ export default function BudgetsPage() {
                                 </button>
                             </div>
 
-                            {/* Lopende Budgetten */}
+                            {/* Uitgaven Budgetten */}
                             <BudgetSection
-                                title="Lopende Budgetten"
-                                budgets={activeBudgets}
+                                title="Uitgaven Budgetten"
+                                budgets={expenseBudgets}
+                                statusColor="bg-red-100 text-red-800"
+                            />
+
+                            {/* Inkomsten Budgetten */}
+                            <BudgetSection
+                                title="Inkomsten Budgetten"
+                                budgets={incomeBudgets}
                                 statusColor="bg-green-100 text-green-800"
                             />
 
-                            {/* Toekomstige Budgetten */}
+                            {/* Project Budgetten */}
                             <BudgetSection
-                                title="Toekomstige Budgetten"
-                                budgets={futureBudgets}
+                                title="Project Budgetten"
+                                budgets={projectBudgets}
                                 statusColor="bg-blue-100 text-blue-800"
-                            />
-
-                            {/* Verlopen Budgetten */}
-                            <BudgetSection
-                                title="Verlopen Budgetten"
-                                budgets={expiredBudgets}
-                                statusColor="bg-gray-100 text-gray-800"
                             />
                         </div>
                     )}

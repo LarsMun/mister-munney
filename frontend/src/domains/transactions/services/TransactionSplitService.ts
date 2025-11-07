@@ -1,6 +1,4 @@
-import { API_URL } from '../../../lib/api';
-
-const prefix = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+import api from '../../../lib/axios';
 
 export interface ParsedTransaction {
     date: string;
@@ -47,23 +45,12 @@ export async function parseCreditCardPdf(
     transactionId: number,
     pdfText: string
 ): Promise<ParseResult> {
-    const response = await fetch(
-        `${prefix}/account/${accountId}/transaction/${transactionId}/parse-creditcard`,
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ pdfText }),
-        }
+    const response = await api.post(
+        `/account/${accountId}/transaction/${transactionId}/parse-creditcard`,
+        { pdfText }
     );
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to parse credit card PDF');
-    }
-
-    return await response.json();
+    return response.data;
 }
 
 /**
@@ -74,23 +61,12 @@ export async function createSplits(
     transactionId: number,
     splits: ParsedTransaction[]
 ): Promise<{ parent: any; splits: SplitTransaction[]; message: string }> {
-    const response = await fetch(
-        `${prefix}/account/${accountId}/transaction/${transactionId}/splits`,
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ splits }),
-        }
+    const response = await api.post(
+        `/account/${accountId}/transaction/${transactionId}/splits`,
+        { splits }
     );
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create splits');
-    }
-
-    return await response.json();
+    return response.data;
 }
 
 /**
@@ -100,15 +76,11 @@ export async function getSplits(
     accountId: number,
     transactionId: number
 ): Promise<SplitTransaction[]> {
-    const response = await fetch(
-        `${prefix}/account/${accountId}/transaction/${transactionId}/splits`
+    const response = await api.get(
+        `/account/${accountId}/transaction/${transactionId}/splits`
     );
 
-    if (!response.ok) {
-        throw new Error('Failed to fetch splits');
-    }
-
-    return await response.json();
+    return response.data;
 }
 
 /**
@@ -118,16 +90,9 @@ export async function deleteSplits(
     accountId: number,
     transactionId: number
 ): Promise<void> {
-    const response = await fetch(
-        `${prefix}/account/${accountId}/transaction/${transactionId}/splits`,
-        {
-            method: 'DELETE',
-        }
+    await api.delete(
+        `/account/${accountId}/transaction/${transactionId}/splits`
     );
-
-    if (!response.ok) {
-        throw new Error('Failed to delete splits');
-    }
 }
 
 /**
@@ -137,15 +102,8 @@ export async function deleteSplit(
     accountId: number,
     splitId: number
 ): Promise<void> {
-    const response = await fetch(
-        `${prefix}/account/${accountId}/transaction/split/${splitId}`,
-        {
-            method: 'DELETE',
-        }
+    await api.delete(
+        `/account/${accountId}/transaction/split/${splitId}`
     );
-
-    if (!response.ok) {
-        throw new Error('Failed to delete split');
-    }
 }
 

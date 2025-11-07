@@ -2,6 +2,7 @@
 
 namespace App\Category\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Category\DTO\CategoryDTO;
 use App\Category\DTO\CategoryWithTransactionsDTO;
 use App\Category\Mapper\CategoryMapper;
@@ -11,6 +12,7 @@ use App\Transaction\Service\TransactionService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -25,15 +27,41 @@ class CategoryController extends AbstractController
     private CategoryService $categoryService;
     private CategoryMapper $categoryMapper;
     private TransactionService $transactionService;
+    private AccountRepository $accountRepository;
+
     public function __construct(
         CategoryService $categoryService,
         CategoryMapper $categoryMapper,
         TransactionService $transactionService,
+        AccountRepository $accountRepository
     )
     {
         $this->categoryService = $categoryService;
         $this->categoryMapper = $categoryMapper;
         $this->transactionService = $transactionService;
+        $this->accountRepository = $accountRepository;
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null; // No error, ownership verified
     }
 
     #[OA\Get(
@@ -68,6 +96,11 @@ class CategoryController extends AbstractController
     #[Route('', name: 'get_all_categories', methods: ['GET'])]
     public function list(int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $categories = $this->categoryService->getAllByAccount($accountId);
         $dtos = array_map(fn($category) => $this->categoryMapper->toDto($category), $categories);
 
@@ -106,6 +139,11 @@ class CategoryController extends AbstractController
     #[Route('/{id}', name: 'get_category', methods: ['GET'])]
     public function get(int $accountId, int $id): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $category = $this->categoryService->getById($id, $accountId);
         $dto = $this->categoryMapper->toDto($category);
 
@@ -144,6 +182,11 @@ class CategoryController extends AbstractController
     #[Route('/{id}/with_transactions', name: 'get_category_with_transactions', methods: ['GET'])]
     public function getWithTransactions(int $accountId, int $id): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $categoryDto = $this->categoryService->getWithTransactions($id, $accountId);
         return $this->json($categoryDto);
     }
@@ -185,6 +228,11 @@ class CategoryController extends AbstractController
     #[Route('', name: 'create_category', methods: ['POST'])]
     public function create(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         $category = $this->categoryService->create($accountId, $data);
         $dto = $this->categoryMapper->toDto($category);
@@ -237,6 +285,11 @@ class CategoryController extends AbstractController
     #[Route('/{id}', name: 'update_category', methods: ['PUT'])]
     public function update(int $accountId, int $id, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         $category = $this->categoryService->update($id, $accountId, $data);
         $dto = $this->categoryMapper->toDto($category);
@@ -320,6 +373,11 @@ class CategoryController extends AbstractController
     #[Route('/{id}/preview-delete', name: 'preview_delete_category', methods: ['GET'])]
     public function previewDelete(int $accountId, int $id): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $preview = $this->categoryService->previewDelete($id, $accountId);
         return $this->json($preview);
     }
@@ -327,6 +385,11 @@ class CategoryController extends AbstractController
     #[Route('/{id}', name: 'delete_category', methods: ['DELETE'])]
     public function delete(int $accountId, int $id): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $this->categoryService->delete($id, $accountId);
         return $this->json(null, 204);
     }
@@ -405,6 +468,11 @@ class CategoryController extends AbstractController
     #[Route('/{sourceId}/merge-preview/{targetId}', name: 'preview_merge_categories', methods: ['GET'])]
     public function previewMerge(int $accountId, int $sourceId, int $targetId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $preview = $this->categoryService->previewMerge($sourceId, $targetId, $accountId);
         return $this->json($preview);
     }
@@ -457,6 +525,11 @@ class CategoryController extends AbstractController
     #[Route('/{sourceId}/merge/{targetId}', name: 'merge_categories', methods: ['POST'])]
     public function merge(int $accountId, int $sourceId, int $targetId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $result = $this->categoryService->mergeCategories($sourceId, $targetId, $accountId);
         return $this->json($result);
     }
@@ -518,6 +591,11 @@ class CategoryController extends AbstractController
         int $accountId,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $months = $request->query->get('months', 'all');
 
         $statistics = $this->categoryService->getCategoryStatistics($accountId, $months);
