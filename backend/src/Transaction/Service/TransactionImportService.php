@@ -37,6 +37,7 @@ class TransactionImportService
     private PatternRepository $patternRepository;
 
     private array $existingTransactions = [];
+    private $currentUser = null;
     private const string REQUIRED_EXTENSION = 'csv';
     private const array CSV_LAYOUT = [
         'Datum',
@@ -141,6 +142,26 @@ class TransactionImportService
         } catch (CsvException $e) {
             $this->logger->critical("Onverwachte fout tijdens verwerking CSV: " . $e->getMessage());
             throw new BadRequestHttpException('Onverwachte fout tijdens CSV-import: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Importeert een CSV-bestand en linkt automatisch aangemaakte accounts aan de gebruiker
+     *
+     * @param UploadedFile $file Het CSV-bestand
+     * @param mixed $user De user entity
+     * @return array Resultaat met status en importdetails
+     */
+    public function importForUser(UploadedFile $file, $user): array
+    {
+        // Set current user so createTransactionEntity can link accounts
+        $this->currentUser = $user;
+
+        try {
+            return $this->import($file);
+        } finally {
+            // Clear current user after import
+            $this->currentUser = null;
         }
     }
 
@@ -390,8 +411,15 @@ class TransactionImportService
         Money $balanceAfter,
         string $hash
     ): Transaction {
-        // Haal account op of maak hem aan
-        $account = $this->accountService->getOrCreateAccountByNumber($record[self::FIELD_ACCOUNT]);
+        // Haal account op of maak hem aan (en link aan user indien ingesteld)
+        if ($this->currentUser) {
+            $account = $this->accountService->getOrCreateAccountByNumberForUser(
+                $record[self::FIELD_ACCOUNT],
+                $this->currentUser
+            );
+        } else {
+            $account = $this->accountService->getOrCreateAccountByNumber($record[self::FIELD_ACCOUNT]);
+        }
 
         $transaction = new Transaction();
         $transaction->setDate($date);

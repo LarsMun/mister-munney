@@ -2,6 +2,7 @@
 
 namespace App\Pattern\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Mapper\PayloadMapper;
 use App\Pattern\DTO\CreatePatternDTO;
 use App\Pattern\Service\MatchingPatternService;
@@ -10,6 +11,7 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use OpenApi\Attributes as OA;
@@ -24,16 +26,42 @@ class MatchingPatternController extends AbstractController
     private MatchingPatternService $matchingPatternService;
     private PayloadMapper $payloadMapper;
     private ValidatorInterface $validator;
+    private AccountRepository $accountRepository;
+
     public function __construct
     (
         MatchingPatternService $matchingPatternService,
         PayloadMapper $payloadMapper,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        AccountRepository $accountRepository
     )
     {
         $this->matchingPatternService = $matchingPatternService;
         $this->payloadMapper = $payloadMapper;
         $this->validator = $validator;
+        $this->accountRepository = $accountRepository;
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     #[OA\Post(
@@ -74,6 +102,11 @@ class MatchingPatternController extends AbstractController
         int $accountId,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         try {
             $data = json_decode($request->getContent(), true);
 

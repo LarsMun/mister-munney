@@ -1,6 +1,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Pass the Authorization header to PHP (required for JWT authentication)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
     # Allow direct access to static files (icons, bundles, etc.)
     RewriteCond %{REQUEST_URI} ^/icons/ [OR]
     RewriteCond %{REQUEST_URI} ^/bundles/

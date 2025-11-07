@@ -1,11 +1,9 @@
 // frontend/src/domains/budgets/components/BudgetCard.tsx
 
 import React, { useState } from 'react';
-import type { Budget, CreateBudgetVersion, UpdateBudgetVersion } from '../models/Budget';
+import type { Budget } from '../models/Budget';
 import { CategoryStatistics } from '../../categories/models/CategoryStatistics';
 import { InlineBudgetEditor } from './InlineBudgetEditor';
-import { AddBudgetVersionModal } from './AddBudgetVersionModal';
-import { BudgetVersionListItem } from './BudgetVersionListItem';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import { API_URL } from '../../../lib/api';
@@ -17,27 +15,18 @@ interface BudgetCardProps {
     onDelete: (budgetId: number) => void;
     onDrop: (budgetId: number, categoryIds: number[]) => void;
     onRemoveCategory: (budgetId: number, categoryId: number) => void;
-    onCreateVersion: (budgetId: number, version: CreateBudgetVersion) => Promise<void>;
-    onUpdateVersion?: (budgetId: number, versionId: number, version: UpdateBudgetVersion) => Promise<void>;
-    onDeleteVersion: (budgetId: number, versionId: number) => Promise<void>;
 }
 
 export function BudgetCard({
-                               budget,
-                               categoryStats,
-                               onUpdate,
-                               onDelete,
-                               onDrop,
-                               onRemoveCategory,
-                               onCreateVersion,
-                               onUpdateVersion,
-                               onDeleteVersion
-                           }: BudgetCardProps) {
+    budget,
+    categoryStats,
+    onUpdate,
+    onDelete,
+    onDrop,
+    onRemoveCategory
+}: BudgetCardProps) {
     const [isDragOver, setIsDragOver] = useState(false);
-    const [showVersions, setShowVersions] = useState(false);
-    const [isAddVersionModalOpen, setIsAddVersionModalOpen] = useState(false);
     const [showDeleteBudgetDialog, setShowDeleteBudgetDialog] = useState(false);
-    const [versionToDelete, setVersionToDelete] = useState<number | null>(null);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -80,46 +69,10 @@ export function BudgetCard({
         }
     };
 
-    const handleDeleteVersionClick = (versionId: number) => {
-        if (budget.versions.length <= 1) {
-            alert('Je kunt de laatste versie niet verwijderen. Een budget moet minimaal één versie hebben.');
-            return;
-        }
-        setVersionToDelete(versionId);
-    };
-
-    const handleConfirmDeleteVersion = async () => {
-        if (versionToDelete) {
-            await onDeleteVersion(budget.id, versionToDelete);
-            setVersionToDelete(null);
-        }
-    };
-
-    const handleCreateVersion = async (version: CreateBudgetVersion) => {
-        await onCreateVersion(budget.id, version);
-    };
-
-    const sortedVersions = [...budget.versions].sort((a, b) =>
-        new Date(b.effectiveFromMonth).getTime() - new Date(a.effectiveFromMonth).getTime()
-    );
-
     // Helper functie om stats voor een categorie te vinden
     const getStatsForCategory = (categoryId: number) => {
         return categoryStats?.categories.find(stat => stat.categoryId === categoryId);
     };
-
-    // Bepaal het budget type op basis van de eerste categorie met stats
-    const getBudgetType = (): 'DEBIT' | 'CREDIT' | null => {
-        for (const category of budget.categories) {
-            const stats = getStatsForCategory(category.id);
-            if (stats) {
-                return stats.transactionType;
-            }
-        }
-        return null;
-    };
-
-    const budgetType = getBudgetType();
 
     // Bereken totaal verwachte uitgaven/inkomsten (mediaan laatste 12 maanden)
     const calculateTotalExpected = () => {
@@ -134,16 +87,6 @@ export function BudgetCard({
     };
 
     const totalExpected = calculateTotalExpected();
-    const currentBudgetAmount = budget.currentMonthlyAmount || 0;
-    
-    // Bereken of we over budget zijn, afhankelijk van het type
-    // Voor DEBIT (uitgaven): totalExpected is negatief, budget is negatief
-    //   - Als abs(totalExpected) > abs(budget) dan over budget
-    // Voor CREDIT (inkomsten): totalExpected is positief, budget is positief  
-    //   - Als totalExpected > budget dan over budget (meer verwacht dan budget)
-    const isOverBudget = budgetType === 'CREDIT'
-        ? totalExpected > currentBudgetAmount  // Voor inkomsten: verwachte inkomsten hoger dan budget is "over"
-        : Math.abs(totalExpected) > Math.abs(currentBudgetAmount); // Voor uitgaven: verwachte uitgaven hoger dan budget
 
     return (
         <div
@@ -169,8 +112,6 @@ export function BudgetCard({
                         <InlineBudgetEditor
                             budget={budget}
                             onUpdateBudget={onUpdate}
-                            onUpdateVersion={onUpdateVersion}
-                            isOverBudget={isOverBudget}
                         />
                     </div>
                 </div>
@@ -181,6 +122,18 @@ export function BudgetCard({
                 >
                     🗑️
                 </button>
+            </div>
+
+            {/* Budget Type Badge */}
+            <div className="mb-4">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                    budget.budgetType === 'EXPENSE' ? 'bg-red-100 text-red-800' :
+                    budget.budgetType === 'INCOME' ? 'bg-green-100 text-green-800' :
+                    'bg-blue-100 text-blue-800'
+                }`}>
+                    {budget.budgetType === 'EXPENSE' ? 'Uitgaven' :
+                     budget.budgetType === 'INCOME' ? 'Inkomsten' : 'Project'}
+                </span>
             </div>
 
             {/* Categories Section */}
@@ -207,11 +160,11 @@ export function BudgetCard({
                                             <span className="text-sm text-gray-700">{category.name}</span>
                                         </div>
 
-                                        {/* Mediaan laatste 12 maanden - als wit labeltje */}
+                                        {/* Mediaan laatste 12 maanden */}
                                         {stats && (
                                             <span className="text-xs bg-white text-gray-700 font-semibold px-2 py-0.5 rounded border border-gray-300 mr-2">
-                                    {formatMoney(Math.abs(stats.medianLast12Months))}
-                                </span>
+                                                {formatMoney(Math.abs(stats.medianLast12Months))}
+                                            </span>
                                         )}
 
                                         <button
@@ -226,15 +179,15 @@ export function BudgetCard({
                             })}
                         </div>
 
-                        {/* Alleen totaal verwacht */}
-                        {budget.categories.length > 0 && (
-                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
-    <span className="text-sm font-medium text-gray-700">
-        Verwacht totaal:
-    </span>
-                                <span className={`text-sm font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
-        {formatMoney(Math.abs(totalExpected))}
-    </span>
+                        {/* Totaal verwacht (gebaseerd op historische data) */}
+                        {budget.categories.length > 0 && totalExpected !== 0 && (
+                            <div className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200">
+                                <span className="text-sm font-medium text-gray-700">
+                                    Verwacht totaal (mediaan):
+                                </span>
+                                <span className="text-sm font-bold text-blue-700">
+                                    {formatMoney(Math.abs(totalExpected))}
+                                </span>
                             </div>
                         )}
                     </>
@@ -245,44 +198,9 @@ export function BudgetCard({
                 )}
             </div>
 
-            {/* Version Management Section - Now at the bottom */}
-            <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-sm font-medium text-gray-700">
-                        Versies ({budget.versions.length})
-                    </h4>
-                    <button
-                        onClick={() => setIsAddVersionModalOpen(true)}
-                        className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
-                    >
-                        + Nieuwe Versie
-                    </button>
-                </div>
-
-                {budget.versions.length > 1 && (
-                    <button
-                        onClick={() => setShowVersions(!showVersions)}
-                        className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 mb-2"
-                    >
-                        <span>{showVersions ? '▼' : '▶'}</span>
-                        <span>Toon versie geschiedenis</span>
-                    </button>
-                )}
-
-                {/* Version History */}
-                {showVersions && budget.versions.length > 1 && (
-                    <div className="mt-2 space-y-2 bg-gray-50 rounded-lg p-3 max-h-64 overflow-y-auto">
-                        {sortedVersions.map((version) => (
-                            <BudgetVersionListItem
-                                key={version.id}
-                                version={version}
-                                canDelete={budget.versions.length > 1}
-                                onUpdate={onUpdateVersion}
-                                onDelete={handleDeleteVersionClick}
-                            />
-                        ))}
-                    </div>
-                )}
+            {/* Info Message */}
+            <div className="text-xs text-gray-500 italic">
+                💡 Budgetten zijn containers voor categorieën. Inzichten worden automatisch berekend in het dashboard.
             </div>
 
             {/* Drag over overlay */}
@@ -291,14 +209,6 @@ export function BudgetCard({
                     <div className="text-blue-600 font-medium">Laat categorieën hier vallen</div>
                 </div>
             )}
-
-            {/* Add Version Modal */}
-            <AddBudgetVersionModal
-                isOpen={isAddVersionModalOpen}
-                onClose={() => setIsAddVersionModalOpen(false)}
-                onSubmit={handleCreateVersion}
-                currentMonth={budget.currentEffectiveFrom || undefined}
-            />
 
             {/* Delete Budget Confirm Dialog */}
             <ConfirmDialog
@@ -310,15 +220,6 @@ export function BudgetCard({
                     setShowDeleteBudgetDialog(false);
                 }}
                 onCancel={() => setShowDeleteBudgetDialog(false)}
-            />
-
-            {/* Delete Version Confirm Dialog */}
-            <ConfirmDialog
-                open={versionToDelete !== null}
-                title="Versie verwijderen"
-                description="Weet je zeker dat je deze budget versie wilt verwijderen?"
-                onConfirm={handleConfirmDeleteVersion}
-                onCancel={() => setVersionToDelete(null)}
             />
         </div>
     );

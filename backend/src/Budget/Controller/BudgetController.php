@@ -2,6 +2,7 @@
 
 namespace App\Budget\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Budget\DTO\AssignCategoriesDTO;
 use App\Budget\DTO\BudgetDTO;
 use App\Budget\DTO\BudgetSummaryDTO;
@@ -32,17 +33,42 @@ class BudgetController extends AbstractController
     private BudgetMapper $budgetMapper;
     private SerializerInterface $serializer;
     private ValidatorInterface $validator;
+    private AccountRepository $accountRepository;
 
     public function __construct(
         BudgetService $budgetService,
         BudgetMapper $budgetMapper,
         SerializerInterface $serializer,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        AccountRepository $accountRepository
     ) {
         $this->budgetService = $budgetService;
         $this->budgetMapper = $budgetMapper;
         $this->serializer = $serializer;
         $this->validator = $validator;
+        $this->accountRepository = $accountRepository;
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null; // No error, ownership verified
     }
 
     /**
@@ -80,7 +106,12 @@ class BudgetController extends AbstractController
             new OA\Response(response: 500, description: 'Server fout')
         ]
     )]
-    public function createBudget(Request $request): JsonResponse {
+    public function createBudget(int $accountId, Request $request): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         // Deserialize request data to DTO
         $createBudgetDTO = $this->serializer->deserialize(
             $request->getContent(),
@@ -146,6 +177,11 @@ class BudgetController extends AbstractController
     )]
     public function updateBudget(int $accountId, int $budgetId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         // Deserialize request data to DTO
         $updateBudgetDTO = $this->serializer->deserialize(
             $request->getContent(),
@@ -207,6 +243,11 @@ class BudgetController extends AbstractController
     )]
     public function deleteBudget(int $accountId, int $budgetId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $this->budgetService->deleteBudget($accountId, $budgetId);
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
@@ -233,6 +274,11 @@ class BudgetController extends AbstractController
     )]
     public function findBudgetsByAccount(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $budgets = $this->budgetService->findBudgetsByAccount($accountId);
 
         $budgetDTOs = array_map(
@@ -274,6 +320,11 @@ class BudgetController extends AbstractController
     )]
     public function findBudgetsForMonth(int $accountId, string $monthYear): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         // Validate monthYear format
         if (!preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
             return $this->json([
@@ -318,6 +369,11 @@ class BudgetController extends AbstractController
     )]
     public function getBudgetDetails(int $accountId, int $budgetId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $budget = $this->budgetService->findBudgetById($accountId, $budgetId, true);
 
         $budgetDTO = $this->budgetMapper->toDTO($budget);
@@ -374,6 +430,11 @@ class BudgetController extends AbstractController
     )]
     public function assignCategories(int $accountId, int $budgetId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $assignDTO = $this->serializer->deserialize(
             $request->getContent(),
             AssignCategoriesDTO::class,
@@ -436,6 +497,11 @@ class BudgetController extends AbstractController
     )]
     public function removeCategory(int $accountId, int $budgetId, int $categoryId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $budget = $this->budgetService->removeCategoryFromBudget($accountId, $budgetId, $categoryId);
 
         $budgetDTO = $this->budgetMapper->toDTO($budget);
@@ -480,6 +546,11 @@ class BudgetController extends AbstractController
     )]
     public function getBudgetSummaries(int $accountId, string $monthYear): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         // Validate monthYear format
         if (!preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
             return $this->json([
@@ -550,6 +621,11 @@ class BudgetController extends AbstractController
     )]
     public function getCategoryBreakdown(int $accountId, int $budgetId, string $monthYear): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         // Validate monthYear format
         if (!preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
             return $this->json([
@@ -597,6 +673,11 @@ class BudgetController extends AbstractController
         int $budgetId,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $startDate = $request->query->get('startDate');
         $endDate = $request->query->get('endDate');
 

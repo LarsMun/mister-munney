@@ -5,9 +5,7 @@ import * as BudgetsService from './BudgetsService';
 import type {
     CreateBudget,
     UpdateBudget,
-    AssignCategories,
-    CreateBudgetVersion,
-    UpdateBudgetVersion
+    AssignCategories
 } from '../models/Budget';
 
 export const budgetsActions = {
@@ -41,41 +39,6 @@ export const budgetsActions = {
             toast.success('Budget succesvol verwijderd!');
         } catch (error: any) {
             const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het verwijderen van het budget';
-            toast.error(message);
-            throw error;
-        }
-    },
-
-    async createBudgetVersion(accountId: number, budgetId: number, version: CreateBudgetVersion) {
-        try {
-            const result = await BudgetsService.createBudgetVersion(accountId, budgetId, version);
-            toast.success('Budget versie succesvol toegevoegd!');
-            return result;
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het toevoegen van de budget versie';
-            toast.error(message);
-            throw error;
-        }
-    },
-
-    async updateBudgetVersion(accountId: number, budgetId: number, versionId: number, version: UpdateBudgetVersion) {
-        try {
-            const result = await BudgetsService.updateBudgetVersion(accountId, budgetId, versionId, version);
-            toast.success('Budget versie succesvol bijgewerkt!');
-            return result;
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het bijwerken van de budget versie';
-            toast.error(message);
-            throw error;
-        }
-    },
-
-    async deleteBudgetVersion(accountId: number, budgetId: number, versionId: number) {
-        try {
-            await BudgetsService.deleteBudgetVersion(accountId, budgetId, versionId);
-            toast.success('Budget versie succesvol verwijderd!');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het verwijderen van de budget versie';
             toast.error(message);
             throw error;
         }

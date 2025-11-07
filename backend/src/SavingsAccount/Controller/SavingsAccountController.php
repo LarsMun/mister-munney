@@ -2,6 +2,7 @@
 
 namespace App\SavingsAccount\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Entity\Account;
 use App\Mapper\PayloadMapper;
 use App\SavingsAccount\DTO\CreateSavingsAccountDTO;
@@ -30,19 +31,44 @@ class SavingsAccountController extends AbstractController
     private SavingsAccountMapper $savingsAccountMapper;
     private PayloadMapper $payloadMapper;
     private ValidatorInterface $validator;
+    private AccountRepository $accountRepository;
 
     public function __construct
     (
         SavingsAccountService $savingsAccountService,
         SavingsAccountMapper $savingsAccountMapper,
         PayloadMapper $payloadMapper,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        AccountRepository $accountRepository
     )
     {
         $this->savingsAccountService = $savingsAccountService;
         $this->savingsAccountMapper = $savingsAccountMapper;
         $this->payloadMapper = $payloadMapper;
         $this->validator = $validator;
+        $this->accountRepository = $accountRepository;
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     #[OA\Get(
@@ -72,6 +98,11 @@ class SavingsAccountController extends AbstractController
     #[Route('', name: 'savings_accounts_list', methods: ['GET'])]
     public function list(int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $savingsAccounts = $this->savingsAccountService->getAllSavingsAccounts($accountId);
         $dto = $this->savingsAccountMapper->toDtoList($savingsAccounts);
         return $this->json($dto);
@@ -102,20 +133,23 @@ class SavingsAccountController extends AbstractController
         ]
     )]
     #[Route('/{id}', name: 'savings_account_show', methods: ['GET'])]
-    public function show(int $id, Account $account): JsonResponse
+    public function show(int $id, int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $savingsAccount = $this->savingsAccountService->getSavingsAccountById($id);
 
         if (!$savingsAccount) {
             return $this->json(['error' => 'Spaarrekening niet gevonden'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($savingsAccount->getAccount()->getId() !== $account->getId()) {
+        if ($savingsAccount->getAccount()->getId() !== $accountId) {
             return $this->json([
-                'error' => 'Spaarrekening hoort niet bij dit account',
-                'expected' => $account->getId(),
-                'actual' => $savingsAccount->getAccount()->getId() . " " . $id,
-            ], Response::HTTP_NOT_FOUND);
+                'error' => 'Spaarrekening hoort niet bij dit account'
+            ], Response::HTTP_FORBIDDEN);
         }
 
         $dto = $this->savingsAccountMapper->toWithPatternsAndAccountDto($savingsAccount);
@@ -184,6 +218,11 @@ class SavingsAccountController extends AbstractController
         int $accountId,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         $dto = $this->payloadMapper->map($data, new CreateSavingsAccountDTO(), true);
 
@@ -249,6 +288,11 @@ class SavingsAccountController extends AbstractController
             throw new BadRequestHttpException('Ongeldig ID opgegeven.');
         }
 
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership((int)$accountId)) {
+            return $error;
+        }
+
         $payload = json_decode($request->getContent(), true);
         if (!is_array($payload)) {
             throw new BadRequestHttpException('Request body moet geldig JSON zijn.');
@@ -284,11 +328,21 @@ class SavingsAccountController extends AbstractController
         ]
     )]
     #[Route('/{id}', name: 'savings_account_delete', methods: ['DELETE'])]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id, int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $savingsAccount = $this->savingsAccountService->getSavingsAccountById($id);
         if (!$savingsAccount) {
             return $this->json(['error' => 'Spaarrekening niet gevonden'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Verify savings account belongs to the account
+        if ($savingsAccount->getAccount()->getId() !== $accountId) {
+            return $this->json(['error' => 'Spaarrekening hoort niet bij dit account'], Response::HTTP_FORBIDDEN);
         }
 
         $this->savingsAccountService->deleteSavingsAccount($savingsAccount);
@@ -322,6 +376,11 @@ class SavingsAccountController extends AbstractController
     #[Route('/details', name: 'savings_accounts_list_details', methods: ['GET'], priority: 10)]
     public function listWithDetails(int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $savingsAccounts = $this->savingsAccountService->getAllSavingsAccounts($accountId);
         $dto = $this->savingsAccountMapper->toDetailedDtoList($savingsAccounts);
         return $this->json($dto);
@@ -384,8 +443,13 @@ class SavingsAccountController extends AbstractController
         int $accountId,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
-        
+
         if (!isset($data['startDate']) || !isset($data['endDate'])) {
             throw new BadRequestHttpException('startDate en endDate zijn verplicht');
         }
