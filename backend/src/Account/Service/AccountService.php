@@ -107,6 +107,40 @@ class AccountService
     }
 
     /**
+     * Get account by number or create a new one and link to user
+     *
+     * @param string $accountNumber The account number
+     * @param mixed $user The User entity
+     * @return Account
+     */
+    public function getOrCreateAccountByNumberForUser(string $accountNumber, $user): Account
+    {
+        $account = $this->accountRepository->findByAccountNumber($accountNumber);
+
+        if (!$account) {
+            $account = new Account();
+            $account->setAccountNumber($accountNumber);
+            $account->addOwner($user);  // Link to user
+            $this->accountRepository->save($account);
+
+            $this->logger->info("Nieuw rekeningnummer aangemaakt en gekoppeld aan gebruiker: " . $accountNumber, [
+                'accountNumber' => $accountNumber,
+                'userId' => $user->getId()
+            ]);
+        } elseif (!$account->isOwnedBy($user)) {
+            // Account exists but user doesn't own it - add user as owner
+            $account->addOwner($user);
+            $this->accountRepository->save($account);
+            $this->logger->info("Gebruiker toegevoegd aan bestaand account: " . $accountNumber, [
+                'accountNumber' => $accountNumber,
+                'userId' => $user->getId()
+            ]);
+        }
+
+        return $account;
+    }
+
+    /**
      * Stelt een account in als default account.
      * Zorgt ervoor dat alle andere accounts NIET meer default zijn.
      *

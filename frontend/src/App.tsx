@@ -1,14 +1,16 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TransactionsModule from './domains/transactions';
 import PatternModule from './domains/patterns';
 import WelcomeScreen from './components/WelcomeScreen';
+import AuthScreen from './components/AuthScreen';
 import BudgetsModule from './domains/budgets';
 import AccountManagement from './domains/accounts';
 import DashboardModule from './domains/dashboard';
 import CategoriesModule from './domains/categories';
 import { useAccount } from './app/context/AccountContext';
+import { useAuth } from './shared/contexts/AuthContext';
 import AccountSelector from './shared/components/AccountSelector';
 import logo from './assets/mister-munney-logo.png';
 import { Toaster } from "react-hot-toast";
@@ -16,9 +18,17 @@ import toast from 'react-hot-toast';
 import { importTransactions } from './lib/api';
 
 export default function App() {
-    const { accounts, accountId, setAccountId, hasAccounts, isLoading, refreshAccounts } = useAccount();
+    const { isAuthenticated, isLoading: authLoading, logout, user } = useAuth();
+    const { accounts, accountId, setAccountId, hasAccounts, isLoading: accountsLoading, refreshAccounts } = useAccount();
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Fetch accounts when user is authenticated
+    useEffect(() => {
+        if (isAuthenticated && !authLoading) {
+            refreshAccounts();
+        }
+    }, [isAuthenticated, authLoading, refreshAccounts]);
 
     const handleFileUpload = async (file: File) => {
         if (!accountId) {
@@ -39,13 +49,35 @@ export default function App() {
         }
     };
 
-    // Show loading state while checking for accounts
-    if (isLoading) {
+    // Show loading state while checking authentication
+    if (authLoading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">Munney wordt geladen...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show login/register screen if not authenticated
+    if (!isAuthenticated) {
+        return (
+            <>
+                <AuthScreen />
+                <Toaster position="top-center" />
+            </>
+        );
+    }
+
+    // Show loading state while checking for accounts
+    if (accountsLoading) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Accounts worden geladen...</p>
                 </div>
             </div>
         );
@@ -169,6 +201,19 @@ export default function App() {
                                     />
                                 </>
                             )}
+
+                            {/* User Menu */}
+                            <div className="w-px h-8 bg-white/20 mx-1"></div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-white/80">{user?.email}</span>
+                                <button
+                                    onClick={logout}
+                                    className="px-3 py-2 rounded-lg transition-colors font-medium hover:bg-white/10 text-white text-sm"
+                                    title="Uitloggen"
+                                >
+                                    Uitloggen
+                                </button>
+                            </div>
                         </nav>
                     </div>
                 </header>

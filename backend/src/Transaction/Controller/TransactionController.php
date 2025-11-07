@@ -2,6 +2,7 @@
 
 namespace App\Transaction\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Entity\Transaction;
 use App\Mapper\PayloadMapper;
 use App\Transaction\DTO\AssignSavingsAccountDTO;
@@ -15,6 +16,7 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Annotation\Route;
@@ -33,13 +35,42 @@ class TransactionController extends AbstractController
     private TransactionMapper $transactionMapper;
     private PayloadMapper $payloadMapper;
     private ValidatorInterface $validator;
+    private AccountRepository $accountRepository;
 
-    public function __construct(TransactionService $transactionService, TransactionMapper $transactionMapper, PayloadMapper $payloadMapper, ValidatorInterface $validator)
-    {
+    public function __construct(
+        TransactionService $transactionService,
+        TransactionMapper $transactionMapper,
+        PayloadMapper $payloadMapper,
+        ValidatorInterface $validator,
+        AccountRepository $accountRepository
+    ) {
         $this->transactionService = $transactionService;
         $this->transactionMapper = $transactionMapper;
         $this->payloadMapper = $payloadMapper;
         $this->validator = $validator;
+        $this->accountRepository = $accountRepository;
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     #[OA\Get(
@@ -137,6 +168,11 @@ class TransactionController extends AbstractController
         ValidatorInterface $validator,
         TransactionFilterMapper $filterMapper
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $filter = $filterMapper->fromRequest($request, $accountId);
 
         $errors = $validator->validate($filter);
@@ -187,6 +223,11 @@ class TransactionController extends AbstractController
     #[Route('/months', name: 'get_transaction_months', methods: ['GET'])]
     public function getAvailableMonths(int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         return $this->json(
             $this->transactionService->getAvailableMonths($accountId)
         );
@@ -226,6 +267,11 @@ class TransactionController extends AbstractController
         int $id,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         $dto = $this->payloadMapper->map($data, new SetCategoryDTO(), true);
 
@@ -284,6 +330,11 @@ class TransactionController extends AbstractController
     #[Route('/bulk-assign-category', name: 'bulk_assign_category', methods: ['POST'])]
     public function bulkAssignCategory(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
 
         if (!isset($data['transactionIds'], $data['categoryId'])) {
@@ -332,6 +383,11 @@ class TransactionController extends AbstractController
     #[Route('/bulk-remove-category', name: 'bulk_remove_category', methods: ['POST'])]
     public function bulkRemoveCategory(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
 
         if (!isset($data['transactionIds'])) {
@@ -397,6 +453,11 @@ class TransactionController extends AbstractController
         PayloadMapper $payloadMapper,
         ValidatorInterface $validator
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         $dto = $payloadMapper->map($data, new AssignSavingsAccountDTO(), true);
 
@@ -501,6 +562,11 @@ class TransactionController extends AbstractController
         int $accountId,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $months = $request->query->get('months', 'all');
 
         $statistics = $this->transactionService->getMonthlyMedianStatistics($accountId, $months);

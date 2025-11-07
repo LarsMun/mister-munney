@@ -1,4 +1,4 @@
-const prefix = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+import api from '../../../lib/axios';
 
 export interface PayPalImportResult {
     parsed: number;
@@ -11,17 +11,10 @@ export async function importPayPalTransactions(
     accountId: number,
     pastedText: string
 ): Promise<PayPalImportResult> {
-    const response = await fetch(`${prefix}/transactions/import-paypal`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ accountId, pastedText }),
+    const response = await api.post('/transactions/import-paypal', {
+        accountId,
+        pastedText,
     });
 
-    if (!response.ok) {
-        throw new Error('Failed to import PayPal transactions');
-    }
-
-    return await response.json();
+    return response.data;
 }

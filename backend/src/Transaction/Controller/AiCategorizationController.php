@@ -2,6 +2,7 @@
 
 namespace App\Transaction\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Transaction\Repository\TransactionRepository;
 use App\Transaction\Service\AiCategorizationService;
 use App\Transaction\Service\TransactionService;
@@ -21,8 +22,31 @@ class AiCategorizationController extends AbstractController
         private readonly AiCategorizationService $aiCategorizationService,
         private readonly TransactionRepository $transactionRepository,
         private readonly TransactionService $transactionService,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly AccountRepository $accountRepository
     ) {
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     #[Route('/ai-suggest-categories', name: 'api_transactions_ai_suggest_categories', methods: ['POST'])]
@@ -59,6 +83,11 @@ class AiCategorizationController extends AbstractController
     )]
     public function suggestCategories(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         try {
             $data = json_decode($request->getContent(), true);
             $limit = $data['limit'] ?? 50;
@@ -129,6 +158,11 @@ class AiCategorizationController extends AbstractController
     )]
     public function bulkAssignCategories(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         try {
             $data = json_decode($request->getContent(), true);
             $assignments = $data['assignments'] ?? [];

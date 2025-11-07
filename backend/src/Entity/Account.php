@@ -3,6 +3,9 @@
 namespace App\Entity;
 
 use App\Account\Repository\AccountRepository;
+use App\User\Entity\User;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AccountRepository::class)]
@@ -21,6 +24,14 @@ class Account
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $isDefault = false;
+
+    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'accounts')]
+    private Collection $users;
+
+    public function __construct()
+    {
+        $this->users = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -61,5 +72,40 @@ class Account
         $this->isDefault = $isDefault;
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getUsers(): Collection
+    {
+        return $this->users;
+    }
+
+    public function addUser(User $user): self
+    {
+        if (!$this->users->contains($user)) {
+            $this->users->add($user);
+            $user->addAccount($this);
+        }
+
+        return $this;
+    }
+
+    public function removeUser(User $user): self
+    {
+        if ($this->users->removeElement($user)) {
+            $user->removeAccount($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Check if this account is owned by the given user
+     */
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->users->contains($user);
     }
 }

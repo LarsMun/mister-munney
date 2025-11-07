@@ -9,8 +9,7 @@ import { formatMoney } from "../../../shared/utils/MoneyFormat";
 import CategoryCombobox from "../../categories/components/CategoryCombobox";
 import { Category } from "../../categories/models/Category";
 import { fetchCategories } from "../../categories/services/CategoryService";
-
-const API_PREFIX = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+import api from "../../../lib/axios";
 
 interface Props {
     onSuccess?: (wasEdit?: boolean, updatedPattern?: any) => void;
@@ -236,23 +235,15 @@ export default function PatternDiscovery({ onSuccess }: Props) {
             const descriptionPattern = edited?.descriptionPattern !== undefined ? edited.descriptionPattern : suggestion.descriptionPattern;
             const notesPattern = edited?.notesPattern !== undefined ? edited.notesPattern : suggestion.notesPattern;
 
-            const response = await fetch(`${API_PREFIX}/account/${accountId}/patterns/match`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    accountId: accountId,
-                    description: descriptionPattern,
-                    matchTypeDescription: descriptionPattern ? 'LIKE' : null,
-                    notes: notesPattern,
-                    matchTypeNotes: notesPattern ? 'LIKE' : null,
-                })
+            const response = await api.post(`/account/${accountId}/patterns/match`, {
+                accountId: accountId,
+                description: descriptionPattern,
+                matchTypeDescription: descriptionPattern ? 'LIKE' : null,
+                notes: notesPattern,
+                matchTypeNotes: notesPattern ? 'LIKE' : null,
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to load matching transactions');
-            }
-
-            const result = await response.json();
+            const result = response.data;
 
             setMatchingTransactions(prev => ({
                 ...prev,

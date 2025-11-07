@@ -16,7 +16,6 @@ class Budget
 {
     public function __construct()
     {
-        $this->budgetVersions = new ArrayCollection();
         $this->categories = new ArrayCollection();
     }
 
@@ -37,10 +36,6 @@ class Budget
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?DateTimeImmutable $updatedAt = null;
-
-    #[ORM\OneToMany(targetEntity: BudgetVersion::class, mappedBy: 'budget', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['effectiveFromMonth' => 'DESC'])]
-    private Collection $budgetVersions;
 
     #[ORM\OneToMany(targetEntity: Category::class, mappedBy: 'budget')]
     private Collection $categories;
@@ -122,33 +117,6 @@ class Budget
     }
 
     /**
-     * @return Collection<int, BudgetVersion>
-     */
-    public function getBudgetVersions(): Collection
-    {
-        return $this->budgetVersions;
-    }
-
-    public function addBudgetVersion(BudgetVersion $budgetVersion): static
-    {
-        if (!$this->budgetVersions->contains($budgetVersion)) {
-            $this->budgetVersions->add($budgetVersion);
-            $budgetVersion->setBudget($this);
-        }
-        return $this;
-    }
-
-    public function removeBudgetVersion(BudgetVersion $budgetVersion): static
-    {
-        if ($this->budgetVersions->removeElement($budgetVersion)) {
-            if ($budgetVersion->getBudget() === $this) {
-                $budgetVersion->setBudget(null);
-            }
-        }
-        return $this;
-    }
-
-    /**
      * @return Collection<int, Category>
      */
     public function getCategories(): Collection
@@ -173,30 +141,6 @@ class Budget
             }
         }
         return $this;
-    }
-
-    /**
-     * Get effective version for a specific month
-     */
-    public function getEffectiveVersion(string $monthYear): ?BudgetVersion
-    {
-        foreach ($this->budgetVersions as $version) {
-            if ($version->isEffectiveForMonth($monthYear)) {
-                return $version;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Get current/latest version
-     */
-    public function getCurrentVersion(): ?BudgetVersion
-    {
-        if ($this->budgetVersions->isEmpty()) {
-            return null;
-        }
-        return $this->budgetVersions->first();
     }
 
     public function getBudgetType(): BudgetType
