@@ -56,52 +56,6 @@ class TransactionImportController extends AbstractController
         return null;
     }
 
-    #[OA\Post(
-        path: '/api/transactions/import-first',
-        summary: 'Eerste import - Maakt automatisch accounts aan uit CSV',
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: 'multipart/form-data',
-                schema: new OA\Schema(
-                    required: ['file'],
-                    properties: [
-                        new OA\Property(
-                            property: 'file',
-                            type: 'string',
-                            format: 'binary'
-                        )
-                    ],
-                    type: 'object'
-                )
-            )
-        ),
-        tags: ['Transactions import'],
-        responses: [
-            new OA\Response(response: 201, description: 'Transacties geïmporteerd en accounts aangemaakt'),
-            new OA\Response(response: 400, description: 'Geen bestand ontvangen'),
-            new OA\Response(response: 401, description: 'Niet geauthenticeerd')
-        ]
-    )]
-    #[Route('/api/transactions/import-first', name: 'import_first', methods: ['POST'])]
-    public function importFirst(Request $request): JsonResponse
-    {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $file = $request->files->get('file');
-
-        if (!$file) {
-            throw new BadRequestHttpException('No file uploaded');
-        }
-
-        // Import without accountId - service will create accounts and link to user
-        $result = $this->transactionImportService->importForUser($file, $user);
-
-        return $this->json($result, 201);
-    }
 
     #[OA\Post(
         path: '/api/account/{accountId}/transactions/import',
