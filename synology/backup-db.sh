@@ -16,17 +16,31 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Load environment variables from .env file
+if [ -f ".env" ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # Bepaal welke omgeving (default: prod)
 ENV=${1:-prod}
 
 if [ "$ENV" = "prod" ]; then
-    CONTAINER="munney-mysql-prod"
+    CONTAINER="munney-prod-mysql"
     DB_NAME="money_db_prod"
+    DB_PASSWORD="${MYSQL_PASSWORD_PROD}"
     BACKUP_DIR="./backups/prod"
 else
     CONTAINER="money-mysql"
     DB_NAME="money_db"
+    DB_PASSWORD="moneymakestheworldgoround"
     BACKUP_DIR="./backups/dev"
+fi
+
+# Check if password is set
+if [ -z "$DB_PASSWORD" ]; then
+    echo -e "${RED}❌ Error: Database password niet gevonden!${NC}"
+    echo "Voor prod: Zorg dat MYSQL_PASSWORD_PROD is ingesteld in .env"
+    exit 1
 fi
 
 # Maak backup directory aan
@@ -54,7 +68,7 @@ fi
 echo -e "${GREEN}💾 Creating backup...${NC}"
 docker exec $CONTAINER mysqldump \
     -u money \
-    -pmoneymakestheworldgoround \
+    -p"$DB_PASSWORD" \
     --single-transaction \
     --routines \
     --triggers \
