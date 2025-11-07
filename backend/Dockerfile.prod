@@ -1,52 +1,61 @@
-# Multi-stage build voor productie
-FROM php:8.3-apache AS base
+# Gebruik de officiële PHP 8.3 Apache image
+FROM php:8.3-apache
 
-# Installeer alleen productie dependencies
+# Installeer systeemafhankelijkheden
 RUN apt-get update && apt-get install -y \
     git \
     zip \
     unzip \
     libzip-dev \
-    curl \
     && docker-php-ext-install pdo pdo_mysql zip bcmath \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Apache configuratie
+# Schakel mod_rewrite in voor Apache (nodig voor Symfony routing)
 RUN a2enmod rewrite
+
+# Zorg ervoor dat Apache `.htaccess` toestaat
 RUN sed -i 's|AllowOverride None|AllowOverride All|' /etc/apache2/apache2.conf
+
+# Stel de correcte DocumentRoot in zodat Symfony werkt
 RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-available/000-default.conf
+
+# Geef de server een naam om Apache-warnings te voorkomen
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
+# Stel de werkdirectory in
 WORKDIR /var/www/html
 
-# Installeer Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Maak een symfony-gebruiker aan met dezelfde UID en GID als de host
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID symfony && useradd -m -u $UID -g $GID symfony
 
-# Kopieer composer files eerst (voor caching)
-COPY composer.json composer.lock symfony.lock ./
-
-# Installeer dependencies (zonder dev packages)
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
-
-# Kopieer de rest van de applicatie
+# Kopieer projectbestanden naar de container (nog als root)
 COPY . .
 
-# Verwijder dev-only directories die dependencies hebben naar dev packages
-RUN rm -rf src/DataFixtures tests/ .git
+# Kopieer productie env file
+RUN cp .env.prod .env || true
 
-# Voer post-install scripts uit
-RUN composer dump-autoload --optimize --no-dev
+# Kopieer PHP configuratie
+COPY php-uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 
-# Zorg voor juiste permissions
-RUN mkdir -p var/cache var/log \
-    && chown -R www-data:www-data var/ \
-    && chmod -R 775 var/
+# Installeer Composer in de container
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Warm up cache (als productie)
-RUN php bin/console cache:warmup --env=prod || true
+# Fix git ownership en composer permissions
+RUN git config --global --add safe.directory /var/www/html
+RUN chown -R symfony:symfony /var/www/html
 
-# Simpele healthcheck - test of Apache draait
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost/ || exit 1
+# Voer Composer-installatie uit als symfony-gebruiker
+USER symfony
+RUN composer install --no-scripts --optimize-autoloader
+USER root
 
-EXPOSE 80
+# Zorg ervoor dat var directory bestaat en de juiste permissions heeft
+RUN mkdir -p /var/www/html/var/cache /var/www/html/var/log
+RUN chown -R www-data:www-data /var/www/html/var
+RUN chmod -R 775 /var/www/html/var
+
+# Geef Apache (www-data) toegang tot alle bestanden
+RUN chown -R www-data:www-data /var/www/html
+RUN usermod -a -G symfony www-data
