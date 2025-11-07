@@ -17,7 +17,7 @@ const AccountContext = createContext<AccountContextType | undefined>(undefined);
 export function AccountProvider({ children }: { children: ReactNode }) {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [accountId, setAccountId] = useState<number | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     const refreshAccounts = useCallback(async () => {
         setIsLoading(true);
@@ -27,25 +27,33 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             setAccounts(data);
 
             if (data.length > 0) {
-                // Find default account
-                const defaultAccount = data.find(a => a.isDefault);
-                
-                // If there's a default account, always use it
-                if (defaultAccount) {
-                    setAccountId(defaultAccount.id);
-                } else {
-                    // No default account exists
-                    // Check if current selected account still exists
-                    const currentAccountExists = accountId && data.find(a => a.id === accountId);
-                    
-                    if (!currentAccountExists) {
-                        // Fall back to stored or lowest ID
+                // Only auto-select an account if none is currently selected
+                if (accountId === null) {
+                    // Find default account
+                    const defaultAccount = data.find(a => a.isDefault);
+
+                    if (defaultAccount) {
+                        // Use default account on initial load
+                        setAccountId(defaultAccount.id);
+                    } else {
+                        // No default account - use stored or first account
                         const storedId = sessionStorage.getItem('accountId');
                         const storedAccountId = storedId ? Number(storedId) : null;
                         const storedAccount = storedAccountId ? data.find(a => a.id === storedAccountId) : null;
-                        
+
                         const sortedAccounts = [...data].sort((a, b) => a.id - b.id);
                         const newAccountId = storedAccount?.id ?? sortedAccounts[0]?.id ?? null;
+                        setAccountId(newAccountId);
+                    }
+                } else {
+                    // Account is already selected - verify it still exists
+                    const currentAccountExists = data.find(a => a.id === accountId);
+
+                    if (!currentAccountExists) {
+                        // Current account was deleted - fall back to default or first
+                        const defaultAccount = data.find(a => a.isDefault);
+                        const sortedAccounts = [...data].sort((a, b) => a.id - b.id);
+                        const newAccountId = defaultAccount?.id ?? sortedAccounts[0]?.id ?? null;
                         setAccountId(newAccountId);
                     }
                 }
@@ -58,11 +66,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         }
     }, [accountId]);
 
-    // Initial load
-    useEffect(() => {
-        refreshAccounts();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // Don't automatically fetch on mount - let App.tsx trigger this after auth check
+    // Initial load is now handled by App.tsx when user is authenticated
 
     // Save accountId to sessionStorage when it changes
     useEffect(() => {

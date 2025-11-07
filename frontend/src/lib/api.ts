@@ -1,4 +1,4 @@
-const prefix = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+import api from './axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 
@@ -7,38 +7,29 @@ export async function fetchTransactions(
     filters: { startDate?: string; endDate?: string }
 ) {
     const params = new URLSearchParams(filters);
-    const response = await fetch(
-        `${prefix}/account/${accountId}/transactions?${params.toString()}`
-    );
-    return await response.json();
+    const response = await api.get(`/account/${accountId}/transactions?${params.toString()}`);
+    return response.data;
 }
 
 export async function fetchAvailableMonths(accountId: number): Promise<string[]> {
-    const response = await fetch(`${prefix}/account/${accountId}/transactions/months`);
-    return await response.json();
+    const response = await api.get(`/account/${accountId}/transactions/months`);
+    return response.data;
 }
 
 export async function importTransactions(accountId: number, file: File): Promise<{ imported: number; duplicates: number }> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('accountId', accountId.toString());
 
-    const response = await fetch(`${prefix}/transactions/import`, {
-        method: 'POST',
-        body: formData,
+    const response = await api.post(`/account/${accountId}/transactions/import`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
     });
 
-    if (!response.ok) {
-        throw new Error('Failed to import transactions');
-    }
-
-    return await response.json();
+    return response.data;
 }
 
 export async function fetchIcons(): Promise<string[]> {
-    const response = await fetch(`${prefix}/icons`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch icons');
-    }
-    return await response.json();
+    const response = await api.get('/icons');
+    return response.data;
 }

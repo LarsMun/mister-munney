@@ -2,6 +2,7 @@
 
 namespace App\Budget\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Budget\Repository\BudgetRepository;
 use App\Budget\Service\AttachmentStorageService;
 use App\Entity\ProjectAttachment;
@@ -22,8 +23,68 @@ class ProjectAttachmentController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly BudgetRepository $budgetRepository,
         private readonly AttachmentStorageService $attachmentStorage,
-        private readonly FeatureFlagService $featureFlagService
+        private readonly FeatureFlagService $featureFlagService,
+        private readonly AccountRepository $accountRepository
     ) {
+    }
+
+    /**
+     * Verify that the authenticated user owns the budget (through budget's account)
+     */
+    private function verifyBudgetOwnership(int $budgetId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $budget = $this->budgetRepository->find($budgetId);
+        if (!$budget) {
+            return $this->json(['error' => 'Budget not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $account = $budget->getAccount();
+        if (!$account) {
+            return $this->json(['error' => 'Budget has no associated account'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
+    }
+
+    /**
+     * Verify that the authenticated user owns the attachment (through its budget's account)
+     */
+    private function verifyAttachmentOwnership(int $attachmentId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $attachment = $this->entityManager->getRepository(ProjectAttachment::class)->find($attachmentId);
+        if (!$attachment) {
+            return $this->json(['error' => 'Attachment not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $budget = $attachment->getBudget();
+        if (!$budget) {
+            return $this->json(['error' => 'Attachment has no associated budget'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        $account = $budget->getAccount();
+        if (!$account) {
+            return $this->json(['error' => 'Budget has no associated account'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     /**
@@ -35,6 +96,11 @@ class ProjectAttachmentController extends AbstractController
         // Check feature flag
         if (!$this->featureFlagService->isEnabled('projects')) {
             throw new AccessDeniedHttpException('Projects feature is disabled');
+        }
+
+        // Verify budget ownership
+        if ($error = $this->verifyBudgetOwnership($budgetId)) {
+            return $error;
         }
 
         // Get project budget
@@ -107,6 +173,11 @@ class ProjectAttachmentController extends AbstractController
             throw new AccessDeniedHttpException('Projects feature is disabled');
         }
 
+        // Verify budget ownership
+        if ($error = $this->verifyBudgetOwnership($budgetId)) {
+            return $error;
+        }
+
         // Get project budget
         $budget = $this->budgetRepository->find($budgetId);
 
@@ -148,6 +219,11 @@ class ProjectAttachmentController extends AbstractController
         // Check feature flag
         if (!$this->featureFlagService->isEnabled('projects')) {
             throw new AccessDeniedHttpException('Projects feature is disabled');
+        }
+
+        // Verify attachment ownership
+        if ($error = $this->verifyAttachmentOwnership($id)) {
+            return $error;
         }
 
         // Get attachment

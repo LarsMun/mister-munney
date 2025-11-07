@@ -2,6 +2,7 @@
 
 namespace App\Transaction\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Transaction\Service\CreditCardPdfParserService;
 use App\Transaction\Service\TransactionSplitService;
 use App\Transaction\Repository\TransactionRepository;
@@ -21,8 +22,31 @@ class TransactionSplitController extends AbstractController
         private readonly CreditCardPdfParserService $pdfParser,
         private readonly TransactionSplitService $splitService,
         private readonly TransactionRepository $transactionRepository,
-        private readonly TransactionMapper $transactionMapper
+        private readonly TransactionMapper $transactionMapper,
+        private readonly AccountRepository $accountRepository
     ) {
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     /**
@@ -65,6 +89,11 @@ class TransactionSplitController extends AbstractController
     )]
     public function parseCreditCardPdf(int $accountId, int $transactionId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         $pdfText = $data['pdfText'] ?? '';
 
@@ -139,6 +168,11 @@ class TransactionSplitController extends AbstractController
     )]
     public function createSplits(int $accountId, int $transactionId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         $splits = $data['splits'] ?? [];
 
@@ -182,6 +216,11 @@ class TransactionSplitController extends AbstractController
     )]
     public function getSplits(int $accountId, int $transactionId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         try {
             $splits = $this->splitService->getSplits($transactionId);
 
@@ -211,6 +250,11 @@ class TransactionSplitController extends AbstractController
     )]
     public function deleteSplits(int $accountId, int $transactionId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         try {
             $this->splitService->deleteSplits($transactionId);
             return $this->json(null, Response::HTTP_NO_CONTENT);
@@ -234,6 +278,11 @@ class TransactionSplitController extends AbstractController
     )]
     public function deleteSingleSplit(int $accountId, int $splitId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         try {
             $this->splitService->deleteSplit($splitId);
             return $this->json(null, Response::HTTP_NO_CONTENT);

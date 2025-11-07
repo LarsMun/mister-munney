@@ -2,6 +2,7 @@
 
 namespace App\Pattern\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Mapper\PayloadMapper;
 use App\Pattern\DTO\CreatePatternDTO;
 use App\Pattern\DTO\PatternDTO;
@@ -28,16 +29,41 @@ class PatternController extends AbstractController
     private PatternService $patternService;
     private PayloadMapper $payloadMapper;
     private ValidatorInterface $validator;
-    public function __construct
-    (
+    private AccountRepository $accountRepository;
+
+    public function __construct(
         PatternService $patternService,
         PayloadMapper $payloadMapper,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        AccountRepository $accountRepository
     )
     {
         $this->patternService = $patternService;
         $this->payloadMapper = $payloadMapper;
         $this->validator = $validator;
+        $this->accountRepository = $accountRepository;
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     #[Route('', name: 'create_pattern', methods: ['POST'])]
@@ -71,6 +97,10 @@ class PatternController extends AbstractController
         ]
     )]
     public function create(int $accountId, Request $request): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
 
         $data = json_decode($request->getContent(), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -133,6 +163,11 @@ class PatternController extends AbstractController
         int $patternId,
         Request $request
     ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new BadRequestHttpException('Ongeldige JSON-invoer');
@@ -183,6 +218,11 @@ class PatternController extends AbstractController
     )]
     public function deleteWithoutCategory(int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $count = $this->patternService->deleteWithoutCategory($accountId);
 
         return $this->json([
@@ -218,6 +258,11 @@ class PatternController extends AbstractController
     )]
     public function delete(string $accountId, string $patternId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership((int)$accountId)) {
+            return $error;
+        }
+
         $this->patternService->deletePattern((int)$accountId, (int)$patternId);
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
@@ -247,6 +292,11 @@ class PatternController extends AbstractController
     )]
     public function listByAccount(int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         return $this->json($this->patternService->getByAccount($accountId));
     }
 
@@ -282,6 +332,11 @@ class PatternController extends AbstractController
     )]
     public function listByCategory(int $accountId, int $categoryId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         return $this->json($this->patternService->getByCategory($accountId, $categoryId));
     }
 
@@ -317,6 +372,11 @@ class PatternController extends AbstractController
     )]
     public function listBySavingsAccount(int $accountId, int $savingsAccountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         return $this->json($this->patternService->getBySavingsAccount($accountId, $savingsAccountId));
     }
 
@@ -351,6 +411,11 @@ class PatternController extends AbstractController
     )]
     public function getById(int $accountId, int $patternId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         return $this->json($this->patternService->getById($accountId, $patternId));
     }
 }
