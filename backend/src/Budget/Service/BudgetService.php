@@ -11,7 +11,6 @@ use App\Budget\Repository\BudgetRepository;
 use App\Category\Repository\CategoryRepository;
 use App\Entity\Account;
 use App\Entity\Budget;
-use App\Entity\BudgetVersion;
 use App\Enum\BudgetType;
 use App\Money\MoneyFactory;
 use App\Transaction\Repository\TransactionRepository;
@@ -24,7 +23,6 @@ class BudgetService
 {
     private AccountRepository $accountRepository;
     private BudgetRepository $budgetRepository;
-    private BudgetVersionService $budgetVersionService;
     private CategoryRepository $categoryRepository;
     private TransactionRepository $transactionRepository;
     private MoneyFactory $moneyFactory;
@@ -32,14 +30,12 @@ class BudgetService
     public function __construct(
         AccountRepository $accountRepository,
         BudgetRepository $budgetRepository,
-        BudgetVersionService $budgetVersionService,
         CategoryRepository $categoryRepository,
         TransactionRepository $transactionRepository,
         MoneyFactory $moneyFactory
     ) {
         $this->accountRepository = $accountRepository;
         $this->budgetRepository = $budgetRepository;
-        $this->budgetVersionService = $budgetVersionService;
         $this->categoryRepository = $categoryRepository;
         $this->transactionRepository = $transactionRepository;
         $this->moneyFactory = $moneyFactory;
@@ -59,18 +55,10 @@ class BudgetService
         $budget->setBudgetType(BudgetType::from($createBudgetDTO->budgetType));
         $budget->setIcon($createBudgetDTO->icon);
 
+        // Budgets are now simple containers - no amounts or versions needed
+
         // Save via repository
-        $budget = $this->budgetRepository->save($budget);
-
-        // Create the first version using BudgetVersionService
-        $budgetVersion = new BudgetVersion();
-        $budgetVersion->setBudget($budget);
-        $budgetVersion->setMonthlyAmount(Money::EUR($createBudgetDTO->monthlyAmount * 100));
-        $budgetVersion->setEffectiveFromMonth($createBudgetDTO->effectiveFromMonth);
-
-        $this->budgetVersionService->createSimpleVersion($budgetVersion);
-
-        return $budget;
+        return $this->budgetRepository->save($budget);
     }
 
     /**

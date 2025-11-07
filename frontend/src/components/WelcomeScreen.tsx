@@ -51,8 +51,7 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
         formData.append('file', file);
 
         try {
-            // FIXED: Use the correct URL that matches the backend route
-            const response = await api.post('/transactions/import', formData, {
+            const response = await api.post('/transactions/import-first', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -60,10 +59,9 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
 
             console.log('Import response:', response.data);
 
-            // Show success message with import details
-            const { imported, skipped } = response.data;
+            const { imported, skipped, duplicates } = response.data;
             if (imported > 0) {
-                toast.success(`${imported} transacties succesvol geïmporteerd!${skipped > 0 ? ` (${skipped} overgeslagen)` : ''}`);
+                toast.success(`${imported} transacties succesvol geïmporteerd! Accounts zijn automatisch aangemaakt.${skipped || duplicates > 0 ? ` (${skipped || duplicates} overgeslagen)` : ''}`);
             } else {
                 toast.success('CSV-bestand verwerkt, geen nieuwe transacties gevonden.');
             }
@@ -73,24 +71,13 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
         } catch (error: any) {
             console.error('Upload error:', error);
 
-            // Better error handling with more details
             let errorMessage = 'Fout bij uploaden van CSV-bestand';
 
-            if (error.response?.data) {
-                errorMessage = error.response.data.error ||
-                    error.response.data.message ||
-                    error.response.data.detail ||
-                    `Server error (${error.response.status})`;
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
             } else if (error.message) {
                 errorMessage = error.message;
             }
-
-            console.error('Detailed error:', {
-                status: error.response?.status,
-                statusText: error.response?.statusText,
-                data: error.response?.data,
-                message: error.message
-            });
 
             toast.error(errorMessage);
         } finally {
@@ -105,7 +92,7 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
                     Welkom bij Munney!
                 </h1>
                 <p className="text-gray-600 mb-6">
-                    Upload je bankrekening CSV-bestand om te beginnen met het beheren van je financiën.
+                    Upload je bankrekening CSV-bestand om te beginnen. Accounts worden automatisch aangemaakt uit je transacties.
                 </p>
             </div>
 
@@ -186,7 +173,7 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
                     </ul>
                     <div className="mt-3 pt-3 border-t border-blue-200">
                         <p className="text-xs text-blue-600">
-                            Na de import worden automatisch rekeningen aangemaakt en kun je je transacties bekijken.
+                            Accounts worden automatisch aangemaakt op basis van de rekeningnummers in je CSV.
                         </p>
                     </div>
                 </div>
