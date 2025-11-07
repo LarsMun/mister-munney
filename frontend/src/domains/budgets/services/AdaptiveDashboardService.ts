@@ -1,3 +1,4 @@
+import api from '../../../lib/axios';
 import { API_URL } from '../../../lib/api';
 import {
     ActiveBudget,
@@ -11,8 +12,6 @@ import {
     BudgetType,
     ProjectStatus
 } from '../models/AdaptiveBudget';
-
-const prefix = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
 
 /**
  * Fetch active budgets with insights
@@ -31,15 +30,8 @@ export async function fetchActiveBudgets(
     if (endDate) params.append('endDate', endDate);
     if (accountId !== undefined) params.append('accountId', accountId.toString());
 
-    const response = await fetch(
-        `${prefix}/budgets/active?${params.toString()}`
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch active budgets');
-    }
-
-    return await response.json();
+    const response = await api.get(`/budgets/active?${params.toString()}`);
+    return response.data;
 }
 
 /**
@@ -55,15 +47,8 @@ export async function fetchOlderBudgets(
     if (type) params.append('type', type);
     if (accountId !== undefined) params.append('accountId', accountId.toString());
 
-    const response = await fetch(
-        `${prefix}/budgets/older?${params.toString()}`
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch older budgets');
-    }
-
-    return await response.json();
+    const response = await api.get(`/budgets/older?${params.toString()}`);
+    return response.data;
 }
 
 /**
@@ -77,15 +62,8 @@ export async function fetchProjects(
     if (status) params.append('status', status);
     if (accountId !== undefined) params.append('accountId', accountId.toString());
 
-    const response = await fetch(
-        `${prefix}/budgets?${params.toString()}`
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch projects');
-    }
-
-    return await response.json();
+    const response = await api.get(`/budgets?${params.toString()}`);
+    return response.data;
 }
 
 /**
@@ -94,20 +72,8 @@ export async function fetchProjects(
 export async function createProject(
     data: CreateProjectDTO
 ): Promise<ProjectDetails> {
-    const response = await fetch(`${prefix}/budgets`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create project');
-    }
-
-    return await response.json();
+    const response = await api.post('/budgets', data);
+    return response.data;
 }
 
 /**
@@ -117,20 +83,8 @@ export async function updateProject(
     projectId: number,
     data: UpdateProjectDTO
 ): Promise<ProjectDetails> {
-    const response = await fetch(`${prefix}/budgets/${projectId}`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update project');
-    }
-
-    return await response.json();
+    const response = await api.patch(`/budgets/${projectId}`, data);
+    return response.data;
 }
 
 /**
@@ -139,15 +93,8 @@ export async function updateProject(
 export async function fetchProjectDetails(
     projectId: number
 ): Promise<ProjectDetails> {
-    const response = await fetch(
-        `${prefix}/budgets/${projectId}/details`
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch project details');
-    }
-
-    return await response.json();
+    const response = await api.get(`/budgets/${projectId}/details`);
+    return response.data;
 }
 
 /**
@@ -157,23 +104,8 @@ export async function createExternalPayment(
     budgetId: number,
     data: CreateExternalPaymentDTO
 ): Promise<ExternalPayment> {
-    const response = await fetch(
-        `${prefix}/budgets/${budgetId}/external-payments`,
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create external payment');
-    }
-
-    return await response.json();
+    const response = await api.post(`/budgets/${budgetId}/external-payments`, data);
+    return response.data;
 }
 
 /**
@@ -183,23 +115,8 @@ export async function updateExternalPayment(
     paymentId: number,
     data: UpdateExternalPaymentDTO
 ): Promise<ExternalPayment> {
-    const response = await fetch(
-        `${prefix}/external-payments/${paymentId}`,
-        {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update external payment');
-    }
-
-    return await response.json();
+    const response = await api.patch(`/external-payments/${paymentId}`, data);
+    return response.data;
 }
 
 /**
@@ -208,16 +125,7 @@ export async function updateExternalPayment(
 export async function deleteExternalPayment(
     paymentId: number
 ): Promise<void> {
-    const response = await fetch(
-        `${prefix}/external-payments/${paymentId}`,
-        {
-            method: 'DELETE',
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to delete external payment');
-    }
+    await api.delete(`/external-payments/${paymentId}`);
 }
 
 /**
@@ -226,16 +134,7 @@ export async function deleteExternalPayment(
 export async function removeExternalPaymentAttachment(
     paymentId: number
 ): Promise<void> {
-    const response = await fetch(
-        `${prefix}/external-payments/${paymentId}/attachment`,
-        {
-            method: 'DELETE',
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to remove attachment');
-    }
+    await api.delete(`/external-payments/${paymentId}/attachment`);
 }
 
 /**
@@ -248,20 +147,12 @@ export async function uploadExternalPaymentAttachment(
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(
-        `${prefix}/external-payments/${paymentId}/attachment`,
-        {
-            method: 'POST',
-            body: formData,
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload attachment');
-    }
-
-    return await response.json();
+    const response = await api.post(`/external-payments/${paymentId}/attachment`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
 }
 
 /**
@@ -270,15 +161,8 @@ export async function uploadExternalPaymentAttachment(
 export async function fetchProjectEntries(
     projectId: number
 ): Promise<any[]> {
-    const response = await fetch(
-        `${prefix}/budgets/${projectId}/entries`
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch project entries');
-    }
-
-    return await response.json();
+    const response = await api.get(`/budgets/${projectId}/entries`);
+    return response.data;
 }
 
 /**
@@ -287,15 +171,8 @@ export async function fetchProjectEntries(
 export async function fetchProjectExternalPayments(
     projectId: number
 ): Promise<ExternalPayment[]> {
-    const response = await fetch(
-        `${prefix}/budgets/${projectId}/external-payments`
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch external payments');
-    }
-
-    return await response.json();
+    const response = await api.get(`/budgets/${projectId}/external-payments`);
+    return response.data;
 }
 
 /**
@@ -304,15 +181,8 @@ export async function fetchProjectExternalPayments(
 export async function fetchProjectAttachments(
     projectId: number
 ): Promise<ProjectAttachment[]> {
-    const response = await fetch(
-        `${prefix}/budgets/${projectId}/attachments`
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch project attachments');
-    }
-
-    return await response.json();
+    const response = await api.get(`/budgets/${projectId}/attachments`);
+    return response.data;
 }
 
 /**
@@ -331,20 +201,12 @@ export async function uploadProjectAttachment(
     if (description) formData.append('description', description);
     if (category) formData.append('category', category);
 
-    const response = await fetch(
-        `${prefix}/budgets/${projectId}/attachments`,
-        {
-            method: 'POST',
-            body: formData,
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload attachment');
-    }
-
-    return await response.json();
+    const response = await api.post(`/budgets/${projectId}/attachments`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
 }
 
 /**
@@ -353,16 +215,7 @@ export async function uploadProjectAttachment(
 export async function deleteProjectAttachment(
     attachmentId: number
 ): Promise<void> {
-    const response = await fetch(
-        `${prefix}/attachments/${attachmentId}`,
-        {
-            method: 'DELETE',
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to delete attachment');
-    }
+    await api.delete(`/attachments/${attachmentId}`);
 }
 
 export interface ProjectAttachment {

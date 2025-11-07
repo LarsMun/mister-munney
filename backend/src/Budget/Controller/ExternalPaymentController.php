@@ -2,6 +2,7 @@
 
 namespace App\Budget\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Budget\DTO\CreateExternalPaymentDTO;
 use App\Budget\Repository\BudgetRepository;
 use App\Budget\Service\AttachmentStorageService;
@@ -30,8 +31,68 @@ class ExternalPaymentController extends AbstractController
         private readonly FeatureFlagService $featureFlagService,
         private readonly MoneyFactory $moneyFactory,
         private readonly SerializerInterface $serializer,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly AccountRepository $accountRepository
     ) {
+    }
+
+    /**
+     * Verify that the authenticated user owns the budget (through budget's account)
+     */
+    private function verifyBudgetOwnership(int $budgetId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $budget = $this->budgetRepository->find($budgetId);
+        if (!$budget) {
+            return $this->json(['error' => 'Budget not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $account = $budget->getAccount();
+        if (!$account) {
+            return $this->json(['error' => 'Budget has no associated account'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
+    }
+
+    /**
+     * Verify that the authenticated user owns the external payment (through its budget's account)
+     */
+    private function verifyExternalPaymentOwnership(int $paymentId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $payment = $this->entityManager->getRepository(ExternalPayment::class)->find($paymentId);
+        if (!$payment) {
+            return $this->json(['error' => 'External payment not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $budget = $payment->getBudget();
+        if (!$budget) {
+            return $this->json(['error' => 'Payment has no associated budget'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        $account = $budget->getAccount();
+        if (!$account) {
+            return $this->json(['error' => 'Budget has no associated account'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     /**
@@ -43,6 +104,11 @@ class ExternalPaymentController extends AbstractController
         // Check feature flag
         if (!$this->featureFlagService->isEnabled('external_payments')) {
             throw new AccessDeniedHttpException('External payments feature is disabled');
+        }
+
+        // Verify budget ownership
+        if ($error = $this->verifyBudgetOwnership($budgetId)) {
+            return $error;
         }
 
         // Get project budget
@@ -107,6 +173,11 @@ class ExternalPaymentController extends AbstractController
             throw new AccessDeniedHttpException('External payments feature is disabled');
         }
 
+        // Verify external payment ownership
+        if ($error = $this->verifyExternalPaymentOwnership($id)) {
+            return $error;
+        }
+
         // Get external payment
         $externalPayment = $this->entityManager->getRepository(ExternalPayment::class)->find($id);
 
@@ -160,6 +231,11 @@ class ExternalPaymentController extends AbstractController
             throw new AccessDeniedHttpException('External payments feature is disabled');
         }
 
+        // Verify external payment ownership
+        if ($error = $this->verifyExternalPaymentOwnership($id)) {
+            return $error;
+        }
+
         // Get external payment
         $externalPayment = $this->entityManager->getRepository(ExternalPayment::class)->find($id);
 
@@ -188,6 +264,11 @@ class ExternalPaymentController extends AbstractController
         // Check feature flag
         if (!$this->featureFlagService->isEnabled('external_payments')) {
             throw new AccessDeniedHttpException('External payments feature is disabled');
+        }
+
+        // Verify external payment ownership
+        if ($error = $this->verifyExternalPaymentOwnership($id)) {
+            return $error;
         }
 
         // Get external payment
@@ -238,6 +319,11 @@ class ExternalPaymentController extends AbstractController
         // Check feature flag
         if (!$this->featureFlagService->isEnabled('external_payments')) {
             throw new AccessDeniedHttpException('External payments feature is disabled');
+        }
+
+        // Verify external payment ownership
+        if ($error = $this->verifyExternalPaymentOwnership($id)) {
+            return $error;
         }
 
         // Get external payment

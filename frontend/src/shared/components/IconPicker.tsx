@@ -10,7 +10,6 @@ interface IconPickerProps {
 export function IconPicker({ selectedIcon, onSelect, label = 'Kies een icoon' }: IconPickerProps) {
     const [icons, setIcons] = useState<string[]>([]);
     const [isOpen, setIsOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,12 +32,6 @@ export function IconPicker({ selectedIcon, onSelect, label = 'Kies een icoon' }:
             loadIcons();
         }
     }, [isOpen]);
-
-    const filteredIcons = icons.filter(icon =>
-        icon.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const displayedIcons = filteredIcons.slice(0, 100); // Limit to 100 for performance
 
     const handleClear = () => {
         onSelect(null);
@@ -77,18 +70,6 @@ export function IconPicker({ selectedIcon, onSelect, label = 'Kies een icoon' }:
             {/* Dropdown Panel */}
             {isOpen && (
                 <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
-                    {/* Search Input */}
-                    <div className="p-2 border-b border-gray-200">
-                        <input
-                            type="text"
-                            placeholder="Zoek icoon..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            autoFocus
-                        />
-                    </div>
-
                     {/* Clear Button */}
                     {selectedIcon && (
                         <div className="p-2 border-b border-gray-200">
@@ -116,44 +97,35 @@ export function IconPicker({ selectedIcon, onSelect, label = 'Kies een icoon' }:
                             </div>
                         )}
 
-                        {!loading && !error && displayedIcons.length === 0 && (
+                        {!loading && !error && icons.length === 0 && (
                             <div className="text-center py-4 text-sm text-gray-500">
                                 Geen iconen gevonden
                             </div>
                         )}
 
-                        {!loading && !error && displayedIcons.length > 0 && (
-                            <>
-                                <div className="grid grid-cols-8 gap-1">
-                                    {displayedIcons.map((icon) => (
-                                        <button
-                                            key={icon}
-                                            type="button"
-                                            onClick={() => {
-                                                onSelect(icon);
-                                                setIsOpen(false);
-                                            }}
-                                            className={`p-2 rounded hover:bg-blue-100 transition-colors ${
-                                                selectedIcon === icon ? 'bg-blue-200 ring-2 ring-blue-500' : ''
-                                            }`}
-                                            title={icon}
-                                        >
-                                            <img
-                                                src={`${API_URL}/api/icons/${icon}`}
-                                                alt={icon}
-                                                className="w-5 h-5"
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {filteredIcons.length > 100 && (
-                                    <div className="mt-2 text-xs text-center text-gray-500">
-                                        Toon {displayedIcons.length} van {filteredIcons.length} iconen
-                                        (verfijn je zoekopdracht om meer te zien)
-                                    </div>
-                                )}
-                            </>
+                        {!loading && !error && icons.length > 0 && (
+                            <div className="grid grid-cols-8 gap-1">
+                                {icons.map((icon) => (
+                                    <button
+                                        key={icon}
+                                        type="button"
+                                        onClick={() => {
+                                            onSelect(icon);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`p-2 rounded hover:bg-blue-100 transition-colors ${
+                                            selectedIcon === icon ? 'bg-blue-200 ring-2 ring-blue-500' : ''
+                                        }`}
+                                        title={icon}
+                                    >
+                                        <img
+                                            src={`${API_URL}/api/icons/${icon}`}
+                                            alt={icon}
+                                            className="w-5 h-5"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>

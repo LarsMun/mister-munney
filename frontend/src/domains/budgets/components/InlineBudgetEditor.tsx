@@ -1,33 +1,19 @@
 // frontend/src/domains/budgets/components/InlineBudgetEditor.tsx
 
 import React, { useState, useEffect } from 'react';
-import type { Budget, UpdateBudgetVersion } from '../models/Budget';
-import { MonthPicker } from '../../../shared/components/MonthPicker';
+import type { Budget } from '../models/Budget';
 import { IconPicker } from '../../../shared/components/IconPicker';
 
 interface InlineBudgetEditorProps {
     budget: Budget;
-    onUpdateBudget: (budgetId: number, data: { name?: string; icon?: string | null }) => Promise<void>;
-    onUpdateVersion?: (budgetId: number, versionId: number, data: UpdateBudgetVersion) => Promise<void>;
-    isOverBudget?: boolean;
+    onUpdateBudget: (budgetId: number, data: { name?: string; budgetType?: string; icon?: string | null }) => Promise<void>;
 }
 
-export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, isOverBudget }: InlineBudgetEditorProps) {
+export function InlineBudgetEditor({ budget, onUpdateBudget }: InlineBudgetEditorProps) {
     const [isEditingName, setIsEditingName] = useState(false);
     const [tempName, setTempName] = useState(budget.name);
     const [isEditingIcon, setIsEditingIcon] = useState(false);
-    const [isEditingAmount, setIsEditingAmount] = useState(false);
-    const [isEditingFromDate, setIsEditingFromDate] = useState(false);
-    const [isEditingUntilDate, setIsEditingUntilDate] = useState(false);
-    const [tempAmount, setTempAmount] = useState('');
-    const [tempFromDate, setTempFromDate] = useState('');
-    const [tempUntilDate, setTempUntilDate] = useState('');
-
-    // Get the currently active version, or fallback to the newest version
-    const activeVersion = budget.versions.find(v => v.isCurrent) ||
-        budget.versions.sort((a, b) =>
-            b.effectiveFromMonth.localeCompare(a.effectiveFromMonth)
-        )[0];
+    const [isEditingType, setIsEditingType] = useState(false);
 
     useEffect(() => {
         setTempName(budget.name);
@@ -57,72 +43,26 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
         setTempName(budget.name);
     };
 
-    const handleFromDateChange = async (newDate: string) => {
-        setTempFromDate(newDate);
-
-        if (!activeVersion || !onUpdateVersion) return;
-
-        // Validate and save immediately
-        if (newDate && newDate !== activeVersion.effectiveFromMonth && /^\d{4}-\d{2}$/.test(newDate)) {
-            try {
-                await onUpdateVersion(budget.id, activeVersion.id, {
-                    effectiveFromMonth: newDate
-                });
-                setIsEditingFromDate(false);
-            } catch (error) {
-                console.error('Error updating from date:', error);
-            }
-        }
-    };
-
-    const handleUntilDateChange = async (newDate: string) => {
-        setTempUntilDate(newDate);
-
-        if (!activeVersion || !onUpdateVersion) return;
-
-        const newUntilDate = newDate.trim() === '' ? null : newDate;
-
-        // Save immediately if valid
-        if (newUntilDate !== activeVersion.effectiveUntilMonth) {
-            if (!newUntilDate || /^\d{4}-\d{2}$/.test(newUntilDate)) {
-                try {
-                    await onUpdateVersion(budget.id, activeVersion.id, {
-                        effectiveUntilMonth: newUntilDate || undefined
-                    });
-                    setIsEditingUntilDate(false);
-                } catch (error) {
-                    console.error('Error updating until date:', error);
-                }
-            }
-        }
-    };
-
-    const startFromDateEdit = () => {
-        if (!activeVersion || !onUpdateVersion || budget.versions.length === 0) return;
-        setIsEditingFromDate(true);
-        setTempFromDate(activeVersion.effectiveFromMonth);
-    };
-
-    const startUntilDateEdit = () => {
-        if (!activeVersion || !onUpdateVersion || budget.versions.length === 0) return;
-        setIsEditingUntilDate(true);
-        setTempUntilDate(activeVersion.effectiveUntilMonth || '');
-    };
-
-    const cancelFromDateEdit = () => {
-        setIsEditingFromDate(false);
-    };
-
-    const cancelUntilDateEdit = () => {
-        setIsEditingUntilDate(false);
-    };
-
     const handleIconChange = async (icon: string | null) => {
         try {
             await onUpdateBudget(budget.id, { icon });
             setIsEditingIcon(false);
         } catch (error) {
             console.error('Error updating budget icon:', error);
+        }
+    };
+
+    const handleTypeChange = async (newType: string) => {
+        if (newType === budget.budgetType) {
+            setIsEditingType(false);
+            return;
+        }
+
+        try {
+            await onUpdateBudget(budget.id, { budgetType: newType });
+            setIsEditingType(false);
+        } catch (error) {
+            console.error('Error updating budget type:', error);
         }
     };
 
@@ -134,56 +74,29 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
         }
     };
 
-    const startAmountEdit = () => {
-        if (!activeVersion || !onUpdateVersion) return;
-        setIsEditingAmount(true);
-        setTempAmount(Math.abs(activeVersion.monthlyAmount).toString());
-    };
-
-    const saveAmount = async () => {
-        if (!activeVersion || !onUpdateVersion) return;
-
-        const numAmount = parseFloat(tempAmount);
-        if (isNaN(numAmount) || numAmount === Math.abs(activeVersion.monthlyAmount)) {
-            cancelAmountEdit();
-            return;
-        }
-
-        try {
-            // Preserve the sign (negative for expenses, positive for income)
-            const signedAmount = activeVersion.monthlyAmount < 0 ? -Math.abs(numAmount) : Math.abs(numAmount);
-            await onUpdateVersion(budget.id, activeVersion.id, { monthlyAmount: signedAmount });
-            setIsEditingAmount(false);
-        } catch (error) {
-            console.error('Error updating amount:', error);
+    const getBudgetTypeLabel = (type: string): string => {
+        switch (type) {
+            case 'EXPENSE': return 'Uitgaven';
+            case 'INCOME': return 'Inkomsten';
+            case 'PROJECT': return 'Project';
+            default: return type;
         }
     };
 
-    const cancelAmountEdit = () => {
-        setIsEditingAmount(false);
-        setTempAmount('');
-    };
-
-    const handleAmountKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            saveAmount();
-        } else if (e.key === 'Escape') {
-            cancelAmountEdit();
+    const getBudgetTypeColor = (type: string): string => {
+        switch (type) {
+            case 'EXPENSE': return 'text-red-600';
+            case 'INCOME': return 'text-green-600';
+            case 'PROJECT': return 'text-blue-600';
+            default: return 'text-gray-600';
         }
-    };
-
-    const formatMoney = (amount: number): string => {
-        return new Intl.NumberFormat('nl-NL', {
-            style: 'currency',
-            currency: 'EUR'
-        }).format(amount);
     };
 
     return (
-        <div className="mb-4">
+        <div className="space-y-3">
             {/* Icon Editor */}
             {isEditingIcon && (
-                <div className="mb-3">
+                <div>
                     <IconPicker
                         selectedIcon={budget.icon}
                         onSelect={handleIconChange}
@@ -200,7 +113,7 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
 
             {/* Icon Display & Edit Button */}
             {!isEditingIcon && (
-                <div className="mb-2">
+                <div>
                     <button
                         onClick={() => setIsEditingIcon(true)}
                         className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
@@ -212,7 +125,7 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
             )}
 
             {/* Budget Name */}
-            <div className="mb-2">
+            <div>
                 {isEditingName ? (
                     <div className="flex items-center space-x-2">
                         <input
@@ -227,120 +140,66 @@ export function InlineBudgetEditor({ budget, onUpdateBudget, onUpdateVersion, is
                         <button
                             onClick={saveName}
                             className="text-green-600 hover:text-green-800 text-sm"
+                            title="Opslaan"
                         >
                             ✓
                         </button>
                         <button
                             onClick={cancelNameEdit}
                             className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex items-center space-x-2">
-                        {isOverBudget && <span className="text-red-600">⚠️</span>}
-                        <h3
-                            className={`text-xl font-bold cursor-pointer hover:underline ${
-                                isOverBudget ? 'text-red-600 hover:text-red-700' : 'text-gray-900 hover:text-blue-600'
-                            }`}
-                            onClick={startNameEdit}
-                            title="Klik om naam te wijzigen"
-                        >
-                            {budget.name}
-                        </h3>
-                    </div>
-                )}
-            </div>
-
-            {/* Current Budget Info - Editable Amount */}
-            <div className="text-2xl font-bold text-gray-900">
-                {isEditingAmount ? (
-                    <div className="flex items-center space-x-2">
-                        <span className="text-gray-700">€</span>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={tempAmount}
-                            onChange={(e) => setTempAmount(e.target.value)}
-                            onKeyDown={handleAmountKeyDown}
-                            onBlur={saveAmount}
-                            autoFocus
-                            className="w-40 px-2 py-1 border-2 border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-2xl font-bold"
-                        />
-                        <button
-                            onClick={saveAmount}
-                            className="text-green-600 hover:text-green-800"
-                            title="Opslaan"
-                        >
-                            ✓
-                        </button>
-                        <button
-                            onClick={cancelAmountEdit}
-                            className="text-red-600 hover:text-red-800"
                             title="Annuleren"
                         >
                             ✕
                         </button>
                     </div>
                 ) : (
-                    <span
-                        className={`${onUpdateVersion ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''}`}
-                        onClick={startAmountEdit}
-                        title={onUpdateVersion ? "Klik om bedrag te wijzigen" : undefined}
+                    <h3
+                        className="text-xl font-bold cursor-pointer hover:underline text-gray-900 hover:text-blue-600"
+                        onClick={startNameEdit}
+                        title="Klik om naam te wijzigen"
                     >
-                        {activeVersion ? formatMoney(Math.abs(activeVersion.monthlyAmount)) : '€ 0,00'}
-                    </span>
+                        {budget.name}
+                    </h3>
                 )}
             </div>
 
-            {/* Editable Date Range */}
-            <div className="text-sm text-gray-500 mt-1 flex items-center flex-wrap gap-1">
-                <span>{budget.budgetType === 'INCOME' ? 'Doel' : 'Limiet'} per maand vanaf</span>
-
-                {/* From Date - Editable */}
-                {isEditingFromDate ? (
-                    <MonthPicker
-                        value={tempFromDate}
-                        onChange={handleFromDateChange}
-                        autoFocus={true}
-                        onBlur={cancelFromDateEdit}
-                    />
-                ) : (
-                    <span
-                        className="cursor-pointer hover:text-blue-600 hover:underline font-medium"
-                        onClick={startFromDateEdit}
-                        title="Klik om startdatum te wijzigen"
-                    >
-                        {activeVersion?.effectiveFromMonth || 'niet ingesteld'}
-                    </span>
-                )}
-
-                {/* Until Date - Editable or "nu" */}
-                {isEditingUntilDate ? (
-                    <>
-                        <span>-</span>
-                        <MonthPicker
-                            value={tempUntilDate}
-                            onChange={handleUntilDateChange}
-                            autoFocus={true}
-                            allowEmpty={true}
-                            placeholder="Geen einde"
-                            onBlur={cancelUntilDateEdit}
-                        />
-                    </>
-                ) : (
-                    <>
-                        <span>-</span>
-                        <span
-                            className="cursor-pointer hover:text-blue-600 hover:underline font-medium"
-                            onClick={startUntilDateEdit}
-                            title="Klik om einddatum te wijzigen"
+            {/* Budget Type */}
+            <div>
+                {isEditingType ? (
+                    <div className="flex items-center space-x-2">
+                        <select
+                            value={budget.budgetType}
+                            onChange={(e) => handleTypeChange(e.target.value)}
+                            onBlur={() => setIsEditingType(false)}
+                            autoFocus
+                            className="px-2 py-1 border-2 border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            {activeVersion?.effectiveUntilMonth || 'nu'}
-                        </span>
-                    </>
+                            <option value="EXPENSE">Uitgaven</option>
+                            <option value="INCOME">Inkomsten</option>
+                            <option value="PROJECT">Project</option>
+                        </select>
+                        <button
+                            onClick={() => setIsEditingType(false)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                            title="Annuleren"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => setIsEditingType(true)}
+                        className={`text-sm font-medium cursor-pointer hover:underline ${getBudgetTypeColor(budget.budgetType)}`}
+                        title="Klik om type te wijzigen"
+                    >
+                        {getBudgetTypeLabel(budget.budgetType)}
+                    </button>
                 )}
+            </div>
+
+            {/* Info Message */}
+            <div className="text-xs text-gray-500 italic">
+                💡 Dit budget is een container voor categorieën
             </div>
         </div>
     );

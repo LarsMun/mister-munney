@@ -2,6 +2,7 @@
 
 namespace App\Pattern\Controller;
 
+use App\Account\Repository\AccountRepository;
 use App\Category\Service\CategoryService;
 use App\Enum\AiPatternSuggestionStatus;
 use App\Mapper\PayloadMapper;
@@ -38,8 +39,31 @@ class AiPatternDiscoveryController extends AbstractController
         private readonly ValidatorInterface $validator,
         private readonly AiPatternSuggestionRepository $suggestionRepository,
         private readonly PatternRepository $patternRepository,
-        private readonly PatternMapper $patternMapper
+        private readonly PatternMapper $patternMapper,
+        private readonly AccountRepository $accountRepository
     ) {
+    }
+
+    /**
+     * Verify that the authenticated user owns the specified account
+     */
+    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$account->isOwnedBy($user)) {
+            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
+        }
+
+        return null;
     }
 
     #[Route('/discover', name: 'discover_patterns', methods: ['POST'])]
@@ -87,6 +111,11 @@ class AiPatternDiscoveryController extends AbstractController
     )]
     public function discoverPatterns(int $accountId): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         try {
             // Haal alle ongecategoriseerde transacties op
             $transactions = $this->transactionRepository->findUncategorizedByAccount($accountId);
@@ -173,6 +202,11 @@ class AiPatternDiscoveryController extends AbstractController
     )]
     public function acceptSuggestion(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new BadRequestHttpException('Ongeldige JSON-invoer');
@@ -309,6 +343,11 @@ class AiPatternDiscoveryController extends AbstractController
     )]
     public function rejectSuggestion(int $accountId, Request $request): JsonResponse
     {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
         $data = json_decode($request->getContent(), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new BadRequestHttpException('Ongeldige JSON-invoer');

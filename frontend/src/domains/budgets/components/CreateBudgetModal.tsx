@@ -15,9 +15,6 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
         accountId,
         budgetType: 'EXPENSE',
         icon: null,
-        monthlyAmount: 0,
-        effectiveFromMonth: new Date().toISOString().slice(0, 7), // YYYY-MM format
-        changeReason: '',
         categoryIds: []
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,14 +25,6 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
 
         if (!formData.name.trim()) {
             newErrors.name = 'Naam is verplicht';
-        }
-
-        if (!formData.monthlyAmount || formData.monthlyAmount <= 0) {
-            newErrors.monthlyAmount = 'Bedrag moet groter dan 0 zijn';
-        }
-
-        if (!formData.effectiveFromMonth) {
-            newErrors.effectiveFromMonth = 'Startdatum is verplicht';
         }
 
         setErrors(newErrors);
@@ -64,9 +53,6 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
             accountId,
             budgetType: 'EXPENSE',
             icon: null,
-            monthlyAmount: 0,
-            effectiveFromMonth: new Date().toISOString().slice(0, 7),
-            changeReason: '',
             categoryIds: []
         });
         setErrors({});
@@ -79,6 +65,9 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
                 <h2 className="text-xl font-bold mb-4">Nieuw Budget Aanmaken</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                    Maak een container aan om categorieën te groeperen
+                </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -102,12 +91,13 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
                         </label>
                         <select
                             value={formData.budgetType}
-                            onChange={(e) => setFormData(prev => ({ ...prev, budgetType: e.target.value as 'EXPENSE' | 'INCOME' }))}
+                            onChange={(e) => setFormData(prev => ({ ...prev, budgetType: e.target.value as 'EXPENSE' | 'INCOME' | 'PROJECT' }))}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             disabled={isSubmitting}
                         >
                             <option value="EXPENSE">Uitgaven</option>
                             <option value="INCOME">Inkomsten</option>
+                            <option value="PROJECT">Project</option>
                         </select>
                     </div>
 
@@ -119,58 +109,12 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Maandelijks {formData.budgetType === 'INCOME' ? 'Doel' : 'Limiet'} (€)
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={formData.monthlyAmount || ''}
-                            onChange={(e) => setFormData(prev => ({
-                                ...prev,
-                                monthlyAmount: parseFloat(e.target.value) || 0
-                            }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="500.00"
-                            disabled={isSubmitting}
-                        />
-                        {errors.monthlyAmount && <p className="text-red-500 text-sm mt-1">{errors.monthlyAmount}</p>}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Startdatum
-                        </label>
-                        <input
-                            type="month"
-                            value={formData.effectiveFromMonth}
-                            onChange={(e) => setFormData(prev => ({
-                                ...prev,
-                                effectiveFromMonth: e.target.value
-                            }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={isSubmitting}
-                        />
-                        {errors.effectiveFromMonth && <p className="text-red-500 text-sm mt-1">{errors.effectiveFromMonth}</p>}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Reden (optioneel)
-                        </label>
-                        <textarea
-                            value={formData.changeReason || ''}
-                            onChange={(e) => setFormData(prev => ({
-                                ...prev,
-                                changeReason: e.target.value
-                            }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            rows={3}
-                            placeholder="Waarom dit budget..."
-                            disabled={isSubmitting}
-                        />
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p className="text-sm text-blue-800">
+                            <strong>Let op:</strong> Budgetten zijn nu eenvoudige containers voor categorieën.
+                            Je hoeft geen bedragen of datums in te stellen - inzichten worden automatisch berekend
+                            op basis van je daadwerkelijke uitgaven!
+                        </p>
                     </div>
 
                     <div className="flex justify-end space-x-3 mt-6">

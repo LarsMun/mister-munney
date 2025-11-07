@@ -14,15 +14,7 @@ class BudgetDTO
     public string $createdAt;
     public string $updatedAt;
 
-    /** @var BudgetVersionDTO[] */
-    public array $versions = [];
-
     /** @var CategoryDTO[] */
     public array $categoryIds = [];
     public array $categories = [];
-
-    // Current version info (convenience)
-    public ?float $currentMonthlyAmount = null;
-    public ?string $currentEffectiveFrom = null;
-    public ?string $currentEffectiveUntil = null;
 }

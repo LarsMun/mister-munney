@@ -6,10 +6,7 @@ import type {
     CreateBudget,
     UpdateBudget,
     AvailableCategory,
-    AssignCategories,
-    CreateBudgetVersion,
-    UpdateBudgetVersion,
-    BudgetVersion
+    AssignCategories
 } from "../models/Budget";
 import type { BudgetSummary, BudgetSummaryResponse } from "../models/BudgetSummary";
 import type { CategoryBreakdown } from "../models/CategoryBreakdown";
@@ -73,38 +70,6 @@ export async function getCategoryBreakdown(
 }
 
 // ===============================
-// BUDGET VERSION CRUD
-// ===============================
-
-export function createBudgetVersion(
-    accountId: number,
-    budgetId: number,
-    version: CreateBudgetVersion
-): Promise<BudgetVersion> {
-    return api.post(`/account/${accountId}/budget/${budgetId}/version/create`, version)
-        .then(res => res.data);
-}
-
-export function updateBudgetVersion(
-    accountId: number,
-    budgetId: number,
-    versionId: number,
-    version: UpdateBudgetVersion
-): Promise<BudgetVersion> {
-    return api.put(`/account/${accountId}/budget/${budgetId}/version/${versionId}`, version)
-        .then(res => res.data);
-}
-
-export function deleteBudgetVersion(
-    accountId: number,
-    budgetId: number,
-    versionId: number
-): Promise<void> {
-    return api.delete(`/account/${accountId}/budget/${budgetId}/version/${versionId}`)
-        .then(() => {});
-}
-
-// ===============================
 // CATEGORY MANAGEMENT
 // ===============================
 
@@ -155,38 +120,4 @@ export function getNextMonth(): string {
     const next = new Date();
     next.setMonth(next.getMonth() + 1);
     return formatDateToMonth(next);
-}
-
-/**
- * Get the currently active version for a budget based on today's date
- */
-function getActiveVersion(budget: Budget): BudgetVersion | undefined {
-    return budget.versions.find(v => v.isCurrent);
-}
-
-/**
- * Check if budget is currently active (has an active version right now)
- */
-export function isCurrentlyActive(budget: Budget): boolean {
-    return getActiveVersion(budget) !== undefined;
-}
-
-/**
- * Check if budget is future (all versions start in the future)
- */
-export function isFuture(budget: Budget): boolean {
-    const currentMonth = getCurrentMonth();
-    // Budget is future if ALL versions start after current month
-    return budget.versions.every(v => v.effectiveFromMonth > currentMonth);
-}
-
-/**
- * Check if budget is expired (all versions ended before current month)
- */
-export function isExpired(budget: Budget): boolean {
-    const currentMonth = getCurrentMonth();
-    // Budget is expired if ALL versions have ended before current month
-    return budget.versions.every(v =>
-        v.effectiveUntilMonth !== null && v.effectiveUntilMonth < currentMonth
-    );
 }

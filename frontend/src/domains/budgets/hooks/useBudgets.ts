@@ -9,9 +9,7 @@ import type {
     CreateBudget,
     UpdateBudget,
     AvailableCategory,
-    AssignCategories,
-    CreateBudgetVersion,
-    UpdateBudgetVersion
+    AssignCategories
 } from '../models/Budget';
 
 export function useBudgets() {
@@ -71,27 +69,6 @@ export function useBudgets() {
         await loadAvailableCategories();
     };
 
-    const createBudgetVersion = async (budgetId: number, version: CreateBudgetVersion): Promise<void> => {
-        if (!accountId) return;
-
-        await budgetsActions.createBudgetVersion(accountId, budgetId, version);
-        await loadBudgets(); // Herlaad budgets om nieuwe versie te tonen
-    };
-
-    const updateBudgetVersion = async (budgetId: number, versionId: number, version: UpdateBudgetVersion): Promise<void> => {
-        if (!accountId) return;
-
-        await budgetsActions.updateBudgetVersion(accountId, budgetId, versionId, version);
-        await loadBudgets(); // Herlaad budgets om wijzigingen te tonen
-    };
-
-    const deleteBudgetVersion = async (budgetId: number, versionId: number): Promise<void> => {
-        if (!accountId) return;
-
-        await budgetsActions.deleteBudgetVersion(accountId, budgetId, versionId);
-        await loadBudgets(); // Herlaad budgets
-    };
-
     const assignCategories = async (budgetId: number, data: AssignCategories): Promise<void> => {
         if (!accountId) return;
 
@@ -125,9 +102,6 @@ export function useBudgets() {
         createBudget,
         updateBudget,
         deleteBudget,
-        createBudgetVersion,
-        updateBudgetVersion,
-        deleteBudgetVersion,
         assignCategories,
         removeCategory,
         refresh
