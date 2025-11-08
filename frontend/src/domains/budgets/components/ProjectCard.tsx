@@ -89,6 +89,32 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                 </div>
             )}
 
+            {/* Duration (Looptijd) */}
+            {project.totals.duration && (
+                <div className="mb-4 bg-orange-50 rounded-lg p-3 border border-orange-200">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs text-orange-600 font-medium">⏱️ Looptijd</span>
+                        <span className="text-sm font-bold text-orange-900">
+                            {project.totals.duration.days === 0
+                                ? '1 betaling'
+                                : project.totals.duration.months > 0
+                                ? `${project.totals.duration.months} ${project.totals.duration.months === 1 ? 'maand' : 'maanden'}`
+                                : `${project.totals.duration.days} ${project.totals.duration.days === 1 ? 'dag' : 'dagen'}`
+                            }
+                        </span>
+                    </div>
+                    <div className="text-xs text-orange-700 mt-1">
+                        {project.totals.duration.days === 0 ? (
+                            <span>{formatDate(project.totals.duration.startDate)}</span>
+                        ) : (
+                            <span>
+                                {formatDate(project.totals.duration.startDate)} - {formatDate(project.totals.duration.endDate)}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Totals Split */}
             <div className="space-y-2 mb-4">
                 <div className="flex justify-between items-center text-sm">
