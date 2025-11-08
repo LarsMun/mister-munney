@@ -270,7 +270,7 @@ function OverviewTab({ project }: { project: ProjectDetails }) {
 function EntriesTab({ project }: { project: ProjectDetails }) {
     const [entries, setEntries] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'transaction' | 'external_payment'>('all');
+    const [filter, setFilter] = useState<'all' | 'debit' | 'credit' | 'external_payment'>('all');
     const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
     const { confirm, Confirm } = useConfirmDialog();
 
@@ -310,7 +310,10 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
 
     const filteredEntries = entries.filter(entry => {
         if (filter === 'all') return true;
-        return entry.type === filter;
+        if (filter === 'external_payment') return entry.type === 'external_payment';
+        if (filter === 'debit') return entry.type === 'transaction' && entry.transactionType === 'DEBIT';
+        if (filter === 'credit') return entry.type === 'transaction' && entry.transactionType === 'CREDIT';
+        return false;
     });
 
     const formatDate = (dateString: string) => {
@@ -346,14 +349,14 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                         Alle ({entries.length})
                     </button>
                     <button
-                        onClick={() => setFilter('transaction')}
+                        onClick={() => setFilter('debit')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            filter === 'transaction'
+                            filter === 'debit'
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
-                        Transacties ({entries.filter(e => e.type === 'transaction').length})
+                        Getrackte uitgaven ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'DEBIT').length})
                     </button>
                     <button
                         onClick={() => setFilter('external_payment')}
@@ -364,6 +367,16 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                         }`}
                     >
                         Externe betalingen ({entries.filter(e => e.type === 'external_payment').length})
+                    </button>
+                    <button
+                        onClick={() => setFilter('credit')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            filter === 'credit'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                    >
+                        Getrackte inkomsten ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'CREDIT').length})
                     </button>
                 </div>
 
@@ -380,7 +393,8 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                 <div className="text-center py-12 text-gray-500">
                     <p className="text-lg mb-2">Geen entries gevonden</p>
                     <p className="text-sm">
-                        {filter === 'transaction' ? 'Er zijn nog geen transacties gekoppeld aan dit project.' :
+                        {filter === 'debit' ? 'Er zijn nog geen getrackte uitgaven (DEBIT) gekoppeld aan dit project.' :
+                         filter === 'credit' ? 'Er zijn nog geen getrackte inkomsten (CREDIT) gekoppeld aan dit project.' :
                          filter === 'external_payment' ? 'Er zijn nog geen externe betalingen toegevoegd.' :
                          'Voeg categorieën toe en categoriseer transacties, of voeg externe betalingen toe.'}
                     </p>
