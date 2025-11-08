@@ -26,7 +26,9 @@ class ProjectAggregatorService
         $tracked = $trackedDebit->subtract($trackedCredit); // Net tracked (debit - credit)
 
         $external = $this->getExternalTotal($project);
-        $total = $tracked->add($external);
+
+        // Total = Getrackte uitgaven (DEBIT) + Externe betalingen
+        $total = $trackedDebit->add($external);
 
         return [
             'trackedDebit' => $this->moneyFactory->toString($trackedDebit),
