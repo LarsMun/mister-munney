@@ -6,9 +6,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import ExternalPaymentForm from './components/ExternalPaymentForm';
 import ProjectAttachmentForm from './components/ProjectAttachmentForm';
 import EditProjectForm from './components/EditProjectForm';
-import { API_URL } from '../../lib/api';
+import TransactionDrawer from '../transactions/components/TransactionDrawer';
+import type { Transaction } from '../transactions/models/Transaction';
+import { BASE_URL } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
+import { formatMoney } from '../../shared/utils/MoneyFormat';
 
 type TabType = 'overview' | 'entries' | 'files';
 
@@ -156,37 +159,37 @@ export default function ProjectDetailPage() {
 
             {/* Tabs */}
             <div className="bg-white rounded-lg shadow mb-6">
-                <div className="border-b border-gray-200">
-                    <div className="flex gap-8 px-6">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                    <div className="flex gap-2 px-4 py-2">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`py-4 font-medium text-sm transition-colors relative ${
+                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
                                 activeTab === 'overview'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
+                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
                             }`}
                         >
-                            Overzicht
+                            📊 Overzicht
                         </button>
                         <button
                             onClick={() => setActiveTab('entries')}
-                            className={`py-4 font-medium text-sm transition-colors relative ${
+                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
                                 activeTab === 'entries'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
+                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
                             }`}
                         >
-                            Inkomsten & Uitgaven
+                            💰 Inkomsten & Uitgaven
                         </button>
                         <button
                             onClick={() => setActiveTab('files')}
-                            className={`py-4 font-medium text-sm transition-colors relative ${
+                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
                                 activeTab === 'files'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
+                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
                             }`}
                         >
-                            Bestanden
+                            📁 Bestanden
                         </button>
                     </div>
                 </div>
@@ -194,8 +197,8 @@ export default function ProjectDetailPage() {
                 {/* Tab Content */}
                 <div className="p-6">
                     {activeTab === 'overview' && <OverviewTab project={project} />}
-                    {activeTab === 'entries' && <EntriesTab project={project} />}
-                    {activeTab === 'files' && <FilesTab project={project} />}
+                    {activeTab === 'entries' && <EntriesTab project={project} onProjectUpdate={() => loadProjectDetails(project.id)} />}
+                    {activeTab === 'files' && <FilesTab project={project} onProjectUpdate={() => loadProjectDetails(project.id)} />}
                 </div>
             </div>
 
@@ -267,11 +270,12 @@ function OverviewTab({ project }: { project: ProjectDetails }) {
 }
 
 // Entries Tab Component
-function EntriesTab({ project }: { project: ProjectDetails }) {
+function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onProjectUpdate: () => void }) {
     const [entries, setEntries] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'debit' | 'credit' | 'external_payment'>('all');
     const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const { confirm, Confirm } = useConfirmDialog();
 
     useEffect(() => {
@@ -304,6 +308,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
             await deleteExternalPayment(paymentId);
             toast.success('Externe betaling verwijderd');
             loadEntries();
+            onProjectUpdate(); // Update totals when payment is deleted
         } catch (error) {
             console.error('Error deleting payment:', error);
             toast.error('Fout bij het verwijderen van betaling');
@@ -314,25 +319,15 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
         if (filter === 'all') return true;
         if (filter === 'external_payment') return entry.type === 'external_payment';
 
-        // Filter by transaction type (DEBIT/CREDIT)
+        // Filter by transaction type (debit/credit)
         if (filter === 'debit') {
             if (entry.type !== 'transaction') return false;
-            // If transactionType is not available yet, check amount (negative = DEBIT)
-            if (!entry.transactionType) {
-                const amount = parseFloat(entry.amount.replace(',', '.'));
-                return amount < 0;
-            }
-            return entry.transactionType === 'DEBIT';
+            return entry.transactionType === 'debit';
         }
 
         if (filter === 'credit') {
             if (entry.type !== 'transaction') return false;
-            // If transactionType is not available yet, check amount (positive = CREDIT)
-            if (!entry.transactionType) {
-                const amount = parseFloat(entry.amount.replace(',', '.'));
-                return amount > 0;
-            }
-            return entry.transactionType === 'CREDIT';
+            return entry.transactionType === 'credit';
         }
 
         return false;
@@ -378,7 +373,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
-                        Getrackte uitgaven ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'DEBIT').length})
+                        Getrackte uitgaven ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'debit').length})
                     </button>
                     <button
                         onClick={() => setFilter('external_payment')}
@@ -398,7 +393,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
-                        Getrackte inkomsten ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'CREDIT').length})
+                        Getrackte inkomsten ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'credit').length})
                     </button>
                 </div>
 
@@ -426,7 +421,16 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                     {filteredEntries.map((entry, idx) => (
                         <div
                             key={`${entry.type}-${entry.id}-${idx}`}
-                            className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                            className={`bg-white border border-gray-200 rounded-lg p-4 transition-colors ${
+                                entry.type === 'transaction'
+                                    ? 'hover:border-blue-300 hover:shadow-md cursor-pointer'
+                                    : 'hover:border-gray-300'
+                            }`}
+                            onClick={() => {
+                                if (entry.type === 'transaction') {
+                                    setSelectedTransaction(entry);
+                                }
+                            }}
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
@@ -441,7 +445,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                         <span className="text-sm text-gray-600">{formatDate(entry.date)}</span>
                                         {entry.category && (
                                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
-                                                {entry.category}
+                                                {typeof entry.category === 'string' ? entry.category : entry.category.name}
                                             </span>
                                         )}
                                         {entry.payerSource && (
@@ -453,10 +457,11 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                     <p className="text-gray-900 font-medium">{entry.description}</p>
                                     {entry.attachmentUrl && (
                                         <a
-                                            href={`${API_URL}${entry.attachmentUrl}`}
+                                            href={`${BASE_URL}${entry.attachmentUrl}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-flex items-center gap-1"
+                                            onClick={(e) => e.stopPropagation()}
                                         >
                                             📎 Bijlage bekijken
                                         </a>
@@ -464,11 +469,23 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <div className="text-right">
-                                        <p className="text-lg font-bold text-gray-900">{entry.amount}</p>
+                                        <p className={`text-lg font-bold ${
+                                            entry.type === 'transaction'
+                                                ? entry.transactionType === 'debit' ? 'text-red-600' : 'text-green-600'
+                                                : 'text-gray-900'
+                                        }`}>
+                                            {entry.type === 'transaction'
+                                                ? `${entry.transactionType === 'debit' ? '-' : '+'} ${formatMoney(entry.amount)}`
+                                                : formatMoney(entry.amount)
+                                            }
+                                        </p>
                                     </div>
                                     {entry.type === 'external_payment' && (
                                         <button
-                                            onClick={() => handleDeleteExternalPayment(entry.id, entry.description)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteExternalPayment(entry.id, entry.description);
+                                            }}
                                             className="text-sm px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                                             title="Verwijderen"
                                         >
@@ -488,17 +505,25 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                 onClose={() => setIsAddPaymentOpen(false)}
                 budgetId={project.id}
                 onSuccess={() => {
-                    loadEntries();
-                    window.location.reload(); // Refresh to update totals
+                    loadEntries(); // Reload entries list
+                    onProjectUpdate(); // Reload project details for updated totals
+                    toast.success('Externe betaling toegevoegd');
                 }}
             />
+
+            {/* Transaction Drawer */}
+            <TransactionDrawer
+                transaction={selectedTransaction}
+                onClose={() => setSelectedTransaction(null)}
+            />
+
             {Confirm}
         </div>
     );
 }
 
 // Files Tab Component
-function FilesTab({ project }: { project: ProjectDetails }) {
+function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onProjectUpdate: () => void }) {
     const [payments, setPayments] = useState<ExternalPayment[]>([]);
     const [attachments, setAttachments] = useState<ProjectAttachment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -560,6 +585,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                 // Delete entire payment (including attachment)
                 await deleteExternalPayment(paymentId);
                 toast.success('Externe betaling en bijlage verwijderd');
+                onProjectUpdate(); // Update totals when payment is deleted
             } else {
                 // Just remove the attachment
                 await removeExternalPaymentAttachment(paymentId);
@@ -584,6 +610,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
             await deleteExternalPayment(paymentId);
             toast.success('Externe betaling verwijderd');
             loadFiles();
+            onProjectUpdate(); // Update totals when payment is deleted
         } catch (error) {
             console.error('Error deleting payment:', error);
             toast.error('Fout bij het verwijderen van betaling');
@@ -701,7 +728,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                 <p className="text-sm text-gray-600 mb-3">{formatDate(attachment.uploadedAt)}</p>
                                 <div className="flex gap-2">
                                     <a
-                                        href={`${API_URL}${attachment.fileUrl}`}
+                                        href={`${BASE_URL}${attachment.fileUrl}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -709,7 +736,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                         Openen
                                     </a>
                                     <a
-                                        href={`${API_URL}${attachment.fileUrl}`}
+                                        href={`${BASE_URL}${attachment.fileUrl}`}
                                         download
                                         className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                     >
@@ -747,7 +774,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                 <p className="text-lg font-bold text-gray-900 mb-3">€ {payment.amount}</p>
                                 <div className="flex gap-2">
                                     <a
-                                        href={`${API_URL}${payment.attachmentUrl}`}
+                                        href={`${BASE_URL}${payment.attachmentUrl}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -755,7 +782,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                         Openen
                                     </a>
                                     <a
-                                        href={`${API_URL}${payment.attachmentUrl}`}
+                                        href={`${BASE_URL}${payment.attachmentUrl}`}
                                         download
                                         className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                     >
