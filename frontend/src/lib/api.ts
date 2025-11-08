@@ -2,6 +2,10 @@ import api from './axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 
+// Base URL without /api for static files (uploads, etc.)
+// Remove /api suffix from API_URL to get the base URL
+export const BASE_URL = API_URL.replace(/\/api\/?$/, '');
+
 export async function fetchTransactions(
     accountId: number,
     filters: { startDate?: string; endDate?: string }
