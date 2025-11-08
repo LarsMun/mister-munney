@@ -30,6 +30,9 @@ class ProjectAggregatorService
         // Total = Getrackte uitgaven (DEBIT) + Externe betalingen
         $total = $trackedDebit->add($external);
 
+        // Calculate duration (from first to last payment)
+        $duration = $this->getProjectDuration($project);
+
         return [
             'trackedDebit' => $this->moneyFactory->toString($trackedDebit),
             'trackedCredit' => $this->moneyFactory->toString($trackedCredit),
@@ -37,6 +40,7 @@ class ProjectAggregatorService
             'external' => $this->moneyFactory->toString($external),
             'total' => $this->moneyFactory->toString($total),
             'categoryBreakdown' => $this->getCategoryBreakdown($project),
+            'duration' => $duration,
         ];
     }
 
@@ -553,5 +557,51 @@ class ProjectAggregatorService
         }
 
         return $totals;
+    }
+
+    /**
+     * Get project duration (from first to last payment)
+     */
+    private function getProjectDuration(Budget $project): ?array
+    {
+        $dates = [];
+
+        // Get transaction dates
+        $transactions = $this->getProjectTransactions($project);
+        foreach ($transactions as $txn) {
+            $dates[] = $txn->getDate();
+        }
+
+        // Get external payment dates
+        $externalPayments = $this->getProjectExternalPayments($project);
+        foreach ($externalPayments as $payment) {
+            $dates[] = $payment->getPaidOn();
+        }
+
+        // If no payments yet, return null
+        if (empty($dates)) {
+            return null;
+        }
+
+        // Find first and last date
+        $firstDate = min($dates);
+        $lastDate = max($dates);
+
+        // Calculate duration in days
+        $interval = $firstDate->diff($lastDate);
+        $days = (int) $interval->format('%a');
+
+        // Calculate months (approximate)
+        $months = 0;
+        if ($days > 0) {
+            $months = (int) round($days / 30.44); // Average days per month
+        }
+
+        return [
+            'startDate' => $firstDate->format('Y-m-d'),
+            'endDate' => $lastDate->format('Y-m-d'),
+            'days' => $days,
+            'months' => $months,
+        ];
     }
 }
