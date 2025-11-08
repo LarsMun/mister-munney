@@ -59,6 +59,7 @@ class ProjectAggregatorService
                 'description' => $txn->getDescription(),
                 'amount' => $this->moneyFactory->toString($txn->getAmount()),
                 'category' => $txn->getCategory()?->getName(),
+                'transactionType' => $txn->getTransactionType()->value,
             ];
         }
 
