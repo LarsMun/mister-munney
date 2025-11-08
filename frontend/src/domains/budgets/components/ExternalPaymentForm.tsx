@@ -1,22 +1,47 @@
-import { useState } from 'react';
-import { createExternalPayment, uploadExternalPaymentAttachment } from '../services/AdaptiveDashboardService';
-import type { CreateExternalPaymentDTO, PayerSource } from '../models/AdaptiveBudget';
+import { useState, useEffect } from 'react';
+import { createExternalPayment, updateExternalPayment, uploadExternalPaymentAttachment } from '../services/AdaptiveDashboardService';
+import type { CreateExternalPaymentDTO, UpdateExternalPaymentDTO, PayerSource, ExternalPayment } from '../models/AdaptiveBudget';
 import toast from 'react-hot-toast';
 
 interface ExternalPaymentFormProps {
     isOpen: boolean;
     onClose: () => void;
     budgetId: number;
+    payment?: ExternalPayment; // If provided, edit mode
     onSuccess?: () => void;
 }
 
-export default function ExternalPaymentForm({ isOpen, onClose, budgetId, onSuccess }: ExternalPaymentFormProps) {
+export default function ExternalPaymentForm({ isOpen, onClose, budgetId, payment, onSuccess }: ExternalPaymentFormProps) {
+    const isEditMode = !!payment;
+
     const [amount, setAmount] = useState('');
     const [paidOn, setPaidOn] = useState(new Date().toISOString().split('T')[0]);
     const [payerSource, setPayerSource] = useState<PayerSource>('SELF');
     const [note, setNote] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Initialize form with payment data in edit mode
+    useEffect(() => {
+        if (isOpen && payment) {
+            // Edit mode - pre-fill with existing payment data
+            // Convert amount to string and clean it (remove €, spaces, commas)
+            const amountString = String(payment.amount);
+            const amountValue = amountString.replace(/[€\s]/g, '').replace(/,/g, '.');
+            setAmount(amountValue);
+            setPaidOn(payment.paidOn);
+            setPayerSource(payment.payerSource);
+            setNote(payment.note);
+            setFile(null);
+        } else if (isOpen && !payment) {
+            // Create mode - reset to defaults
+            setAmount('');
+            setPaidOn(new Date().toISOString().split('T')[0]);
+            setPayerSource('SELF');
+            setNote('');
+            setFile(null);
+        }
+    }, [payment, isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,34 +64,53 @@ export default function ExternalPaymentForm({ isOpen, onClose, budgetId, onSucce
         setIsSubmitting(true);
 
         try {
-            const dto: CreateExternalPaymentDTO = {
-                amount: parseFloat(amount),
-                paidOn,
-                payerSource,
-                note: note.trim(),
-            };
+            if (isEditMode && payment) {
+                // Update existing payment
+                const updateDto: UpdateExternalPaymentDTO = {
+                    amount: parseFloat(amount),
+                    paidOn,
+                    payerSource,
+                    note: note.trim(),
+                };
 
-            const payment = await createExternalPayment(budgetId, dto);
+                const updatedPayment = await updateExternalPayment(payment.id, updateDto);
 
-            // Upload file if provided
-            if (file) {
-                try {
-                    await uploadExternalPaymentAttachment(payment.id, file);
-                    toast.success('Externe betaling aangemaakt met bijlage');
-                } catch (fileError) {
-                    console.error('Error uploading file:', fileError);
-                    toast.success('Externe betaling aangemaakt, maar bijlage uploaden mislukt');
+                // Upload new file if provided
+                if (file) {
+                    try {
+                        await uploadExternalPaymentAttachment(updatedPayment.id, file);
+                        toast.success('Externe betaling bijgewerkt met nieuwe bijlage');
+                    } catch (fileError) {
+                        console.error('Error uploading file:', fileError);
+                        toast.success('Externe betaling bijgewerkt, maar bijlage uploaden mislukt');
+                    }
+                } else {
+                    toast.success('Externe betaling bijgewerkt');
                 }
             } else {
-                toast.success('Externe betaling aangemaakt');
-            }
+                // Create new payment
+                const createDto: CreateExternalPaymentDTO = {
+                    amount: parseFloat(amount),
+                    paidOn,
+                    payerSource,
+                    note: note.trim(),
+                };
 
-            // Reset form
-            setAmount('');
-            setPaidOn(new Date().toISOString().split('T')[0]);
-            setPayerSource('SELF');
-            setNote('');
-            setFile(null);
+                const newPayment = await createExternalPayment(budgetId, createDto);
+
+                // Upload file if provided
+                if (file) {
+                    try {
+                        await uploadExternalPaymentAttachment(newPayment.id, file);
+                        toast.success('Externe betaling aangemaakt met bijlage');
+                    } catch (fileError) {
+                        console.error('Error uploading file:', fileError);
+                        toast.success('Externe betaling aangemaakt, maar bijlage uploaden mislukt');
+                    }
+                } else {
+                    toast.success('Externe betaling aangemaakt');
+                }
+            }
 
             if (onSuccess) {
                 onSuccess();
@@ -74,8 +118,8 @@ export default function ExternalPaymentForm({ isOpen, onClose, budgetId, onSucce
 
             onClose();
         } catch (error) {
-            console.error('Error creating external payment:', error);
-            toast.error('Fout bij het aanmaken van externe betaling');
+            console.error('Error saving external payment:', error);
+            toast.error(isEditMode ? 'Fout bij het bijwerken van externe betaling' : 'Fout bij het aanmaken van externe betaling');
         } finally {
             setIsSubmitting(false);
         }
@@ -110,7 +154,9 @@ export default function ExternalPaymentForm({ isOpen, onClose, budgetId, onSucce
                 <div className="p-6">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6">
-                        <h2 id="external-payment-title" className="text-xl font-semibold text-gray-800">Externe Betaling Toevoegen</h2>
+                        <h2 id="external-payment-title" className="text-xl font-semibold text-gray-800">
+                            {isEditMode ? 'Externe Betaling Bewerken' : 'Externe Betaling Toevoegen'}
+                        </h2>
                         <button
                             onClick={onClose}
                             disabled={isSubmitting}
@@ -184,13 +230,13 @@ export default function ExternalPaymentForm({ isOpen, onClose, budgetId, onSucce
                         {/* Note */}
                         <div>
                             <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-1">
-                                Notitie *
+                                Omschrijving *
                             </label>
-                            <textarea
+                            <input
+                                type="text"
                                 id="note"
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
-                                rows={3}
                                 placeholder="Beschrijving van de betaling..."
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={isSubmitting}
@@ -253,7 +299,7 @@ export default function ExternalPaymentForm({ isOpen, onClose, budgetId, onSucce
                                 disabled={isSubmitting}
                                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isSubmitting ? 'Bezig...' : 'Opslaan'}
+                                {isSubmitting ? 'Bezig...' : (isEditMode ? 'Bijwerken' : 'Opslaan')}
                             </button>
                         </div>
                     </form>
