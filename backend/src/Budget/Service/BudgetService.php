@@ -220,6 +220,9 @@ class BudgetService
 
     /**
      * Creëert een budget summary voor een specifiek budget en maand.
+     *
+     * Note: This is a legacy method. Budget versions have been removed.
+     * Allocated amounts are no longer supported. Consider using the Adaptive Dashboard instead.
      */
     private function createBudgetSummary(Budget $budget, string $monthYear, int $accountId): BudgetSummaryDTO
     {
@@ -229,9 +232,9 @@ class BudgetService
         $summary->budgetType = $budget->getBudgetType()->value;
         $summary->monthYear = $monthYear;
 
-        // Haal effectieve versie op voor deze maand
-        $effectiveVersion = $budget->getEffectiveVersion($monthYear);
-        $allocatedMoney = $effectiveVersion ? $effectiveVersion->getMonthlyAmount() : Money::EUR(0);
+        // Budget versions have been removed - budgets no longer have allocated amounts
+        // Defaulting to 0 for backward compatibility
+        $allocatedMoney = Money::EUR(0);
         $summary->allocatedAmount = $this->moneyFactory->toFloat($allocatedMoney);
 
         // Verzamel alle categorie IDs die bij dit budget horen
