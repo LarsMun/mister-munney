@@ -55,11 +55,27 @@ class ProjectAggregatorService
             $entries[] = [
                 'type' => 'transaction',
                 'id' => $txn->getId(),
+                'hash' => $txn->getHash(),
                 'date' => $txn->getDate()->format('Y-m-d'),
                 'description' => $txn->getDescription(),
-                'amount' => $this->moneyFactory->toString($txn->getAmount()),
-                'category' => $txn->getCategory()?->getName(),
+                'accountId' => $txn->getAccount()->getId(),
+                'counterpartyAccount' => $txn->getCounterpartyAccount(),
+                'transactionCode' => $txn->getTransactionCode(),
                 'transactionType' => $txn->getTransactionType()->value,
+                'amount' => $this->moneyFactory->toFloat($txn->getAmount()),
+                'mutationType' => $txn->getMutationType(),
+                'notes' => $txn->getNotes(),
+                'balanceAfter' => $this->moneyFactory->toFloat($txn->getBalanceAfter()),
+                'tag' => $txn->getTag(),
+                'category' => $txn->getCategory() ? [
+                    'id' => $txn->getCategory()->getId(),
+                    'name' => $txn->getCategory()->getName(),
+                    'color' => $txn->getCategory()->getColor(),
+                ] : null,
+                'savingsAccount' => $txn->getSavingsAccount() ? [
+                    'id' => $txn->getSavingsAccount()->getId(),
+                    'name' => $txn->getSavingsAccount()->getName(),
+                ] : null,
             ];
         }
 
@@ -69,7 +85,7 @@ class ProjectAggregatorService
                 'id' => $payment->getId(),
                 'date' => $payment->getPaidOn()->format('Y-m-d'),
                 'description' => $payment->getNote(),
-                'amount' => $this->moneyFactory->toString($payment->getAmount()),
+                'amount' => $this->moneyFactory->toFloat($payment->getAmount()),
                 'payerSource' => $payment->getPayerSource()->value,
                 'attachmentUrl' => $payment->getAttachmentUrl(),
             ];
