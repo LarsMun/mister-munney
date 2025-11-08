@@ -133,7 +133,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mt-4">
                     <div className="bg-red-50 rounded-lg p-4">
                         <p className="text-sm text-red-600 font-medium mb-1">Getrackte uitgaven (DEBIT)</p>
                         <p className="text-2xl font-bold text-red-900">{project.totals.trackedDebit}</p>
@@ -153,6 +153,33 @@ export default function ProjectDetailPage() {
                     <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-300">
                         <p className="text-sm text-gray-600 font-medium mb-1">Totaal</p>
                         <p className="text-2xl font-bold text-gray-900">{project.totals.total}</p>
+                    </div>
+                    <div className="bg-orange-50 rounded-lg p-4">
+                        <p className="text-sm text-orange-600 font-medium mb-1">Looptijd</p>
+                        {project.totals.duration ? (
+                            <div>
+                                <p className="text-2xl font-bold text-orange-900">
+                                    {project.totals.duration.days === 0
+                                        ? '1 betaling'
+                                        : project.totals.duration.months > 0
+                                        ? `${project.totals.duration.months} ${project.totals.duration.months === 1 ? 'maand' : 'maanden'}`
+                                        : `${project.totals.duration.days} ${project.totals.duration.days === 1 ? 'dag' : 'dagen'}`
+                                    }
+                                </p>
+                                {project.totals.duration.days > 0 && (
+                                    <p className="text-xs text-orange-700 mt-1">
+                                        {new Date(project.totals.duration.startDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })} - {new Date(project.totals.duration.endDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                )}
+                                {project.totals.duration.days === 0 && (
+                                    <p className="text-xs text-orange-700 mt-1">
+                                        {new Date(project.totals.duration.startDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-orange-700 italic">Geen betalingen</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -275,6 +302,7 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'debit' | 'credit' | 'external_payment'>('all');
     const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+    const [editingPayment, setEditingPayment] = useState<any>(null);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const { confirm, Confirm } = useConfirmDialog();
 
@@ -312,6 +340,24 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
         } catch (error) {
             console.error('Error deleting payment:', error);
             toast.error('Fout bij het verwijderen van betaling');
+        }
+    };
+
+    const handleRemoveAttachment = async (paymentId: number, note: string) => {
+        const result = await confirm({
+            title: 'Bijlage verwijderen?',
+            description: `Weet je zeker dat je de bijlage van "${note}" wilt verwijderen? De betaling blijft behouden.`
+        });
+
+        if (!result.confirmed) return;
+
+        try {
+            await removeExternalPaymentAttachment(paymentId);
+            toast.success('Bijlage verwijderd');
+            loadEntries();
+        } catch (error) {
+            console.error('Error removing attachment:', error);
+            toast.error('Fout bij het verwijderen van bijlage');
         }
     };
 
@@ -456,15 +502,27 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                                     </div>
                                     <p className="text-gray-900 font-medium">{entry.description}</p>
                                     {entry.attachmentUrl && (
-                                        <a
-                                            href={`${BASE_URL}${entry.attachmentUrl}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-flex items-center gap-1"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            📎 Bijlage bekijken
-                                        </a>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <a
+                                                href={`${BASE_URL}${entry.attachmentUrl}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                📎 Bijlage bekijken
+                                            </a>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemoveAttachment(entry.id, entry.description);
+                                                }}
+                                                className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                                title="Bijlage verwijderen"
+                                            >
+                                                Verwijderen
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                                 <div className="flex items-start gap-2">
@@ -481,16 +539,34 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                                         </p>
                                     </div>
                                     {entry.type === 'external_payment' && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteExternalPayment(entry.id, entry.description);
-                                            }}
-                                            className="text-sm px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                            title="Verwijderen"
-                                        >
-                                            🗑️
-                                        </button>
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Transform entry to ExternalPayment format
+                                                    setEditingPayment({
+                                                        ...entry,
+                                                        paidOn: entry.date,
+                                                        note: entry.description,
+                                                        budgetId: project.id
+                                                    });
+                                                }}
+                                                className="text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                                title="Bewerken"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteExternalPayment(entry.id, entry.description);
+                                                }}
+                                                className="text-sm px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                                title="Verwijderen"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -499,7 +575,7 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                 </div>
             )}
 
-            {/* External Payment Form Modal */}
+            {/* External Payment Form Modal - Create */}
             <ExternalPaymentForm
                 isOpen={isAddPaymentOpen}
                 onClose={() => setIsAddPaymentOpen(false)}
@@ -508,6 +584,19 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                     loadEntries(); // Reload entries list
                     onProjectUpdate(); // Reload project details for updated totals
                     toast.success('Externe betaling toegevoegd');
+                }}
+            />
+
+            {/* External Payment Form Modal - Edit */}
+            <ExternalPaymentForm
+                isOpen={!!editingPayment}
+                onClose={() => setEditingPayment(null)}
+                budgetId={project.id}
+                payment={editingPayment}
+                onSuccess={() => {
+                    loadEntries(); // Reload entries list
+                    onProjectUpdate(); // Reload project details for updated totals
+                    setEditingPayment(null);
                 }}
             />
 
@@ -528,6 +617,7 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
     const [attachments, setAttachments] = useState<ProjectAttachment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploadFormOpen, setIsUploadFormOpen] = useState(false);
+    const [editingPayment, setEditingPayment] = useState<ExternalPayment | null>(null);
     const { confirm, Confirm } = useConfirmDialog();
 
     useEffect(() => {
@@ -568,33 +658,21 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
         }
     };
 
-    const handleDeletePaymentAttachment = async (paymentId: number, note: string) => {
+    const handleRemovePaymentAttachment = async (paymentId: number, note: string) => {
         const result = await confirm({
             title: 'Bijlage verwijderen?',
-            description: `Weet je zeker dat je de bijlage van "${note}" wilt verwijderen?`,
-            checkbox: {
-                label: 'Ook externe betaling verwijderen',
-                defaultChecked: false
-            }
+            description: `Weet je zeker dat je de bijlage van "${note}" wilt verwijderen? De betaling blijft behouden.`
         });
 
         if (!result.confirmed) return;
 
         try {
-            if (result.checkboxValue) {
-                // Delete entire payment (including attachment)
-                await deleteExternalPayment(paymentId);
-                toast.success('Externe betaling en bijlage verwijderd');
-                onProjectUpdate(); // Update totals when payment is deleted
-            } else {
-                // Just remove the attachment
-                await removeExternalPaymentAttachment(paymentId);
-                toast.success('Bijlage verwijderd');
-            }
+            await removeExternalPaymentAttachment(paymentId);
+            toast.success('Bijlage verwijderd');
             loadFiles();
         } catch (error) {
-            console.error('Error deleting attachment:', error);
-            toast.error('Fout bij het verwijderen');
+            console.error('Error removing attachment:', error);
+            toast.error('Fout bij het verwijderen van bijlage');
         }
     };
 
@@ -772,7 +850,7 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                                 </div>
                                 <p className="text-sm text-gray-600 mb-2">{formatDate(payment.paidOn)}</p>
                                 <p className="text-lg font-bold text-gray-900 mb-3">€ {payment.amount}</p>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <a
                                         href={`${BASE_URL}${payment.attachmentUrl}`}
                                         target="_blank"
@@ -789,9 +867,23 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                                         Download
                                     </a>
                                     <button
-                                        onClick={() => handleDeletePaymentAttachment(payment.id, payment.note)}
+                                        onClick={() => setEditingPayment(payment)}
+                                        className="text-sm px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                        title="Bewerken"
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button
+                                        onClick={() => handleRemovePaymentAttachment(payment.id, payment.note)}
+                                        className="text-sm px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors"
+                                        title="Bijlage verwijderen"
+                                    >
+                                        📎✕
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeletePayment(payment.id, payment.note)}
                                         className="text-sm px-3 py-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                        title="Verwijderen"
+                                        title="Betaling verwijderen"
                                     >
                                         🗑️
                                     </button>
@@ -808,6 +900,20 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                 projectId={project.id}
                 onSuccess={loadFiles}
             />
+
+            {/* External Payment Form Modal - Edit */}
+            <ExternalPaymentForm
+                isOpen={!!editingPayment}
+                onClose={() => setEditingPayment(null)}
+                budgetId={project.id}
+                payment={editingPayment}
+                onSuccess={() => {
+                    loadFiles();
+                    onProjectUpdate();
+                    setEditingPayment(null);
+                }}
+            />
+
             {Confirm}
         </div>
     );

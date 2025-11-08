@@ -40,6 +40,14 @@ export interface ProjectTotals {
     external: string;
     total: string;
     categoryBreakdown: CategoryBreakdown[];
+    duration: ProjectDuration | null;
+}
+
+export interface ProjectDuration {
+    startDate: string;
+    endDate: string;
+    days: number;
+    months: number;
 }
 
 export interface CategoryBreakdown {
