@@ -282,6 +282,8 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
         setIsLoading(true);
         try {
             const data = await fetchProjectEntries(project.id);
+            console.log('Loaded entries:', data);
+            console.log('Sample entry:', data[0]);
             setEntries(data);
         } catch (error) {
             console.error('Error loading entries:', error);
@@ -311,8 +313,28 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
     const filteredEntries = entries.filter(entry => {
         if (filter === 'all') return true;
         if (filter === 'external_payment') return entry.type === 'external_payment';
-        if (filter === 'debit') return entry.type === 'transaction' && entry.transactionType === 'DEBIT';
-        if (filter === 'credit') return entry.type === 'transaction' && entry.transactionType === 'CREDIT';
+
+        // Filter by transaction type (DEBIT/CREDIT)
+        if (filter === 'debit') {
+            if (entry.type !== 'transaction') return false;
+            // If transactionType is not available yet, check amount (negative = DEBIT)
+            if (!entry.transactionType) {
+                const amount = parseFloat(entry.amount.replace(',', '.'));
+                return amount < 0;
+            }
+            return entry.transactionType === 'DEBIT';
+        }
+
+        if (filter === 'credit') {
+            if (entry.type !== 'transaction') return false;
+            // If transactionType is not available yet, check amount (positive = CREDIT)
+            if (!entry.transactionType) {
+                const amount = parseFloat(entry.amount.replace(',', '.'));
+                return amount > 0;
+            }
+            return entry.transactionType === 'CREDIT';
+        }
+
         return false;
     });
 
