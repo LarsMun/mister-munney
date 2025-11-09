@@ -8,6 +8,7 @@ services:
       - "8687:80"
     volumes:
       - ./backend:/var/www/html:ro  # Read-only in productie
+      - uploads_prod:/var/www/html/public/uploads  # Read-write voor uploads
     environment:
       APP_ENV: prod
       APP_DEBUG: "false"
@@ -58,3 +59,5 @@ services:
 volumes:
   db_data_prod:
     name: munney_db_data_prod
+  uploads_prod:
+    name: munney_uploads_prod

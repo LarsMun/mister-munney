@@ -120,7 +120,7 @@ class AccountService
         if (!$account) {
             $account = new Account();
             $account->setAccountNumber($accountNumber);
-            $account->addOwner($user);  // Link to user
+            $account->addUser($user);  // Link to user
             $this->accountRepository->save($account);
 
             $this->logger->info("Nieuw rekeningnummer aangemaakt en gekoppeld aan gebruiker: " . $accountNumber, [
@@ -129,7 +129,7 @@ class AccountService
             ]);
         } elseif (!$account->isOwnedBy($user)) {
             // Account exists but user doesn't own it - add user as owner
-            $account->addOwner($user);
+            $account->addUser($user);
             $this->accountRepository->save($account);
             $this->logger->info("Gebruiker toegevoegd aan bestaand account: " . $accountNumber, [
                 'accountNumber' => $accountNumber,
