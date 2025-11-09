@@ -38,9 +38,9 @@ RUN rm -rf src/DataFixtures tests/ .git
 RUN composer dump-autoload --optimize --no-dev
 
 # Zorg voor juiste permissions
-RUN mkdir -p var/cache var/log \
-    && chown -R www-data:www-data var/ \
-    && chmod -R 775 var/
+RUN mkdir -p var/cache var/log public/uploads \
+    && chown -R www-data:www-data var/ public/uploads \
+    && chmod -R 775 var/ public/uploads
 
 # Warm up cache (als productie)
 RUN php bin/console cache:warmup --env=prod || true

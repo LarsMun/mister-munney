@@ -12,6 +12,24 @@ import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 
 type TabType = 'overview' | 'entries' | 'files';
 
+// Helper functions to generate download URLs for attachments
+const getAttachmentDownloadUrl = (entry: any): string => {
+    if (entry.type === 'external_payment' && entry.id) {
+        return `${API_URL}/api/external-payments/${entry.id}/download`;
+    }
+    // Fallback to old URL format (shouldn't happen, but just in case)
+    return entry.attachmentUrl ? `${API_URL}${entry.attachmentUrl}` : '';
+};
+
+const getExternalPaymentAttachmentUrl = (paymentId: number): string => {
+    return `${API_URL}/api/external-payments/${paymentId}/download`;
+};
+
+const getProjectAttachmentUrl = (attachmentId: number, download: boolean = false): string => {
+    const url = `${API_URL}/api/project-attachments/${attachmentId}/download`;
+    return download ? `${url}?download=1` : url;
+};
+
 export default function ProjectDetailPage() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
@@ -453,7 +471,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                     <p className="text-gray-900 font-medium">{entry.description}</p>
                                     {entry.attachmentUrl && (
                                         <a
-                                            href={`${API_URL}${entry.attachmentUrl}`}
+                                            href={getAttachmentDownloadUrl(entry)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-sm text-blue-600 hover:text-blue-700 mt-1 inline-flex items-center gap-1"
@@ -701,7 +719,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                 <p className="text-sm text-gray-600 mb-3">{formatDate(attachment.uploadedAt)}</p>
                                 <div className="flex gap-2">
                                     <a
-                                        href={`${API_URL}${attachment.fileUrl}`}
+                                        href={getProjectAttachmentUrl(attachment.id, false)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -709,7 +727,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                         Openen
                                     </a>
                                     <a
-                                        href={`${API_URL}${attachment.fileUrl}`}
+                                        href={getProjectAttachmentUrl(attachment.id, true)}
                                         download
                                         className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                     >
@@ -747,7 +765,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                 <p className="text-lg font-bold text-gray-900 mb-3">€ {payment.amount}</p>
                                 <div className="flex gap-2">
                                     <a
-                                        href={`${API_URL}${payment.attachmentUrl}`}
+                                        href={getExternalPaymentAttachmentUrl(payment.id)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -755,7 +773,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                         Openen
                                     </a>
                                     <a
-                                        href={`${API_URL}${payment.attachmentUrl}`}
+                                        href={`${getExternalPaymentAttachmentUrl(payment.id)}?download=1`}
                                         download
                                         className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                     >
