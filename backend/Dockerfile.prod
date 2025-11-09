@@ -51,10 +51,10 @@ USER symfony
 RUN composer install --no-scripts --optimize-autoloader
 USER root
 
-# Zorg ervoor dat var directory bestaat en de juiste permissions heeft
-RUN mkdir -p /var/www/html/var/cache /var/www/html/var/log
-RUN chown -R www-data:www-data /var/www/html/var
-RUN chmod -R 775 /var/www/html/var
+# Zorg ervoor dat var directory en uploads directory bestaan met juiste permissions
+RUN mkdir -p /var/www/html/var/cache /var/www/html/var/log /var/www/html/public/uploads
+RUN chown -R www-data:www-data /var/www/html/var /var/www/html/public/uploads
+RUN chmod -R 775 /var/www/html/var /var/www/html/public/uploads
 
 # Geef Apache (www-data) toegang tot alle bestanden
 RUN chown -R www-data:www-data /var/www/html
