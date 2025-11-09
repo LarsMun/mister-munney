@@ -15,6 +15,24 @@ import { formatMoney } from '../../shared/utils/MoneyFormat';
 
 type TabType = 'overview' | 'entries' | 'files';
 
+// Helper functions to generate download URLs for attachments
+const getAttachmentDownloadUrl = (entry: any): string => {
+    if (entry.type === 'external_payment' && entry.id) {
+        return `${BASE_URL}/api/external-payments/${entry.id}/download`;
+    }
+    // Fallback to old URL format (shouldn't happen, but just in case)
+    return entry.attachmentUrl ? `${BASE_URL}${entry.attachmentUrl}` : '';
+};
+
+const getExternalPaymentAttachmentUrl = (paymentId: number): string => {
+    return `${BASE_URL}/api/external-payments/${paymentId}/download`;
+};
+
+const getProjectAttachmentUrl = (attachmentId: number, download: boolean = false): string => {
+    const url = `${BASE_URL}/api/project-attachments/${attachmentId}/download`;
+    return download ? `${url}?download=1` : url;
+};
+
 export default function ProjectDetailPage() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
@@ -133,7 +151,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                     <div className="bg-red-50 rounded-lg p-4">
                         <p className="text-sm text-red-600 font-medium mb-1">Getrackte uitgaven (DEBIT)</p>
                         <p className="text-2xl font-bold text-red-900">{project.totals.trackedDebit}</p>
@@ -154,69 +172,42 @@ export default function ProjectDetailPage() {
                         <p className="text-sm text-gray-600 font-medium mb-1">Totaal</p>
                         <p className="text-2xl font-bold text-gray-900">{project.totals.total}</p>
                     </div>
-                    <div className="bg-orange-50 rounded-lg p-4">
-                        <p className="text-sm text-orange-600 font-medium mb-1">Looptijd</p>
-                        {project.totals.duration ? (
-                            <div>
-                                <p className="text-2xl font-bold text-orange-900">
-                                    {project.totals.duration.days === 0
-                                        ? '1 betaling'
-                                        : project.totals.duration.months > 0
-                                        ? `${project.totals.duration.months} ${project.totals.duration.months === 1 ? 'maand' : 'maanden'}`
-                                        : `${project.totals.duration.days} ${project.totals.duration.days === 1 ? 'dag' : 'dagen'}`
-                                    }
-                                </p>
-                                {project.totals.duration.days > 0 && (
-                                    <p className="text-xs text-orange-700 mt-1">
-                                        {new Date(project.totals.duration.startDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })} - {new Date(project.totals.duration.endDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                    </p>
-                                )}
-                                {project.totals.duration.days === 0 && (
-                                    <p className="text-xs text-orange-700 mt-1">
-                                        {new Date(project.totals.duration.startDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                    </p>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-orange-700 italic">Geen betalingen</p>
-                        )}
-                    </div>
                 </div>
             </div>
 
             {/* Tabs */}
             <div className="bg-white rounded-lg shadow mb-6">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
-                    <div className="flex gap-2 px-4 py-2">
+                <div className="border-b border-gray-200">
+                    <div className="flex gap-8 px-6">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
+                            className={`py-4 font-medium text-sm transition-colors relative ${
                                 activeTab === 'overview'
-                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
-                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-600 hover:text-gray-900'
                             }`}
                         >
-                            📊 Overzicht
+                            Overzicht
                         </button>
                         <button
                             onClick={() => setActiveTab('entries')}
-                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
+                            className={`py-4 font-medium text-sm transition-colors relative ${
                                 activeTab === 'entries'
-                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
-                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-600 hover:text-gray-900'
                             }`}
                         >
-                            💰 Inkomsten & Uitgaven
+                            Inkomsten & Uitgaven
                         </button>
                         <button
                             onClick={() => setActiveTab('files')}
-                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
+                            className={`py-4 font-medium text-sm transition-colors relative ${
                                 activeTab === 'files'
-                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
-                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-600 hover:text-gray-900'
                             }`}
                         >
-                            📁 Bestanden
+                            Bestanden
                         </button>
                     </div>
                 </div>
@@ -224,8 +215,8 @@ export default function ProjectDetailPage() {
                 {/* Tab Content */}
                 <div className="p-6">
                     {activeTab === 'overview' && <OverviewTab project={project} />}
-                    {activeTab === 'entries' && <EntriesTab project={project} onProjectUpdate={() => loadProjectDetails(project.id)} />}
-                    {activeTab === 'files' && <FilesTab project={project} onProjectUpdate={() => loadProjectDetails(project.id)} />}
+                    {activeTab === 'entries' && <EntriesTab project={project} />}
+                    {activeTab === 'files' && <FilesTab project={project} />}
                 </div>
             </div>
 
@@ -297,13 +288,11 @@ function OverviewTab({ project }: { project: ProjectDetails }) {
 }
 
 // Entries Tab Component
-function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onProjectUpdate: () => void }) {
+function EntriesTab({ project }: { project: ProjectDetails }) {
     const [entries, setEntries] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'debit' | 'credit' | 'external_payment'>('all');
     const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
-    const [editingPayment, setEditingPayment] = useState<any>(null);
-    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const { confirm, Confirm } = useConfirmDialog();
 
     useEffect(() => {
@@ -336,28 +325,9 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
             await deleteExternalPayment(paymentId);
             toast.success('Externe betaling verwijderd');
             loadEntries();
-            onProjectUpdate(); // Update totals when payment is deleted
         } catch (error) {
             console.error('Error deleting payment:', error);
             toast.error('Fout bij het verwijderen van betaling');
-        }
-    };
-
-    const handleRemoveAttachment = async (paymentId: number, note: string) => {
-        const result = await confirm({
-            title: 'Bijlage verwijderen?',
-            description: `Weet je zeker dat je de bijlage van "${note}" wilt verwijderen? De betaling blijft behouden.`
-        });
-
-        if (!result.confirmed) return;
-
-        try {
-            await removeExternalPaymentAttachment(paymentId);
-            toast.success('Bijlage verwijderd');
-            loadEntries();
-        } catch (error) {
-            console.error('Error removing attachment:', error);
-            toast.error('Fout bij het verwijderen van bijlage');
         }
     };
 
@@ -365,15 +335,25 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
         if (filter === 'all') return true;
         if (filter === 'external_payment') return entry.type === 'external_payment';
 
-        // Filter by transaction type (debit/credit)
+        // Filter by transaction type (DEBIT/CREDIT)
         if (filter === 'debit') {
             if (entry.type !== 'transaction') return false;
-            return entry.transactionType === 'debit';
+            // If transactionType is not available yet, check amount (negative = DEBIT)
+            if (!entry.transactionType) {
+                const amount = parseFloat(entry.amount.replace(',', '.'));
+                return amount < 0;
+            }
+            return entry.transactionType === 'DEBIT';
         }
 
         if (filter === 'credit') {
             if (entry.type !== 'transaction') return false;
-            return entry.transactionType === 'credit';
+            // If transactionType is not available yet, check amount (positive = CREDIT)
+            if (!entry.transactionType) {
+                const amount = parseFloat(entry.amount.replace(',', '.'));
+                return amount > 0;
+            }
+            return entry.transactionType === 'CREDIT';
         }
 
         return false;
@@ -419,7 +399,7 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
-                        Getrackte uitgaven ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'debit').length})
+                        Getrackte uitgaven ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'DEBIT').length})
                     </button>
                     <button
                         onClick={() => setFilter('external_payment')}
@@ -439,7 +419,7 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
-                        Getrackte inkomsten ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'credit').length})
+                        Getrackte inkomsten ({entries.filter(e => e.type === 'transaction' && e.transactionType === 'CREDIT').length})
                     </button>
                 </div>
 
@@ -467,16 +447,7 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                     {filteredEntries.map((entry, idx) => (
                         <div
                             key={`${entry.type}-${entry.id}-${idx}`}
-                            className={`bg-white border border-gray-200 rounded-lg p-4 transition-colors ${
-                                entry.type === 'transaction'
-                                    ? 'hover:border-blue-300 hover:shadow-md cursor-pointer'
-                                    : 'hover:border-gray-300'
-                            }`}
-                            onClick={() => {
-                                if (entry.type === 'transaction') {
-                                    setSelectedTransaction(entry);
-                                }
-                            }}
+                            className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
@@ -491,7 +462,7 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                                         <span className="text-sm text-gray-600">{formatDate(entry.date)}</span>
                                         {entry.category && (
                                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
-                                                {typeof entry.category === 'string' ? entry.category : entry.category.name}
+                                                {entry.category}
                                             </span>
                                         )}
                                         {entry.payerSource && (
@@ -504,7 +475,7 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                                     {entry.attachmentUrl && (
                                         <div className="mt-1 flex items-center gap-2">
                                             <a
-                                                href={`${BASE_URL}${entry.attachmentUrl}`}
+                                                href={getAttachmentDownloadUrl(entry)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
@@ -527,46 +498,16 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <div className="text-right">
-                                        <p className={`text-lg font-bold ${
-                                            entry.type === 'transaction'
-                                                ? entry.transactionType === 'debit' ? 'text-red-600' : 'text-green-600'
-                                                : 'text-gray-900'
-                                        }`}>
-                                            {entry.type === 'transaction'
-                                                ? `${entry.transactionType === 'debit' ? '-' : '+'} ${formatMoney(entry.amount)}`
-                                                : formatMoney(entry.amount)
-                                            }
-                                        </p>
+                                        <p className="text-lg font-bold text-gray-900">{entry.amount}</p>
                                     </div>
                                     {entry.type === 'external_payment' && (
-                                        <div className="flex gap-1">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    // Transform entry to ExternalPayment format
-                                                    setEditingPayment({
-                                                        ...entry,
-                                                        paidOn: entry.date,
-                                                        note: entry.description,
-                                                        budgetId: project.id
-                                                    });
-                                                }}
-                                                className="text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                                title="Bewerken"
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteExternalPayment(entry.id, entry.description);
-                                                }}
-                                                className="text-sm px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                                title="Verwijderen"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteExternalPayment(entry.id, entry.description)}
+                                            className="text-sm px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                            title="Verwijderen"
+                                        >
+                                            🗑️
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -575,49 +516,27 @@ function EntriesTab({ project, onProjectUpdate }: { project: ProjectDetails; onP
                 </div>
             )}
 
-            {/* External Payment Form Modal - Create */}
+            {/* External Payment Form Modal */}
             <ExternalPaymentForm
                 isOpen={isAddPaymentOpen}
                 onClose={() => setIsAddPaymentOpen(false)}
                 budgetId={project.id}
                 onSuccess={() => {
-                    loadEntries(); // Reload entries list
-                    onProjectUpdate(); // Reload project details for updated totals
-                    toast.success('Externe betaling toegevoegd');
+                    loadEntries();
+                    window.location.reload(); // Refresh to update totals
                 }}
             />
-
-            {/* External Payment Form Modal - Edit */}
-            <ExternalPaymentForm
-                isOpen={!!editingPayment}
-                onClose={() => setEditingPayment(null)}
-                budgetId={project.id}
-                payment={editingPayment}
-                onSuccess={() => {
-                    loadEntries(); // Reload entries list
-                    onProjectUpdate(); // Reload project details for updated totals
-                    setEditingPayment(null);
-                }}
-            />
-
-            {/* Transaction Drawer */}
-            <TransactionDrawer
-                transaction={selectedTransaction}
-                onClose={() => setSelectedTransaction(null)}
-            />
-
             {Confirm}
         </div>
     );
 }
 
 // Files Tab Component
-function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onProjectUpdate: () => void }) {
+function FilesTab({ project }: { project: ProjectDetails }) {
     const [payments, setPayments] = useState<ExternalPayment[]>([]);
     const [attachments, setAttachments] = useState<ProjectAttachment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploadFormOpen, setIsUploadFormOpen] = useState(false);
-    const [editingPayment, setEditingPayment] = useState<ExternalPayment | null>(null);
     const { confirm, Confirm } = useConfirmDialog();
 
     useEffect(() => {
@@ -658,21 +577,32 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
         }
     };
 
-    const handleRemovePaymentAttachment = async (paymentId: number, note: string) => {
+    const handleDeletePaymentAttachment = async (paymentId: number, note: string) => {
         const result = await confirm({
             title: 'Bijlage verwijderen?',
-            description: `Weet je zeker dat je de bijlage van "${note}" wilt verwijderen? De betaling blijft behouden.`
+            description: `Weet je zeker dat je de bijlage van "${note}" wilt verwijderen?`,
+            checkbox: {
+                label: 'Ook externe betaling verwijderen',
+                defaultChecked: false
+            }
         });
 
         if (!result.confirmed) return;
 
         try {
-            await removeExternalPaymentAttachment(paymentId);
-            toast.success('Bijlage verwijderd');
+            if (result.checkboxValue) {
+                // Delete entire payment (including attachment)
+                await deleteExternalPayment(paymentId);
+                toast.success('Externe betaling en bijlage verwijderd');
+            } else {
+                // Just remove the attachment
+                await removeExternalPaymentAttachment(paymentId);
+                toast.success('Bijlage verwijderd');
+            }
             loadFiles();
         } catch (error) {
-            console.error('Error removing attachment:', error);
-            toast.error('Fout bij het verwijderen van bijlage');
+            console.error('Error deleting attachment:', error);
+            toast.error('Fout bij het verwijderen');
         }
     };
 
@@ -688,7 +618,6 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
             await deleteExternalPayment(paymentId);
             toast.success('Externe betaling verwijderd');
             loadFiles();
-            onProjectUpdate(); // Update totals when payment is deleted
         } catch (error) {
             console.error('Error deleting payment:', error);
             toast.error('Fout bij het verwijderen van betaling');
@@ -806,7 +735,7 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                                 <p className="text-sm text-gray-600 mb-3">{formatDate(attachment.uploadedAt)}</p>
                                 <div className="flex gap-2">
                                     <a
-                                        href={`${BASE_URL}${attachment.fileUrl}`}
+                                        href={getProjectAttachmentUrl(attachment.id, false)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -814,7 +743,7 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                                         Openen
                                     </a>
                                     <a
-                                        href={`${BASE_URL}${attachment.fileUrl}`}
+                                        href={getProjectAttachmentUrl(attachment.id, true)}
                                         download
                                         className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                     >
@@ -852,7 +781,7 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                                 <p className="text-lg font-bold text-gray-900 mb-3">€ {payment.amount}</p>
                                 <div className="flex gap-2 flex-wrap">
                                     <a
-                                        href={`${BASE_URL}${payment.attachmentUrl}`}
+                                        href={getExternalPaymentAttachmentUrl(payment.id)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -860,30 +789,16 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                                         Openen
                                     </a>
                                     <a
-                                        href={`${BASE_URL}${payment.attachmentUrl}`}
+                                        href={`${getExternalPaymentAttachmentUrl(payment.id)}?download=1`}
                                         download
                                         className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                     >
                                         Download
                                     </a>
                                     <button
-                                        onClick={() => setEditingPayment(payment)}
-                                        className="text-sm px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                                        title="Bewerken"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => handleRemovePaymentAttachment(payment.id, payment.note)}
-                                        className="text-sm px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors"
-                                        title="Bijlage verwijderen"
-                                    >
-                                        📎✕
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeletePayment(payment.id, payment.note)}
+                                        onClick={() => handleDeletePaymentAttachment(payment.id, payment.note)}
                                         className="text-sm px-3 py-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                        title="Betaling verwijderen"
+                                        title="Verwijderen"
                                     >
                                         🗑️
                                     </button>
@@ -900,20 +815,6 @@ function FilesTab({ project, onProjectUpdate }: { project: ProjectDetails; onPro
                 projectId={project.id}
                 onSuccess={loadFiles}
             />
-
-            {/* External Payment Form Modal - Edit */}
-            <ExternalPaymentForm
-                isOpen={!!editingPayment}
-                onClose={() => setEditingPayment(null)}
-                budgetId={project.id}
-                payment={editingPayment}
-                onSuccess={() => {
-                    loadFiles();
-                    onProjectUpdate();
-                    setEditingPayment(null);
-                }}
-            />
-
             {Confirm}
         </div>
     );
