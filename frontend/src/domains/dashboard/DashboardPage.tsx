@@ -260,9 +260,16 @@ export default function DashboardPage() {
                     <div className="mb-8">
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-bold text-gray-900">
-                                    {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
-                                </h2>
+                                <div className="flex items-baseline gap-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">
+                                        {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
+                                    </h2>
+                                    {summary?.end_balance && (
+                                        <span className="text-lg font-semibold text-blue-600">
+                                            Saldo: € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    )}
+                                </div>
                                 <h3 className="text-lg font-semibold text-gray-800">
                                     Actieve Budgetten ({expenseIncomeBudgets.length})
                                 </h3>
@@ -319,7 +326,14 @@ export default function DashboardPage() {
 
             {/* Header with Period Picker */}
             <header className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                <h1 className="text-2xl font-bold">Dashboard</h1>
+                <div className="flex items-baseline gap-4">
+                    <h1 className="text-2xl font-bold">Dashboard</h1>
+                    {summary?.end_balance && (
+                        <span className="text-lg font-semibold text-blue-600">
+                            Saldo: € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                    )}
+                </div>
                 <PeriodPicker
                     months={months}
                     onChange={handlePeriodChange}
