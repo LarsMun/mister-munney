@@ -31,12 +31,8 @@ class ActiveBudgetService
     {
         $months = $months ?? $this->defaultMonths;
 
-        // Filter by account if specified
-        if ($accountId !== null) {
-            $allBudgets = $this->budgetRepository->findBy(['account' => $accountId]);
-        } else {
-            $allBudgets = $this->budgetRepository->findAll();
-        }
+        // Use eager loading to avoid N+1 queries and lazy load issues
+        $allBudgets = $this->budgetRepository->findAllWithCategories($accountId);
 
         $active = [];
 
@@ -61,12 +57,8 @@ class ActiveBudgetService
     {
         $months = $months ?? $this->defaultMonths;
 
-        // Filter by account if specified
-        if ($accountId !== null) {
-            $allBudgets = $this->budgetRepository->findBy(['account' => $accountId]);
-        } else {
-            $allBudgets = $this->budgetRepository->findAll();
-        }
+        // Use eager loading to avoid N+1 queries and lazy load issues
+        $allBudgets = $this->budgetRepository->findAllWithCategories($accountId);
 
         $older = [];
 

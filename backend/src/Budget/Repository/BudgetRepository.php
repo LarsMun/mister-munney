@@ -103,4 +103,21 @@ class BudgetRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Haalt alle budgetten op met eager loaded categorieën.
+     */
+    public function findAllWithCategories(?int $accountId = null): array
+    {
+        $qb = $this->createQueryBuilder('b')
+            ->leftJoin('b.categories', 'c')
+            ->addSelect('c');
+
+        if ($accountId !== null) {
+            $qb->where('b.account = :accountId')
+                ->setParameter('accountId', $accountId);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }
