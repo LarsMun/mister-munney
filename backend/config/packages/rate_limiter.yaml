@@ -7,3 +7,12 @@ framework:
             policy: 'fixed_window'
             limit: 300
             interval: '1 minute'
+
+        # Login rate limiter: 5 attempts per 5 minutes per IP
+        # Much stricter than general API limit to prevent brute force attacks
+        # Uses sliding window for more accurate enforcement
+        # Limit is set to 6 so that 5 attempts succeed and the 6th is blocked
+        login:
+            policy: 'sliding_window'
+            limit: 6
+            interval: '5 minutes'
