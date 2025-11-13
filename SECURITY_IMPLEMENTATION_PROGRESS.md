@@ -69,28 +69,37 @@ done
 
 ---
 
-## Feature 2: Failed Login Tracking + Email Unlock ⏸️ PENDING
+## Feature 2: Failed Login Tracking + Email Unlock ⏳ IN PROGRESS
 
 **Goal:** Lock account after 5 failed attempts, send unlock email
 
-**Status:** ⚪ Not Started
-**Started:** -
+**Status:** 🟡 In Progress (70% complete)
+**Started:** 2025-11-13 21:15
 **Completed:** -
-**Time Spent:** -
+**Time Spent:** ~2 hours
+
+**Implementation Strategy (Hybrid):**
+- Counter resets after 1 hour of no login attempts
+- Counter resets on successful login
+- After 5 failed attempts: Account locked, must unlock via email
 
 ### Tasks:
-- [ ] Create `LoginAttempt` entity
-- [ ] Create migration for `login_attempts` table
-- [ ] Create `LoginAttemptService` to track attempts
-- [ ] Create `AccountLockService` to handle locking/unlocking
-- [ ] Generate unlock tokens (cryptographically secure)
-- [ ] Create unlock email template
-- [ ] Create `/api/unlock` endpoint
-- [ ] Create `UnlockController`
-- [ ] Integrate with login flow (check if locked before authenticating)
-- [ ] Add email sending (use Symfony Mailer)
+- [x] Create `LoginAttempt` entity
+- [x] Create migration for `login_attempts` table
+- [x] Create `LoginAttemptService` to track attempts
+- [x] Create `AccountLockService` to handle locking/unlocking
+- [x] Generate unlock tokens (cryptographically secure)
+- [x] Create unlock email template
+- [x] Create `/api/unlock` endpoint
+- [x] Create `UnlockController`
+- [x] Integrate with login flow (check if locked before authenticating)
+- [x] Add email sending (use Symfony Mailer)
+- [x] Configure Doctrine to recognize Security entities
+- [x] Install Symfony Mailer package
+- [ ] Test account lock (rate limiter currently blocking 5th attempt)
 - [ ] Frontend: Show "Account locked" message with email sent notification
 - [ ] Test full flow: 5 fails → email → unlock → login
+- [ ] Fix interaction between rate limiter and account lock
 
 ### Database Schema:
 ```sql

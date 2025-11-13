@@ -29,6 +29,7 @@
         "symfony/http-foundation": "7.2.*",
         "symfony/http-kernel": "7.2.*",
         "symfony/lock": "7.2.*",
+        "symfony/mailer": "7.2.*",
         "symfony/maker-bundle": "^1.62",
         "symfony/mime": "7.2.*",
         "symfony/monolog-bundle": "^3.10",
