@@ -13,6 +13,10 @@ class AccountManagementTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Authenticate as a test user
+        $this->authenticateAsUser();
+
         $this->createTestAccounts();
     }
 
@@ -22,8 +26,11 @@ class AccountManagementTest extends ApiTestCase
         $this->entityManager->clear();
         $this->cleanDatabase();
 
+        // Re-authenticate after cleaning
+        $this->authenticateAsUser();
+
         // When - Get all accounts
-        $this->client->request('GET', '/api/accounts');
+        $this->makeJsonRequest('GET', '/api/accounts');
 
         // Then - Empty array returned
         $data = $this->assertJsonResponse(200);
@@ -34,7 +41,7 @@ class AccountManagementTest extends ApiTestCase
     public function testGetAllAccountsReturnsMultipleAccounts(): void
     {
         // When - Get all accounts
-        $this->client->request('GET', '/api/accounts');
+        $this->makeJsonRequest('GET', '/api/accounts');
 
         // Then - All accounts returned
         $data = $this->assertJsonResponse(200);
@@ -54,7 +61,7 @@ class AccountManagementTest extends ApiTestCase
     public function testGetAccountById(): void
     {
         // When - Get specific account
-        $this->client->request('GET', '/api/accounts/' . $this->account1->getId());
+        $this->makeJsonRequest('GET', '/api/accounts/' . $this->account1->getId());
 
         // Then - Account returned
         $data = $this->assertJsonResponse(200);
@@ -68,7 +75,7 @@ class AccountManagementTest extends ApiTestCase
     public function testGetNonExistentAccountReturns404(): void
     {
         // When - Get non-existent account
-        $this->client->request('GET', '/api/accounts/99999');
+        $this->makeJsonRequest('GET', '/api/accounts/99999');
 
         // Then - Not found
         $this->assertEquals(404, $this->client->getResponse()->getStatusCode());
@@ -161,7 +168,7 @@ class AccountManagementTest extends ApiTestCase
     public function testGetAccountIncludesAllRequiredFields(): void
     {
         // When - Get account
-        $this->client->request('GET', '/api/accounts/' . $this->account1->getId());
+        $this->makeJsonRequest('GET', '/api/accounts/' . $this->account1->getId());
 
         // Then - Response includes all required fields
         $data = $this->assertJsonResponse(200);
@@ -182,14 +189,16 @@ class AccountManagementTest extends ApiTestCase
         $this->account1 = new Account();
         $this->account1->setName('Main Account')
             ->setAccountNumber('NL91INGB' . uniqid())
-            ->setIsDefault(true);
+            ->setIsDefault(true)
+            ->addOwner($this->currentUser);
         $this->entityManager->persist($this->account1);
 
         // Account 2
         $this->account2 = new Account();
         $this->account2->setName('Secondary Account')
             ->setAccountNumber('NL92INGB' . uniqid())
-            ->setIsDefault(false);
+            ->setIsDefault(false)
+            ->addOwner($this->currentUser);
         $this->entityManager->persist($this->account2);
 
         $this->entityManager->flush();

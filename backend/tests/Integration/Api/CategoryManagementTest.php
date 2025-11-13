@@ -16,13 +16,14 @@ class CategoryManagementTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->authenticateAsUser();
         $this->account = $this->createTestAccount();
     }
 
     public function testGetAllCategoriesReturnsEmptyArrayInitially(): void
     {
         // When - Get categories for new account
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/categories');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/categories');
 
         // Then - Empty array returned
         $data = $this->assertJsonResponse(200);
@@ -88,7 +89,7 @@ class CategoryManagementTest extends ApiTestCase
         $category = $this->createCategory('Groceries', TransactionType::DEBIT);
 
         // When - Get category
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/categories/' . $category->getId()
         );
@@ -103,7 +104,7 @@ class CategoryManagementTest extends ApiTestCase
     public function testGetNonExistentCategoryReturns404(): void
     {
         // When - Get non-existent category
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/categories/99999'
         );
@@ -185,7 +186,7 @@ class CategoryManagementTest extends ApiTestCase
         $categoryId = $category->getId();
 
         // When - Delete category
-        $this->client->request(
+        $this->makeJsonRequest(
             'DELETE',
             '/api/account/' . $this->account->getId() . '/categories/' . $categoryId
         );
@@ -206,7 +207,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->createTransactionWithCategory($category, -2550, 'Albert Heijn');
 
         // When - Try to delete category
-        $this->client->request(
+        $this->makeJsonRequest(
             'DELETE',
             '/api/account/' . $this->account->getId() . '/categories/' . $category->getId()
         );
@@ -226,7 +227,7 @@ class CategoryManagementTest extends ApiTestCase
         $category = $this->createCategory('Groceries', TransactionType::DEBIT);
 
         // When - Preview delete
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/categories/' . $category->getId() . '/preview-delete'
         );
@@ -247,7 +248,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->createTransactionWithCategory($category, -1875, 'Jumbo');
 
         // When - Preview delete
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/categories/' . $category->getId() . '/preview-delete'
         );
@@ -269,7 +270,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->createTransactionWithCategory($category, -1875, 'Jumbo');
 
         // When - Get category with transactions
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/categories/' . $category->getId() . '/with_transactions'
         );
@@ -290,7 +291,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->createTransactionWithCategory($groceries, -1875, 'Jumbo');
 
         // When - Get statistics
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/categories/statistics/by-category'
         );
@@ -310,7 +311,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->createCategory('Salary', TransactionType::CREDIT);
 
         // When - Get all categories
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/categories');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/categories');
 
         // Then - All categories returned
         $data = $this->assertJsonResponse(200);
@@ -330,7 +331,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->createCategory('Transport', TransactionType::DEBIT);
 
         // When - Get all categories
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/categories');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/categories');
 
         // Then - Categories returned with optional fields
         $data = $this->assertJsonResponse(200);
@@ -349,7 +350,8 @@ class CategoryManagementTest extends ApiTestCase
         $account = new Account();
         $account->setName('Test Account')
             ->setAccountNumber('TEST' . uniqid()) // UNIEKE NUMMER!
-            ->setIsDefault(true);
+            ->setIsDefault(true)
+            ->addOwner($this->currentUser);
 
         $this->entityManager->persist($account);
         $this->entityManager->flush();
@@ -382,7 +384,7 @@ class CategoryManagementTest extends ApiTestCase
         $this->createTransactionWithCategory($target, -3200, 'Lidl');
 
         // When - Preview merge
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             sprintf(
                 '/api/account/%d/categories/%d/merge-preview/%d',
@@ -417,7 +419,7 @@ class CategoryManagementTest extends ApiTestCase
         $sourceId = $source->getId();
 
         // When - Merge categories
-        $this->client->request(
+        $this->makeJsonRequest(
             'POST',
             sprintf(
                 '/api/account/%d/categories/%d/merge/%d',
@@ -457,7 +459,7 @@ class CategoryManagementTest extends ApiTestCase
         $category = $this->createCategory('Boodschappen', TransactionType::DEBIT);
 
         // When - Try to merge into itself
-        $this->client->request(
+        $this->makeJsonRequest(
             'POST',
             sprintf(
                 '/api/account/%d/categories/%d/merge/%d',
@@ -477,7 +479,7 @@ class CategoryManagementTest extends ApiTestCase
         $category = $this->createCategory('Boodschappen', TransactionType::DEBIT);
 
         // When - Try to merge with non-existent category
-        $this->client->request(
+        $this->makeJsonRequest(
             'POST',
             sprintf(
                 '/api/account/%d/categories/%d/merge/%d',
@@ -501,7 +503,7 @@ class CategoryManagementTest extends ApiTestCase
         $sourceId = $source->getId();
 
         // When - Merge empty source
-        $this->client->request(
+        $this->makeJsonRequest(
             'POST',
             sprintf(
                 '/api/account/%d/categories/%d/merge/%d',

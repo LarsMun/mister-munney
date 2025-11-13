@@ -1,12 +1,14 @@
 import { useState } from "react";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
+import { useAuth } from "../shared/contexts/AuthContext";
 
 interface WelcomeScreenProps {
     onAccountCreated: () => void;
 }
 
 export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) {
+    const { logout, user } = useAuth();
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -87,6 +89,20 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
 
     return (
         <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-lg">
+            {/* Logout button in top-right corner */}
+            <div className="flex justify-end mb-4">
+                <div className="flex items-center gap-3 text-sm">
+                    <span className="text-gray-600">{user?.email}</span>
+                    <button
+                        onClick={logout}
+                        className="px-3 py-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                        title="Uitloggen"
+                    >
+                        Uitloggen
+                    </button>
+                </div>
+            </div>
+
             <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-800 mb-4">
                     Welkom bij Munney!
