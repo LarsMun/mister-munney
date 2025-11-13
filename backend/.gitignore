@@ -26,4 +26,6 @@
 ###> environment-specific config ###
 /config/packages/*.local
 /config/packages/**/*.local
+/.dockerignore
+/php-uploads.ini
 ###< environment-specific config ###
