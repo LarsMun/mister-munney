@@ -67,3 +67,9 @@ backend_analysis_report.md
 phase1_detailed_implementation.md
 # Python Hypothesis testing cache
 .hypothesis/
+
+# Server-specific files
+.env.backup
+*.backup
+BACKUP-STRATEGY.md
+synology/
