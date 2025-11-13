@@ -19,7 +19,7 @@ import { importTransactions } from './lib/api';
 
 export default function App() {
     const { isAuthenticated, isLoading: authLoading, logout, user } = useAuth();
-    const { accounts, accountId, setAccountId, hasAccounts, isLoading: accountsLoading, refreshAccounts } = useAccount();
+    const { accounts, accountId, setAccountId, hasAccounts, isLoading: accountsLoading, refreshAccounts, resetAccountState } = useAccount();
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -29,6 +29,13 @@ export default function App() {
             refreshAccounts();
         }
     }, [isAuthenticated, authLoading, refreshAccounts]);
+
+    // Reset account state when user logs out
+    useEffect(() => {
+        if (!isAuthenticated && !authLoading) {
+            resetAccountState();
+        }
+    }, [isAuthenticated, authLoading, resetAccountState]);
 
     const handleFileUpload = async (file: File) => {
         if (!accountId) {

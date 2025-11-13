@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Account\Repository\AccountRepository;
+use App\Enum\AccountUserRole;
+use App\Enum\AccountUserStatus;
 use App\User\Entity\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -25,12 +27,12 @@ class Account
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $isDefault = false;
 
-    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'accounts')]
-    private Collection $users;
+    #[ORM\OneToMany(mappedBy: 'account', targetEntity: AccountUser::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $accountUsers;
 
     public function __construct()
     {
-        $this->users = new ArrayCollection();
+        $this->accountUsers = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -75,37 +77,132 @@ class Account
     }
 
     /**
-     * @return Collection<int, User>
+     * @return Collection<int, AccountUser>
      */
-    public function getUsers(): Collection
+    public function getAccountUsers(): Collection
     {
-        return $this->users;
+        return $this->accountUsers;
     }
 
-    public function addUser(User $user): self
+    /**
+     * Get all users with access to this account (active only)
+     *
+     * @return User[]
+     */
+    public function getUsers(): array
     {
-        if (!$this->users->contains($user)) {
-            $this->users->add($user);
-            $user->addAccount($this);
-        }
-
-        return $this;
+        return $this->accountUsers
+            ->filter(fn(AccountUser $au) => $au->isActive())
+            ->map(fn(AccountUser $au) => $au->getUser())
+            ->toArray();
     }
 
-    public function removeUser(User $user): self
+    /**
+     * Check if user is the owner of this account
+     */
+    public function isOwnedBy(User $user): bool
     {
-        if ($this->users->removeElement($user)) {
-            $user->removeAccount($this);
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->getUser() === $user &&
+                $accountUser->isOwner() &&
+                $accountUser->isActive()) {
+                return true;
+            }
         }
+
+        return false;
+    }
+
+    /**
+     * Check if user has any access to this account (active only)
+     */
+    public function hasAccess(User $user): bool
+    {
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->getUser() === $user && $accountUser->isActive()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the owner of this account
+     */
+    public function getOwner(): ?User
+    {
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->isOwner() && $accountUser->isActive()) {
+                return $accountUser->getUser();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get all shared users (non-owners with active access)
+     *
+     * @return User[]
+     */
+    public function getSharedUsers(): array
+    {
+        $sharedUsers = [];
+
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->isShared() && $accountUser->isActive()) {
+                $sharedUsers[] = $accountUser->getUser();
+            }
+        }
+
+        return $sharedUsers;
+    }
+
+    /**
+     * Add user as owner (used when creating new account)
+     */
+    public function addOwner(User $user): self
+    {
+        // Check if user already has access
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->getUser() === $user) {
+                return $this;
+            }
+        }
+
+        $accountUser = new AccountUser();
+        $accountUser->setAccount($this);
+        $accountUser->setUser($user);
+        $accountUser->setRole(AccountUserRole::OWNER);
+        $accountUser->setStatus(AccountUserStatus::ACTIVE);
+
+        $this->accountUsers->add($accountUser);
 
         return $this;
     }
 
     /**
-     * Check if this account is owned by the given user
+     * @deprecated Use AccountSharingService instead for proper access control
      */
-    public function isOwnedBy(User $user): bool
+    public function addUser(User $user): self
     {
-        return $this->users->contains($user);
+        // For backwards compatibility - adds as owner
+        return $this->addOwner($user);
+    }
+
+    /**
+     * @deprecated Use AccountSharingService::revokeAccess() instead
+     */
+    public function removeUser(User $user): self
+    {
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->getUser() === $user) {
+                $this->accountUsers->removeElement($accountUser);
+                break;
+            }
+        }
+
+        return $this;
     }
 }

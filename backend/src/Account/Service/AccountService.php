@@ -2,8 +2,10 @@
 
 namespace App\Account\Service;
 
+use App\Account\Exception\AccountAccessDeniedException;
 use App\Account\Repository\AccountRepository;
 use App\Entity\Account;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -13,13 +15,16 @@ class AccountService
 {
     private AccountRepository $accountRepository;
     private LoggerInterface $logger;
+    private EntityManagerInterface $entityManager;
 
     public function __construct(
         AccountRepository $accountRepository,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        EntityManagerInterface $entityManager
     ) {
         $this->accountRepository = $accountRepository;
         $this->logger = $logger;
+        $this->entityManager = $entityManager;
     }
 
     /**
@@ -109,33 +114,54 @@ class AccountService
     /**
      * Get account by number or create a new one and link to user
      *
+     * SECURITY: This method enforces account ownership. If an account exists
+     * but the user doesn't have access, an exception is thrown to prevent
+     * unauthorized access via CSV import.
+     *
      * @param string $accountNumber The account number
      * @param mixed $user The User entity
      * @return Account
+     *
+     * @throws AccountAccessDeniedException If account exists but user doesn't have access
      */
     public function getOrCreateAccountByNumberForUser(string $accountNumber, $user): Account
     {
         $account = $this->accountRepository->findByAccountNumber($accountNumber);
 
         if (!$account) {
+            // Account doesn't exist - create and assign user as owner
             $account = new Account();
             $account->setAccountNumber($accountNumber);
-            $account->addUser($user);  // Link to user
-            $this->accountRepository->save($account);
+            $account->addOwner($user);
+
+            $this->entityManager->persist($account);
+            $this->entityManager->flush();
 
             $this->logger->info("Nieuw rekeningnummer aangemaakt en gekoppeld aan gebruiker: " . $accountNumber, [
                 'accountNumber' => $accountNumber,
                 'userId' => $user->getId()
             ]);
-        } elseif (!$account->isOwnedBy($user)) {
-            // Account exists but user doesn't own it - add user as owner
-            $account->addUser($user);
-            $this->accountRepository->save($account);
-            $this->logger->info("Gebruiker toegevoegd aan bestaand account: " . $accountNumber, [
-                'accountNumber' => $accountNumber,
-                'userId' => $user->getId()
-            ]);
+
+            return $account;
         }
+
+        // Account exists - check if user has access
+        if (!$account->hasAccess($user)) {
+            // SECURITY: User trying to access someone else's account
+            $this->logger->warning("Unauthorized account access attempt blocked", [
+                'accountNumber' => $accountNumber,
+                'userId' => $user->getId(),
+                'userEmail' => $user->getEmail()
+            ]);
+
+            throw new AccountAccessDeniedException($accountNumber);
+        }
+
+        // User has access - return account
+        $this->logger->debug("User accessed existing account: " . $accountNumber, [
+            'accountNumber' => $accountNumber,
+            'userId' => $user->getId()
+        ]);
 
         return $account;
     }

@@ -18,6 +18,7 @@ class SavingsAccountManagementTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->authenticateAsUser();
         $this->createTestData();
     }
 
@@ -26,10 +27,11 @@ class SavingsAccountManagementTest extends ApiTestCase
         // Given - Clean database
         $this->entityManager->clear();
         $this->cleanDatabase();
+        $this->authenticateAsUser(); // Re-authenticate after cleaning database
         $account = $this->createAccount();
 
         // When - Get savings accounts
-        $this->client->request('GET', '/api/account/' . $account->getId() . '/savings-accounts');
+        $this->makeJsonRequest('GET', '/api/account/' . $account->getId() . '/savings-accounts');
 
         // Then - Empty array returned
         $data = $this->assertJsonResponse(200);
@@ -40,7 +42,7 @@ class SavingsAccountManagementTest extends ApiTestCase
     public function testGetAllSavingsAccountsReturnsMultipleAccounts(): void
     {
         // When - Get all savings accounts
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/savings-accounts');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/savings-accounts');
 
         // Then - All savings accounts returned
         $data = $this->assertJsonResponse(200);
@@ -131,7 +133,7 @@ class SavingsAccountManagementTest extends ApiTestCase
     public function testGetSavingsAccountById(): void
     {
         // When - Get specific savings account
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/savings-accounts/' . $this->vacationSavings->getId()
         );
@@ -151,7 +153,7 @@ class SavingsAccountManagementTest extends ApiTestCase
     public function testGetNonExistentSavingsAccountReturns404(): void
     {
         // When - Get non-existent savings account
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
             '/api/account/' . $this->account->getId() . '/savings-accounts/99999'
         );
@@ -163,7 +165,7 @@ class SavingsAccountManagementTest extends ApiTestCase
     public function testGetSavingsAccountsWithDetails(): void
     {
         // When - Get detailed list
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/savings-accounts/details');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/savings-accounts/details');
 
         // Then - Detailed list returned
         $data = $this->assertJsonResponse(200);
@@ -240,7 +242,7 @@ class SavingsAccountManagementTest extends ApiTestCase
         $savingsId = $this->vacationSavings->getId();
 
         // When - Delete savings account
-        $this->client->request(
+        $this->makeJsonRequest(
             'DELETE',
             '/api/account/' . $this->account->getId() . '/savings-accounts/' . $savingsId
         );
@@ -256,7 +258,7 @@ class SavingsAccountManagementTest extends ApiTestCase
     public function testDeleteNonExistentSavingsAccountReturns404(): void
     {
         // When - Delete non-existent savings account
-        $this->client->request(
+        $this->makeJsonRequest(
             'DELETE',
             '/api/account/' . $this->account->getId() . '/savings-accounts/99999'
         );
@@ -334,11 +336,12 @@ class SavingsAccountManagementTest extends ApiTestCase
         $account = new Account();
         $account->setName('Test Account')
             ->setAccountNumber('NL91INGB' . uniqid())
-            ->setIsDefault(true);
-        
+            ->setIsDefault(true)
+            ->addOwner($this->currentUser);
+
         $this->entityManager->persist($account);
         $this->entityManager->flush();
-        
+
         return $account;
     }
 
