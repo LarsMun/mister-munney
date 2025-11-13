@@ -1,0 +1,21 @@
+framework:
+    rate_limiter:
+        limiters:
+            # General API rate limit - 100 requests per minute per IP
+            api:
+                policy: 'sliding_window'
+                limit: 100
+                interval: '1 minute'
+
+            # Authentication endpoints - stricter limits
+            # 5 attempts per 15 minutes per IP to prevent brute force
+            auth:
+                policy: 'fixed_window'
+                limit: 5
+                interval: '15 minutes'
+
+            # Import/bulk operations - moderate limits
+            bulk:
+                policy: 'sliding_window'
+                limit: 10
+                interval: '1 minute'
