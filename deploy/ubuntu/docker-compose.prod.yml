@@ -19,23 +19,42 @@ services:
       APP_ENV: prod
       APP_DEBUG: "false"
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_PROD}@munney-prod-mysql:3306/money_db_prod?serverVersion=8.0&charset=utf8mb4"
-      CORS_ALLOW_ORIGIN: '^https://munney\.home\.munne\.me$'
+      CORS_ALLOW_ORIGIN: '^https://munney\.munne\.me$'
       APP_SECRET: ${APP_SECRET_PROD}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
     # NO VOLUMES IN PRODUCTION - use the built image
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.home.munne.me`) && PathPrefix(`/api`)"
+
+      # HTTPS router
+      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.munne.me`) && PathPrefix(`/api`)"
       - "traefik.http.routers.munney-prod-backend.entrypoints=websecure"
       - "traefik.http.routers.munney-prod-backend.tls=true"
       - "traefik.http.routers.munney-prod-backend.tls.certresolver=le"
       - "traefik.http.routers.munney-prod-backend.service=munney-prod-backend"
-      - "traefik.http.services.munney-prod-backend.loadbalancer.server.port=80"
+      - "traefik.http.routers.munney-prod-backend.middlewares=munney-security"
+
+      # HTTP router - redirects to HTTPS
+      - "traefik.http.routers.munney-prod-backend-http.rule=Host(`munney.munne.me`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.munney-prod-backend-http.entrypoints=web"
+      - "traefik.http.routers.munney-prod-backend-http.middlewares=munney-redirect-to-https"
+
+      # Middleware for HTTP to HTTPS redirect (Munney-specific)
+      - "traefik.http.middlewares.munney-redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.munney-redirect-to-https.redirectscheme.permanent=true"
+
+      # Security middleware (HSTS headers)
       - "traefik.http.middlewares.munney-security.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.munney-security.headers.stsIncludeSubdomains=true"
       - "traefik.http.middlewares.munney-security.headers.stsPreload=true"
-      - "traefik.http.routers.munney-prod-backend.middlewares=munney-security"
+
+      # Service configuration
+      - "traefik.http.services.munney-prod-backend.loadbalancer.server.port=80"
+
       # Project labels for easy filtering
       - "project=munney"
       - "environment=production"
@@ -45,7 +64,7 @@ services:
       context: ../../frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "https://munney.home.munne.me/api"
+        VITE_API_URL: "https://munney.munne.me/api"
     container_name: munney-prod-frontend
     restart: unless-stopped
     networks:
@@ -56,13 +75,23 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.home.munne.me`)"
+
+      # HTTPS router
+      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.munne.me`)"
       - "traefik.http.routers.munney-prod-frontend.entrypoints=websecure"
       - "traefik.http.routers.munney-prod-frontend.tls=true"
       - "traefik.http.routers.munney-prod-frontend.tls.certresolver=le"
       - "traefik.http.routers.munney-prod-frontend.service=munney-prod-frontend"
-      - "traefik.http.services.munney-prod-frontend.loadbalancer.server.port=80"
       - "traefik.http.routers.munney-prod-frontend.middlewares=munney-security"
+
+      # HTTP router - redirects to HTTPS
+      - "traefik.http.routers.munney-prod-frontend-http.rule=Host(`munney.munne.me`)"
+      - "traefik.http.routers.munney-prod-frontend-http.entrypoints=web"
+      - "traefik.http.routers.munney-prod-frontend-http.middlewares=munney-redirect-to-https"
+
+      # Service configuration
+      - "traefik.http.services.munney-prod-frontend.loadbalancer.server.port=80"
+
       # Project labels
       - "project=munney"
       - "environment=production"

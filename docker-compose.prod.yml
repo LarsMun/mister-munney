@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     container_name: munney-backend-prod
@@ -13,7 +11,11 @@ services:
       APP_ENV: prod
       APP_DEBUG: "false"
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD}@database:3306/money_db_prod?serverVersion=8.0&charset=utf8mb4"
+      CORS_ALLOW_ORIGIN: "https://munney.munne.me"
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
@@ -44,7 +46,7 @@ services:
       MYSQL_USER: money
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3334:3306"
+      - "3333:3306"
     volumes:
       - db_data_prod:/var/lib/mysql
       - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
