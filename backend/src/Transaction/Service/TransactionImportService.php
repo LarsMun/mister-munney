@@ -2,6 +2,7 @@
 
 namespace App\Transaction\Service;
 
+use App\Account\Exception\AccountAccessDeniedException;
 use App\Account\Service\AccountService;
 use App\Entity\Transaction;
 use App\Enum\TransactionType;
@@ -125,18 +126,22 @@ class TransactionImportService
         try {
             $csv = $this->readCsvFile($file);
             $this->validateCsvHeader($csv->getHeader());
-            
+
             // Check if CSV has any data rows (not just header)
             $records = iterator_to_array($csv->getRecords());
             if (empty($records)) {
                 throw new BadRequestHttpException('CSV bestand is leeg (alleen header, geen transacties).');
             }
-            
+
             $dates = $this->extractUniqueDatesFromCsv($records);
             $this->loadExistingTransactions($dates);
             [$imported, $skipped, $errors] = $this->processRecords($records);
 
             return $this->generateResponse($imported, $skipped, $errors);
+        } catch (AccountAccessDeniedException $e) {
+            // Security: User tried to import transactions for an account they don't own
+            $this->logger->warning("Unauthorized account access during CSV import: " . $e->getMessage());
+            throw new BadRequestHttpException($e->getMessage());
         } catch (BadRequestHttpException $e) {
             throw $e; // Re-throw validation errors
         } catch (CsvException $e) {

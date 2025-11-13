@@ -10,6 +10,7 @@ type AccountContextType = {
     isLoading: boolean;
     refreshAccounts: () => Promise<void>;
     updateAccountInContext: (updatedAccount: Account) => void;
+    resetAccountState: () => void;
 };
 
 const AccountContext = createContext<AccountContextType | undefined>(undefined);
@@ -18,6 +19,13 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [accountId, setAccountId] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Function to reset all account state (called on logout)
+    const resetAccountState = useCallback(() => {
+        setAccounts([]);
+        setAccountId(null);
+        sessionStorage.removeItem('accountId');
+    }, []);
 
     const refreshAccounts = useCallback(async () => {
         setIsLoading(true);
@@ -36,9 +44,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                         // Use default account on initial load
                         setAccountId(defaultAccount.id);
                     } else {
-                        // No default account - use stored or first account
+                        // No default account - use stored account if it exists in available accounts, otherwise use first
                         const storedId = sessionStorage.getItem('accountId');
                         const storedAccountId = storedId ? Number(storedId) : null;
+                        // IMPORTANT: Only use stored account if it exists in the available accounts for this user
                         const storedAccount = storedAccountId ? data.find(a => a.id === storedAccountId) : null;
 
                         const sortedAccounts = [...data].sort((a, b) => a.id - b.id);
@@ -95,7 +104,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             hasAccounts,
             isLoading,
             refreshAccounts,
-            updateAccountInContext
+            updateAccountInContext,
+            resetAccountState
         }}>
             {children}
         </AccountContext.Provider>

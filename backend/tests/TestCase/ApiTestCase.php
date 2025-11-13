@@ -2,7 +2,9 @@
 
 namespace App\Tests\TestCase;
 
+use App\User\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -13,12 +15,14 @@ abstract class ApiTestCase extends WebTestCase
     protected KernelBrowser $client;
     protected EntityManagerInterface $entityManager;
     protected ContainerInterface $container;
+    protected ?User $currentUser = null;
+    protected ?string $authToken = null;
 
     protected function setUp(): void
     {
         // Create client for API tests
         $this->client = static::createClient();
-        
+
         // Get container and entity manager
         $this->container = static::getContainer();
         $this->entityManager = $this->container->get('doctrine')->getManager();
@@ -63,16 +67,60 @@ abstract class ApiTestCase extends WebTestCase
     }
 
     /**
+     * Create a test user and authenticate
+     */
+    protected function authenticateAsUser(string $email = 'test@example.com', string $password = 'password'): User
+    {
+        $user = new User();
+        $user->setEmail($email);
+        $user->setPassword(password_hash($password, PASSWORD_BCRYPT));
+        $user->setRoles(['ROLE_USER']);
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        $this->currentUser = $user;
+        $this->authToken = $this->generateJwtToken($user);
+
+        return $user;
+    }
+
+    /**
+     * Generate JWT token for a user
+     */
+    protected function generateJwtToken(User $user): string
+    {
+        $jwtManager = $this->container->get(JWTTokenManagerInterface::class);
+        return $jwtManager->create($user);
+    }
+
+    /**
+     * Clear authentication
+     */
+    protected function clearAuthentication(): void
+    {
+        $this->currentUser = null;
+        $this->authToken = null;
+    }
+
+    /**
      * Make a JSON request
      */
     protected function makeJsonRequest(string $method, string $uri, array $data = []): void
     {
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+
+        // Add JWT token if authenticated
+        if ($this->authToken) {
+            $headers['HTTP_AUTHORIZATION'] = 'Bearer ' . $this->authToken;
+        }
+
         $this->client->request(
             $method,
             $uri,
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
+            $headers,
             json_encode($data)
         );
     }
@@ -90,11 +138,19 @@ abstract class ApiTestCase extends WebTestCase
             true
         );
 
+        $headers = [];
+
+        // Add JWT token if authenticated
+        if ($this->authToken) {
+            $headers['HTTP_AUTHORIZATION'] = 'Bearer ' . $this->authToken;
+        }
+
         $this->client->request(
             'POST',
             $uri,
             $additionalData,
-            [$fieldName => $file]
+            [$fieldName => $file],
+            $headers
         );
     }
 

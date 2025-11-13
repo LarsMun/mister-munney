@@ -30,13 +30,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
-    #[ORM\ManyToMany(targetEntity: 'App\Entity\Account', inversedBy: 'users')]
-    #[ORM\JoinTable(name: 'user_account')]
-    private Collection $accounts;
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: 'App\Entity\AccountUser')]
+    private Collection $accountUsers;
 
     public function __construct()
     {
-        $this->accounts = new ArrayCollection();
+        $this->accountUsers = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -119,30 +118,75 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, Account>
+     * @return Collection<int, AccountUser>
      */
-    public function getAccounts(): Collection
+    public function getAccountUsers(): Collection
     {
-        return $this->accounts;
+        return $this->accountUsers;
     }
 
+    /**
+     * Get all accounts this user has active access to
+     *
+     * @return array<Account>
+     */
+    public function getAccounts(): array
+    {
+        return $this->accountUsers
+            ->filter(function($accountUser) {
+                return $accountUser->isActive();
+            })
+            ->map(function($accountUser) {
+                return $accountUser->getAccount();
+            })
+            ->toArray();
+    }
+
+    /**
+     * @deprecated Use Account::addOwner() or AccountSharingService instead
+     */
     public function addAccount($account): self
     {
-        if (!$this->accounts->contains($account)) {
-            $this->accounts->add($account);
-        }
-
+        // Backwards compatibility - no-op, relationship managed by Account entity
         return $this;
     }
 
+    /**
+     * @deprecated Use AccountSharingService::revokeAccess() instead
+     */
     public function removeAccount($account): self
     {
-        $this->accounts->removeElement($account);
+        // Backwards compatibility - no-op, relationship managed by Account entity
         return $this;
     }
 
+    /**
+     * Check if user owns (is owner of) the given account
+     */
     public function ownsAccount($account): bool
     {
-        return $this->accounts->contains($account);
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->getAccount() === $account &&
+                $accountUser->isOwner() &&
+                $accountUser->isActive()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user has any access to the given account
+     */
+    public function hasAccessToAccount($account): bool
+    {
+        foreach ($this->accountUsers as $accountUser) {
+            if ($accountUser->getAccount() === $account && $accountUser->isActive()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

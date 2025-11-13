@@ -18,13 +18,14 @@ class TransactionManagementTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->authenticateAsUser();
         $this->createTestData();
     }
 
     public function testGetTransactionsReturnsAllTransactions(): void
     {
         // When - Get all transactions
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/transactions');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/transactions');
 
         // Then - Response contains all transactions
         $data = $this->assertJsonResponse(200);
@@ -46,13 +47,9 @@ class TransactionManagementTest extends ApiTestCase
     public function testGetTransactionsWithDateRangeFilter(): void
     {
         // When - Filter by date range
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
-            '/api/account/' . $this->account->getId() . '/transactions',
-            [
-                'startDate' => '2024-01-10',
-                'endDate' => '2024-01-20'
-            ]
+            '/api/account/' . $this->account->getId() . '/transactions?startDate=2024-01-10&endDate=2024-01-20'
         );
 
         // Then - Only transactions in range are returned
@@ -70,13 +67,9 @@ class TransactionManagementTest extends ApiTestCase
     public function testGetTransactionsWithAmountFilter(): void
     {
         // When - Filter by absolute amount range (negative for debits)
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
-            '/api/account/' . $this->account->getId() . '/transactions',
-            [
-                'minAmount' => -3000,  // -30 EUR in cents (more negative = larger debit)
-                'maxAmount' => -2000   // -20 EUR in cents (less negative = smaller debit)
-            ]
+            '/api/account/' . $this->account->getId() . '/transactions?minAmount=-3000&maxAmount=-2000'
         );
 
         // Then - Only transactions in amount range
@@ -93,10 +86,9 @@ class TransactionManagementTest extends ApiTestCase
     public function testGetTransactionsWithTransactionTypeFilter(): void
     {
         // When - Filter by transaction type (debit)
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
-            '/api/account/' . $this->account->getId() . '/transactions',
-            ['transactionType' => 'debit']
+            '/api/account/' . $this->account->getId() . '/transactions?transactionType=debit'
         );
 
         // Then - Only debit transactions returned
@@ -113,10 +105,9 @@ class TransactionManagementTest extends ApiTestCase
     public function testGetTransactionsWithSearchFilter(): void
     {
         // When - Search for "Albert Heijn"
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
-            '/api/account/' . $this->account->getId() . '/transactions',
-            ['search' => 'Albert Heijn']
+            '/api/account/' . $this->account->getId() . '/transactions?search=Albert%20Heijn'
         );
 
         // Then - Only matching transactions
@@ -129,13 +120,9 @@ class TransactionManagementTest extends ApiTestCase
     public function testGetTransactionsWithSorting(): void
     {
         // When - Sort by date descending
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
-            '/api/account/' . $this->account->getId() . '/transactions',
-            [
-                'sortBy' => 'date',
-                'sortDirection' => 'DESC'
-            ]
+            '/api/account/' . $this->account->getId() . '/transactions?sortBy=date&sortDirection=DESC'
         );
 
         // Then - Transactions are sorted
@@ -151,7 +138,7 @@ class TransactionManagementTest extends ApiTestCase
     public function testGetTransactionMonths(): void
     {
         // When - Get available months
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/transactions/months');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/transactions/months');
 
         // Then - Returns unique months
         $data = $this->assertJsonResponse(200);
@@ -269,10 +256,9 @@ class TransactionManagementTest extends ApiTestCase
     public function testGetMonthlyMedianStatistics(): void
     {
         // When - Get statistics
-        $this->client->request(
+        $this->makeJsonRequest(
             'GET',
-            '/api/account/' . $this->account->getId() . '/transactions/statistics/monthly-median',
-            ['months' => '6']
+            '/api/account/' . $this->account->getId() . '/transactions/statistics/monthly-median?months=6'
         );
 
         // Then - Statistics returned
@@ -294,7 +280,7 @@ class TransactionManagementTest extends ApiTestCase
     public function testSummaryContainsCorrectTotals(): void
     {
         // When - Get transactions with summary
-        $this->client->request('GET', '/api/account/' . $this->account->getId() . '/transactions');
+        $this->makeJsonRequest('GET', '/api/account/' . $this->account->getId() . '/transactions');
 
         // Then - Summary has correct values
         $data = $this->assertJsonResponse(200);
@@ -321,7 +307,8 @@ class TransactionManagementTest extends ApiTestCase
         $this->account = new Account();
         $this->account->setName('Test Account')
             ->setAccountNumber('NL91TEST' . uniqid())
-            ->setIsDefault(true);
+            ->setIsDefault(true)
+            ->addOwner($this->currentUser);
         $entityManager->persist($this->account);
 
         // Create categories

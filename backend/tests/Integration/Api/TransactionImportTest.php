@@ -12,6 +12,12 @@ class TransactionImportTest extends ApiTestCase
 {
     private string $tempCsvFile;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->authenticateAsUser();
+    }
+
     protected function tearDown(): void
     {
         if (isset($this->tempCsvFile)) {
@@ -27,7 +33,7 @@ class TransactionImportTest extends ApiTestCase
         $this->tempCsvFile = CsvTestFixtures::saveCsvToFile($csvData);
 
         // When - Upload CSV
-        $this->uploadFile('/api/transactions/import', 'file', $this->tempCsvFile);
+        $this->uploadFile('/api/transactions/import-first', 'file', $this->tempCsvFile);
 
         // Then - Response is successful
         $response = $this->assertJsonResponse(201);
@@ -61,7 +67,7 @@ class TransactionImportTest extends ApiTestCase
         $this->tempCsvFile = CsvTestFixtures::saveCsvToFile($csvData);
 
         // When - Upload CSV
-        $this->uploadFile('/api/transactions/import', 'file', $this->tempCsvFile);
+        $this->uploadFile('/api/transactions/import-first', 'file', $this->tempCsvFile);
 
         // Then - Response is successful
         $this->assertJsonResponse(201);
@@ -82,7 +88,7 @@ class TransactionImportTest extends ApiTestCase
         $this->tempCsvFile = CsvTestFixtures::saveCsvToFile($csvData);
 
         // When - Upload CSV
-        $this->uploadFile('/api/transactions/import', 'file', $this->tempCsvFile);
+        $this->uploadFile('/api/transactions/import-first', 'file', $this->tempCsvFile);
 
         // Then - Bad request response
         $response = $this->client->getResponse();
@@ -92,7 +98,7 @@ class TransactionImportTest extends ApiTestCase
     public function testImportWithoutFileReturns400(): void
     {
         // When - POST without file
-        $this->client->request('POST', '/api/transactions/import');
+        $this->makeJsonRequest('POST', '/api/transactions/import-first', []);
 
         // Then - Bad request response
         $response = $this->client->getResponse();
@@ -106,7 +112,7 @@ class TransactionImportTest extends ApiTestCase
         $this->tempCsvFile = CsvTestFixtures::saveCsvToFile($csvData);
 
         // When - Upload CSV
-        $this->uploadFile('/api/transactions/import', 'file', $this->tempCsvFile);
+        $this->uploadFile('/api/transactions/import-first', 'file', $this->tempCsvFile);
 
         // Then - Bad request response
         $response = $this->client->getResponse();
@@ -120,7 +126,7 @@ class TransactionImportTest extends ApiTestCase
         $this->tempCsvFile = CsvTestFixtures::saveCsvToFile($csvData);
 
         // When - Upload CSV
-        $this->uploadFile('/api/transactions/import', 'file', $this->tempCsvFile);
+        $this->uploadFile('/api/transactions/import-first', 'file', $this->tempCsvFile);
         $this->assertJsonResponse(201);
 
         // Then - Verify Money objects are correct

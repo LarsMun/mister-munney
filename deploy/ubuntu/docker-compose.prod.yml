@@ -19,14 +19,14 @@ services:
       APP_ENV: prod
       APP_DEBUG: "false"
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_PROD}@munney-prod-mysql:3306/money_db_prod?serverVersion=8.0&charset=utf8mb4"
-      CORS_ALLOW_ORIGIN: '^https://munney\.home\.munne\.me$'
+      CORS_ALLOW_ORIGIN: '^https://munney\.munne\.me$'
       APP_SECRET: ${APP_SECRET_PROD}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
     # NO VOLUMES IN PRODUCTION - use the built image
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.home.munne.me`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.munne.me`) && PathPrefix(`/api`)"
       - "traefik.http.routers.munney-prod-backend.entrypoints=websecure"
       - "traefik.http.routers.munney-prod-backend.tls=true"
       - "traefik.http.routers.munney-prod-backend.tls.certresolver=le"
@@ -45,7 +45,7 @@ services:
       context: ../../frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "https://munney.home.munne.me/api"
+        VITE_API_URL: "https://munney.munne.me/api"
     container_name: munney-prod-frontend
     restart: unless-stopped
     networks:
@@ -56,7 +56,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.home.munne.me`)"
+      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.munne.me`)"
       - "traefik.http.routers.munney-prod-frontend.entrypoints=websecure"
       - "traefik.http.routers.munney-prod-frontend.tls=true"
       - "traefik.http.routers.munney-prod-frontend.tls.certresolver=le"

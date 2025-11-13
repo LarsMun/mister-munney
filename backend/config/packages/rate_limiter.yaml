@@ -1,0 +1,9 @@
+framework:
+    rate_limiter:
+        # API rate limiter: 300 requests per minute per IP
+        # This accommodates complex dashboards with multiple components
+        # while still protecting against abuse (5 requests/second average)
+        api:
+            policy: 'fixed_window'
+            limit: 300
+            interval: '1 minute'
