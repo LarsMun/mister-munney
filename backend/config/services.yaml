@@ -40,6 +40,13 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    # Account lock service with mail configuration
+    App\Security\Service\AccountLockService:
+        arguments:
+            $mailFromAddress: '%env(MAIL_FROM_ADDRESS)%'
+            $mailFromName: '%env(MAIL_FROM_NAME)%'
+            $appUrl: '%env(APP_URL)%'
+
     # Rate limiter factory for API requests
     App\EventListener\RateLimitListener:
         arguments:

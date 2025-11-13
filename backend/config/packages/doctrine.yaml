@@ -30,6 +30,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/User/Entity'
                 prefix: 'App\User\Entity'
                 alias: User
+            Security:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Security/Entity'
+                prefix: 'App\Security\Entity'
+                alias: Security
         controller_resolver:
             auto_mapping: false
 
