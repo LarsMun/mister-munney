@@ -25,6 +25,13 @@ class AuthController extends AbstractController
     #[Route('/api/register', name: 'api_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
+        // Registration is disabled
+        return $this->json([
+            'error' => 'Registration is currently disabled. Please contact the administrator.'
+        ], Response::HTTP_FORBIDDEN);
+
+        // DISABLED: Original registration code below
+        /*
         $data = json_decode($request->getContent(), true);
 
         // Validate input
@@ -75,5 +82,6 @@ class AuthController extends AbstractController
                 'createdAt' => $user->getCreatedAt()->format('Y-m-d H:i:s')
             ]
         ], Response::HTTP_CREATED);
+        */
     }
 }
