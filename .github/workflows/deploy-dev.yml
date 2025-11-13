@@ -15,7 +15,32 @@ jobs:
         run: |
           cd /srv/munney-dev
           git pull origin develop
-          
+
+      - name: 🔐 Generate JWT keys
+        run: |
+          cd /srv/munney-dev/backend
+          if [ ! -f config/jwt/private.pem ]; then
+            echo "Generating JWT RSA keys..."
+            mkdir -p config/jwt
+            source ../.env
+            # Generate private key with passphrase
+            openssl genpkey -algorithm RSA \
+              -out config/jwt/private.pem \
+              -aes256 \
+              -pass pass:"${JWT_PASSPHRASE}" \
+              -pkeyopt rsa_keygen_bits:4096
+            # Generate public key from private key
+            openssl rsa \
+              -pubout \
+              -in config/jwt/private.pem \
+              -out config/jwt/public.pem \
+              -passin pass:"${JWT_PASSPHRASE}"
+            chmod 644 config/jwt/private.pem config/jwt/public.pem
+            echo "✅ JWT keys generated"
+          else
+            echo "✅ JWT keys already exist"
+          fi
+
       - name: 🔄 Restart containers
         run: |
           cd /srv/munney-dev

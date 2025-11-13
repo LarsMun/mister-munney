@@ -4,8 +4,9 @@ nelmio_cors:
         allow_origin: ['%env(CORS_ALLOW_ORIGIN)%']
         allow_methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH']
         allow_headers: ['Content-Type', 'Authorization']
-        expose_headers: ['Content-Length']
+        expose_headers: ['Content-Length', 'X-Total-Count']
         max_age: 3600
+        allow_credentials: true
         hosts: []
     paths:
         '^/api/':
@@ -14,3 +15,4 @@ nelmio_cors:
             allow_headers: ['Content-Type', 'Authorization']
             allow_methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH']
             max_age: 3600
+            allow_credentials: true
