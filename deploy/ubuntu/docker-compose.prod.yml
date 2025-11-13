@@ -22,9 +22,6 @@ services:
       CORS_ALLOW_ORIGIN: '^https://munney\.munne\.me$'
       APP_SECRET: ${APP_SECRET_PROD}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
     # NO VOLUMES IN PRODUCTION - use the built image
     labels:
       - "traefik.enable=true"

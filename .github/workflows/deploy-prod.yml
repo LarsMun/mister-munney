@@ -15,7 +15,7 @@ jobs:
       - name: 📋 Pre-deployment checklist
         run: |
           echo "🚀 Starting Production Deployment"
-          echo "Target: https://munney.home.munne.me"
+          echo "Target: https://munney.munne.me"
           echo "Location: /srv/munney-prod"
           
       - name: 💾 Create database backup
@@ -100,13 +100,13 @@ jobs:
         run: |
           echo "Running health checks..."
           sleep 5
-          if curl -f -s https://munney.home.munne.me/ > /dev/null; then
+          if curl -f -s https://munney.munne.me/ > /dev/null; then
             echo "✅ Frontend responding"
           else
             echo "⚠️  Frontend check failed"
             exit 1
           fi
-          if curl -f -s https://munney.home.munne.me/api > /dev/null; then
+          if curl -f -s https://munney.munne.me/api > /dev/null; then
             echo "✅ Backend API responding"
           else
             echo "⚠️  Backend API check failed"
@@ -118,5 +118,5 @@ jobs:
           echo "========================================"
           echo "✅ Production deployment successful!"
           echo "========================================"
-          echo "🌐 URL: https://munney.home.munne.me"
+          echo "🌐 URL: https://munney.munne.me"
           docker ps --filter 'label=project=munney' --filter 'label=environment=production'

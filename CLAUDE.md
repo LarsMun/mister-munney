@@ -47,7 +47,7 @@ This project has **3 separate Docker environments**:
    - Volume mounts enabled for hot reload
    - Traefik integration for HTTPS
 
-3. **Prod Server** (munney.home.munne.me): Uses `docker-compose.prod.yml` + `Dockerfile.prod`
+3. **Prod Server** (munney.munne.me): Uses `docker-compose.prod.yml` + `Dockerfile.prod`
    - Production builds with Nginx
    - Read-only volume mounts
 
