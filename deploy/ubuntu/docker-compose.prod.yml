@@ -24,7 +24,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET_KEY: /var/www/html/config/jwt/private.pem
       JWT_PUBLIC_KEY: /var/www/html/config/jwt/public.pem
-      JWT_PASSPHRASE: ${JWT_PASSPHRASE_PROD}
+      JWT_PASSPHRASE: '***REMOVED***'
       LOCK_DSN: flock
     # NO VOLUMES IN PRODUCTION - use the built image
     labels:
