@@ -36,5 +36,9 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    # Rate Limiter Event Subscriber
+    # Rate limiters are automatically created from framework.rate_limiter config
+    # Available as: limiter.api, limiter.auth, limiter.bulk
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
