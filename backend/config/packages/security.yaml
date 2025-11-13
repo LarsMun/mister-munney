@@ -48,6 +48,7 @@ security:
     access_control:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/unlock, roles: PUBLIC_ACCESS }  # Allow public access to unlock account
         - { path: ^/api/doc, roles: PUBLIC_ACCESS }  # Allow Swagger access
         - { path: ^/api/icons, roles: PUBLIC_ACCESS }  # Allow public access to icons
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }  # All other API endpoints require auth
