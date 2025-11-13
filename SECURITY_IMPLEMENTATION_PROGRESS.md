@@ -100,7 +100,7 @@ done
 - [x] Fix email template error (app_url variable)
 - [x] Add `/api/unlock` to public access in security.yaml
 - [x] Test unlock endpoint (successfully unlocked account)
-- [x] Adjust rate limiter limit to 10 (allows account lock to trigger first)
+- [x] Adjust rate limiter limit to 30 (DoS protection, account lock provides brute force protection)
 - [x] Re-enable rate limiter after testing
 - [ ] Frontend: Show "Account locked" message with email sent notification (remaining work)
 
