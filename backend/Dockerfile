@@ -42,7 +42,7 @@ RUN chown -R symfony:symfony /var/www/html
 
 # Voer Composer-installatie uit als symfony-gebruiker
 USER symfony
-RUN composer install --optimize-autoloader
+RUN composer install --no-scripts --optimize-autoloader
 USER root
 
 # Zorg ervoor dat var directory bestaat en de juiste permissions heeft
