@@ -89,7 +89,7 @@ backend:
 
 ## 📋 Step-by-Step Sync Instructions
 
-### For Development Server (devmunney.munne.me):
+### For Development Server (devmunney.home.munne.me - Internal Only):
 
 ```bash
 # 1. SSH to dev server
@@ -104,8 +104,8 @@ git pull origin develop
 # 4. Update composer dependencies
 docker exec munney-dev-backend composer install
 
-# 5. Add CORS_ALLOW_ORIGIN to dev .env
-echo 'CORS_ALLOW_ORIGIN="https://devmunney.munne.me"' >> backend/.env
+# 5. CORS is already configured in deploy/ubuntu/docker-compose.dev.yml
+# No need to add to .env - docker-compose sets it automatically
 
 # 6. Clear Symfony cache
 docker exec munney-dev-backend php bin/console cache:clear
