@@ -30,6 +30,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $isLocked = false;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTime $lockedAt = null;
+
+    #[ORM\Column(type: 'string', length: 64, nullable: true)]
+    private ?string $unlockToken = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTime $unlockTokenExpiresAt = null;
+
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: 'App\Entity\AccountUser')]
     private Collection $accountUsers;
 
@@ -114,6 +126,50 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setCreatedAt(\DateTimeImmutable $createdAt): self
     {
         $this->createdAt = $createdAt;
+        return $this;
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->isLocked;
+    }
+
+    public function setIsLocked(bool $isLocked): self
+    {
+        $this->isLocked = $isLocked;
+        return $this;
+    }
+
+    public function getLockedAt(): ?\DateTime
+    {
+        return $this->lockedAt;
+    }
+
+    public function setLockedAt(?\DateTime $lockedAt): self
+    {
+        $this->lockedAt = $lockedAt;
+        return $this;
+    }
+
+    public function getUnlockToken(): ?string
+    {
+        return $this->unlockToken;
+    }
+
+    public function setUnlockToken(?string $unlockToken): self
+    {
+        $this->unlockToken = $unlockToken;
+        return $this;
+    }
+
+    public function getUnlockTokenExpiresAt(): ?\DateTime
+    {
+        return $this->unlockTokenExpiresAt;
+    }
+
+    public function setUnlockTokenExpiresAt(?\DateTime $unlockTokenExpiresAt): self
+    {
+        $this->unlockTokenExpiresAt = $unlockTokenExpiresAt;
         return $this;
     }
 
