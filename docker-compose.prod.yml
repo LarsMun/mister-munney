@@ -56,7 +56,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "http://${NAS_IP}:8687"
+        VITE_API_URL: "https://munney.munne.me"
     depends_on:
       - backend
 
