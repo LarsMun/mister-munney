@@ -1,3 +1,3 @@
 framework:
     mailer:
-        dsn: '%env(default:null:MAILER_DSN)%'
+        dsn: '%env(default:null\://null:MAILER_DSN)%'
