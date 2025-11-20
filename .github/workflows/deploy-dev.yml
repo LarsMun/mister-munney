@@ -44,8 +44,8 @@ jobs:
       - name: 🔄 Restart containers
         run: |
           cd /srv/munney-dev
-          docker compose -f deploy/ubuntu/docker-compose.dev.yml down
-          docker compose -f deploy/ubuntu/docker-compose.dev.yml up -d --build
+          docker compose --env-file /srv/munney-dev/.env -f deploy/ubuntu/docker-compose.dev.yml down
+          docker compose --env-file /srv/munney-dev/.env -f deploy/ubuntu/docker-compose.dev.yml up -d --build
 
       - name: ⏳ Wait for services
         run: |
