@@ -7,7 +7,7 @@ services:
     volumes:
       - ./backend:/var/www/html:ro  # Read-only in productie
       - uploads_prod:/var/www/html/public/uploads  # Read-write voor uploads
-      - cache_prod:/var/www/html/var  # Read-write voor cache en logs
+      - ./backend/var:/var/www/html/var  # Read-write voor cache en logs
     environment:
       APP_ENV: prod
       APP_DEBUG: "false"
@@ -69,5 +69,3 @@ volumes:
     name: munney_db_data_prod
   uploads_prod:
     name: munney_uploads_prod
-  cache_prod:
-    name: munney_cache_prod
