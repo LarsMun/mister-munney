@@ -20,7 +20,17 @@ services:
       APP_DEBUG: "true"
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD_DEV}@munney-dev-mysql:3306/money_db_dev?serverVersion=8.0&charset=utf8mb4"
       CORS_ALLOW_ORIGIN: '^https?://(devmunney\.home\.munne\.me|localhost)(:[0-9]+)?$'
-      OPENAI_API_KEY: ${OPENAI_API_KEY_DEV}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Mailer configuration
+      MAILER_DSN: ${MAILER_DSN}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      APP_URL: ${APP_URL}
+      # hCaptcha for login protection
+      HCAPTCHA_SECRET_KEY: ${HCAPTCHA_SECRET_KEY}
+      HCAPTCHA_SITE_KEY: ${HCAPTCHA_SITE_KEY}
+      # JWT Authentication
+      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
     volumes:
       - ../../backend:/var/www/html
       - ../../backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
