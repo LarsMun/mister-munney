@@ -22,6 +22,15 @@ services:
       MAIL_FROM_NAME: ${MAIL_FROM_NAME}
       APP_URL: ${APP_URL}
       LOCK_DSN: ${LOCK_DSN}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.munne.me`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.munney-prod-backend.entrypoints=websecure"
+      - "traefik.http.routers.munney-prod-backend.tls.certresolver=le"
+      - "traefik.http.services.munney-prod-backend.loadbalancer.server.port=80"
+    networks:
+      - traefik-proxy
+      - default
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
@@ -34,6 +43,15 @@ services:
     restart: unless-stopped
     ports:
       - "3001:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.munne.me`)"
+      - "traefik.http.routers.munney-prod-frontend.entrypoints=websecure"
+      - "traefik.http.routers.munney-prod-frontend.tls.certresolver=le"
+      - "traefik.http.services.munney-prod-frontend.loadbalancer.server.port=80"
+    networks:
+      - traefik-proxy
+      - default
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
@@ -69,3 +87,9 @@ volumes:
     name: munney_db_data_prod
   uploads_prod:
     name: munney_uploads_prod
+
+networks:
+  traefik-proxy:
+    external: true
+  default:
+    name: munney-prod_default
