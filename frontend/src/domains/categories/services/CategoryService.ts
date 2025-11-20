@@ -100,3 +100,30 @@ export async function mergeCategories(
 
     return response.data;
 }
+
+export interface CategoryHistory {
+    category: {
+        id: number;
+        name: string;
+        color: string;
+        icon: string;
+    };
+    history: Array<{
+        month: string;
+        total: number;
+        transactionCount: number;
+    }>;
+    totalAmount: number;
+    averagePerMonth: number;
+    monthCount: number;
+}
+
+export async function fetchCategoryHistory(
+    accountId: number,
+    categoryId: number,
+    months?: number
+): Promise<CategoryHistory> {
+    const params = months ? { months } : {};
+    const response = await api.get(`/account/${accountId}/categories/${categoryId}/history`, { params });
+    return response.data;
+}

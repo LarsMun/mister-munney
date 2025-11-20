@@ -4,9 +4,11 @@ import { Sparklines, SparklinesLine } from 'react-sparklines';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from 'lucide-react';
 import { getCategoryBreakdown } from '../../budgets/services/BudgetsService';
 import { getTransactions } from '../../transactions/services/TransactionsService';
+import { fetchCategoryHistory, type CategoryHistory } from '../../categories/services/CategoryService';
 import type { CategoryBreakdown } from '../../budgets/models/CategoryBreakdown';
 import type { Transaction } from '../../transactions/models/Transaction';
 import TransactionDrawer from './TransactionDrawer';
+import HistoricalDataDrawer from './HistoricalDataDrawer';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 
 interface ActiveBudgetsGridProps {
@@ -56,11 +58,16 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
     const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([]);
     const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
 
-    // Drawer state
+    // Drawer state for transactions
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [drawerTransactions, setDrawerTransactions] = useState<Transaction[]>([]);
     const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<{ id: number; name: string; color: string } | null>(null);
+
+    // Drawer state for historical data
+    const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+    const [historicalData, setHistoricalData] = useState<CategoryHistory | null>(null);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     // Calculate comparison status
     let comparisonStatus: 'good' | 'bad' | 'neutral' = 'neutral';
@@ -167,6 +174,28 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
             setDrawerTransactions([]);
         } finally {
             setIsLoadingTransactions(false);
+        }
+    };
+
+    // Handler for clicking category name to show historical data
+    const handleCategoryNameClick = async (category: CategoryBreakdown, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!accountId) return;
+
+        // Open drawer and fetch historical data
+        setIsHistoryDrawerOpen(true);
+        setIsLoadingHistory(true);
+
+        try {
+            const data = await fetchCategoryHistory(accountId, category.categoryId);
+            setHistoricalData(data);
+        } catch (error) {
+            console.error('Error fetching category history:', error);
+            setHistoricalData(null);
+        } finally {
+            setIsLoadingHistory(false);
         }
     };
 
@@ -283,9 +312,16 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                                         style={{ backgroundColor: category.categoryColor }}
                                     ></div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-900 truncate" title={category.categoryName}>
-                                            {category.categoryName}
-                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handleCategoryNameClick(category, e)}
+                                            className="text-left w-full hover:text-blue-600 transition-colors"
+                                            title="Bekijk historische gegevens"
+                                        >
+                                            <p className="text-sm font-medium text-gray-900 truncate hover:underline">
+                                                {category.categoryName}
+                                            </p>
+                                        </button>
                                         <p className="text-xs text-gray-500">
                                             {category.transactionCount} {category.transactionCount === 1 ? 'transactie' : 'transacties'}
                                         </p>
@@ -322,6 +358,14 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                     isLoading={isLoadingTransactions}
                 />
             )}
+
+            {/* Historical Data Drawer */}
+            <HistoricalDataDrawer
+                isOpen={isHistoryDrawerOpen}
+                onClose={() => setIsHistoryDrawerOpen(false)}
+                data={historicalData}
+                isLoading={isLoadingHistory}
+            />
         </article>
     );
 }
