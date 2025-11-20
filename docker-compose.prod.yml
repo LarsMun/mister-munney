@@ -29,7 +29,7 @@ services:
       - "traefik.http.routers.munney-prod-backend.tls.certresolver=le"
       - "traefik.http.services.munney-prod-backend.loadbalancer.server.port=80"
     networks:
-      - traefik-proxy
+      - proxy
       - default
     build:
       context: ./backend
@@ -50,7 +50,7 @@ services:
       - "traefik.http.routers.munney-prod-frontend.tls.certresolver=le"
       - "traefik.http.services.munney-prod-frontend.loadbalancer.server.port=80"
     networks:
-      - traefik-proxy
+      - proxy
       - default
     build:
       context: ./frontend
@@ -89,7 +89,7 @@ volumes:
     name: munney_uploads_prod
 
 networks:
-  traefik-proxy:
+  proxy:
     external: true
   default:
     name: munney-prod_default
