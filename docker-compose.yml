@@ -9,9 +9,12 @@ services:
       database:
         condition: service_healthy
     environment:
-      DATABASE_URL: "mysql://money:***REMOVED***@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
+      DATABASE_URL: "mysql://money:${MYSQL_PASSWORD}@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
       CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$$'
-      # OPENAI_API_KEY is loaded from backend/.env.local (gitignored) instead of environment variables
+      MAILER_DSN: "resend+api://${RESEND_API_KEY}@default"
+      MAIL_FROM_ADDRESS: "noreply@munney.munne.me"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      HCAPTCHA_SECRET_KEY: ${HCAPTCHA_SECRET_KEY}
     ports:
       - "8787:80"
     volumes:
@@ -41,10 +44,10 @@ services:
     container_name: money-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ***REMOVED***
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: money_db
       MYSQL_USER: money
-      MYSQL_PASSWORD: ***REMOVED***
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3333:3306"
     volumes:

@@ -46,7 +46,25 @@ jobs:
           cd /srv/munney-dev
           docker compose -f deploy/ubuntu/docker-compose.dev.yml down
           docker compose -f deploy/ubuntu/docker-compose.dev.yml up -d --build
-          
+
+      - name: ⏳ Wait for services
+        run: |
+          echo "Waiting 20 seconds for services to stabilize..."
+          sleep 20
+
+      - name: 🗄️ Run database migrations
+        run: |
+          cd /srv/munney-dev
+          docker exec munney-dev-backend php bin/console doctrine:migrations:migrate --no-interaction --env=dev
+          echo "✅ Migrations complete"
+
+      - name: 🧹 Clear and warm cache
+        run: |
+          cd /srv/munney-dev
+          docker exec munney-dev-backend php bin/console cache:clear --env=dev
+          docker exec munney-dev-backend php bin/console cache:warmup --env=dev
+          echo "✅ Cache refreshed"
+
       - name: ✅ Deployment complete
         run: |
           echo "✅ Dev deployment successful!"

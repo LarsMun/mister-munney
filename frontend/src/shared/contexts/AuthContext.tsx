@@ -11,7 +11,7 @@ interface AuthContextType {
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, captchaToken?: string) => Promise<void>;
     register: (email: string, password: string) => Promise<void>;
     logout: () => void;
 }
@@ -44,9 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
     }, []);
 
-    const login = useCallback(async (email: string, password: string) => {
+    const login = useCallback(async (email: string, password: string, captchaToken?: string) => {
         try {
-            const response = await api.post('/login', { email, password });
+            const requestBody: any = { email, password };
+            if (captchaToken) {
+                requestBody.captchaToken = captchaToken;
+            }
+
+            const response = await api.post('/login', requestBody);
             const { token: jwtToken } = response.data;
 
             // Decode JWT to get user info (simple base64 decode of payload)
@@ -66,6 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('Login failed:', error);
             if (error.response?.status === 401) {
                 throw new Error('Ongeldige inloggegevens');
+            }
+            if (error.response?.status === 403 && error.response?.data?.locked) {
+                throw new Error('Je account is vergrendeld. Controleer je e-mail voor een ontgrendelingslink.');
+            }
+            if (error.response?.status === 400 && error.response?.data?.requiresCaptcha) {
+                // Re-throw with requiresCaptcha flag so AuthScreen can show CAPTCHA
+                const captchaError: any = new Error('CAPTCHA verificatie vereist');
+                captchaError.requiresCaptcha = true;
+                captchaError.failedAttempts = error.response?.data?.failedAttempts;
+                throw captchaError;
             }
             throw new Error('Inloggen mislukt. Probeer het opnieuw.');
         }

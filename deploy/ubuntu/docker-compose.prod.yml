@@ -24,7 +24,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET_KEY: /var/www/html/config/jwt/private.pem
       JWT_PUBLIC_KEY: /var/www/html/config/jwt/public.pem
-      JWT_PASSPHRASE: '***REMOVED***'
+      JWT_PASSPHRASE: ${JWT_PASSPHRASE_PROD}
+      HCAPTCHA_SECRET_KEY: ${HCAPTCHA_SECRET_KEY}
+      MAILER_DSN: ${MAILER_DSN}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      APP_URL: ${APP_URL}
       LOCK_DSN: flock
     # NO VOLUMES IN PRODUCTION - use the built image
     labels:
