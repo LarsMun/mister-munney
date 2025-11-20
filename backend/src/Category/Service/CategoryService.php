@@ -516,4 +516,73 @@ class CategoryService
             ),
         ];
     }
+
+    /**
+     * Haalt historische data op voor een specifieke categorie, gegroepeerd per maand.
+     *
+     * @param int $accountId
+     * @param int $categoryId
+     * @param int|null $monthLimit Aantal maanden terug te gaan (null = alle maanden)
+     * @return array Historische data met categorie-informatie en maandelijkse totalen
+     * @throws NotFoundHttpException
+     */
+    public function getCategoryHistory(int $accountId, int $categoryId, ?int $monthLimit = null): array
+    {
+        // Verificatie account
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            throw new NotFoundHttpException("Account niet gevonden");
+        }
+
+        // Verificatie categorie
+        $category = $this->categoryRepository->find($categoryId);
+        if (!$category) {
+            throw new NotFoundHttpException("Categorie niet gevonden");
+        }
+
+        // Haal maandelijkse totalen op
+        $monthlyData = $this->transactionRepository->getMonthlyTotalsByCategory($accountId, $categoryId, $monthLimit);
+
+        // Tel transacties per maand
+        $transactionCounts = [];
+        foreach ($monthlyData as $row) {
+            $month = $row['month'];
+            // We kunnen geen transacties per maand tellen vanuit de getMonthlyTotalsByCategory query
+            // Voor nu laten we dit 0, of we kunnen een aparte query maken
+            $transactionCounts[$month] = 0;
+        }
+
+        // Format de history array
+        $history = array_map(function($row) {
+            return [
+                'month' => $row['month'],
+                'total' => $this->moneyFactory->toFloat(
+                    $this->moneyFactory->fromCents((int)$row['total'])
+                ),
+                'transactionCount' => 0 // TODO: Add transaction count per month if needed
+            ];
+        }, $monthlyData);
+
+        // Bereken totalen
+        $totalAmountInCents = array_sum(array_column($monthlyData, 'total'));
+        $monthCount = count($monthlyData);
+        $averagePerMonthInCents = $monthCount > 0 ? (int)($totalAmountInCents / $monthCount) : 0;
+
+        return [
+            'category' => [
+                'id' => $category->getId(),
+                'name' => $category->getName(),
+                'color' => $category->getColor(),
+                'icon' => $category->getIcon(),
+            ],
+            'history' => $history,
+            'totalAmount' => $this->moneyFactory->toFloat(
+                $this->moneyFactory->fromCents($totalAmountInCents)
+            ),
+            'averagePerMonth' => $this->moneyFactory->toFloat(
+                $this->moneyFactory->fromCents($averagePerMonthInCents)
+            ),
+            'monthCount' => $monthCount,
+        ];
+    }
 }
