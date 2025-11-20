@@ -365,6 +365,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                 onClose={() => setIsHistoryDrawerOpen(false)}
                 data={historicalData}
                 isLoading={isLoadingHistory}
+                accountId={accountId}
             />
         </article>
     );
