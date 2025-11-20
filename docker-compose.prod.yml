@@ -56,7 +56,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "https://munney.munne.me"
+        VITE_API_URL: "https://munney.munne.me/api"
     depends_on:
       - backend
 
