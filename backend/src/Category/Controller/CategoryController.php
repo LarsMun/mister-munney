@@ -602,4 +602,85 @@ class CategoryController extends AbstractController
 
         return $this->json($statistics, 200);
     }
+
+    #[OA\Get(
+        path: '/api/account/{accountId}/categories/{id}/history',
+        summary: 'Haal historische data op voor een specifieke categorie per maand',
+        tags: ['Categories'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+            new OA\Parameter(
+                name: 'id',
+                description: 'ID van de categorie',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 5)
+            ),
+            new OA\Parameter(
+                name: 'months',
+                description: 'Aantal maanden terug (optioneel, standaard = alles)',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'integer', example: 12)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Historische data per maand voor de categorie',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'category',
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer', example: 5),
+                                new OA\Property(property: 'name', type: 'string', example: 'Boodschappen'),
+                                new OA\Property(property: 'color', type: 'string', example: '#4CAF50'),
+                                new OA\Property(property: 'icon', type: 'string', example: 'shopping-cart')
+                            ],
+                            type: 'object'
+                        ),
+                        new OA\Property(
+                            property: 'history',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'month', type: 'string', example: '2025-01'),
+                                    new OA\Property(property: 'total', type: 'string', example: '450.50'),
+                                    new OA\Property(property: 'transactionCount', type: 'integer', example: 12)
+                                ]
+                            )
+                        ),
+                        new OA\Property(property: 'totalAmount', type: 'string', example: '5406.00'),
+                        new OA\Property(property: 'averagePerMonth', type: 'string', example: '450.50')
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: 'Categorie of account niet gevonden')
+        ]
+    )]
+    #[Route('/{id}/history', name: 'get_category_history', methods: ['GET'])]
+    public function getCategoryHistory(
+        int $accountId,
+        int $id,
+        Request $request
+    ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $months = $request->query->get('months');
+        $monthLimit = $months !== null ? (int)$months : null;
+
+        $history = $this->categoryService->getCategoryHistory($accountId, $id, $monthLimit);
+
+        return $this->json($history, 200);
+    }
 }
