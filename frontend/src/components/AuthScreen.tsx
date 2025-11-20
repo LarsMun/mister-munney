@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../shared/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import logo from '../assets/mister-munney-logo.png';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
+
+const HCAPTCHA_SITE_KEY = '08e0af36-6616-4538-b69a-a75c8f2cdea0';
 
 export default function AuthScreen() {
     const { login } = useAuth();
@@ -9,6 +12,9 @@ export default function AuthScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [requiresCaptcha, setRequiresCaptcha] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+    const captchaRef = useRef<HCaptcha>(null);
 
     const isLogin = true; // Always login mode
 
@@ -21,15 +27,41 @@ export default function AuthScreen() {
             return;
         }
 
+        // If CAPTCHA is required but not solved
+        if (requiresCaptcha && !captchaToken) {
+            toast.error('Los eerst de CAPTCHA op');
+            return;
+        }
+
         setIsLoading(true);
         try {
-            await login(email, password);
+            await login(email, password, captchaToken || undefined);
             toast.success('Welkom terug!');
+            // Reset CAPTCHA state on successful login
+            setRequiresCaptcha(false);
+            setCaptchaToken(null);
         } catch (error: any) {
-            toast.error(error.message || 'Er is iets misgegaan');
+            // Check if CAPTCHA is now required
+            if (error.requiresCaptcha) {
+                setRequiresCaptcha(true);
+                toast.error(`CAPTCHA verificatie vereist (${error.failedAttempts || 3}+ pogingen)`);
+                // Reset captcha to allow user to solve it again
+                setCaptchaToken(null);
+                captchaRef.current?.resetCaptcha();
+            } else {
+                toast.error(error.message || 'Er is iets misgegaan');
+            }
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleCaptchaVerify = (token: string) => {
+        setCaptchaToken(token);
+    };
+
+    const handleCaptchaExpire = () => {
+        setCaptchaToken(null);
     };
 
     return (
@@ -81,6 +113,18 @@ export default function AuthScreen() {
                             autoComplete="current-password"
                         />
                     </div>
+
+                    {/* hCaptcha (shown after 3 failed attempts) */}
+                    {requiresCaptcha && (
+                        <div className="flex justify-center">
+                            <HCaptcha
+                                ref={captchaRef}
+                                sitekey={HCAPTCHA_SITE_KEY}
+                                onVerify={handleCaptchaVerify}
+                                onExpire={handleCaptchaExpire}
+                            />
+                        </div>
+                    )}
 
                     {/* Submit Button */}
                     <button

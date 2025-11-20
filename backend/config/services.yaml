@@ -57,5 +57,10 @@ services:
         arguments:
             $loginLimiter: '@limiter.login'
 
+    # CAPTCHA service for hCaptcha verification
+    App\Security\Service\CaptchaService:
+        arguments:
+            $hcaptchaSecretKey: '%env(HCAPTCHA_SECRET_KEY)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

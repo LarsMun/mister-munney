@@ -117,7 +117,17 @@ readonly class AccountLockService
                 'expiresAt' => $user->getUnlockTokenExpiresAt(),
             ]);
 
-        $this->mailer->send($email);
+        try {
+            $this->mailer->send($email);
+        } catch (\Exception $e) {
+            // Log the error but don't fail the account lock
+            error_log(sprintf(
+                'Failed to send unlock email to %s: %s',
+                $user->getEmail(),
+                $e->getMessage()
+            ));
+            throw $e; // Re-throw to see in logs
+        }
     }
 
     /**
