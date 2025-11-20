@@ -411,6 +411,7 @@ function BudgetSummaryItem({ summary, accountId, monthYear }: BudgetSummaryItemP
                 onClose={() => setIsHistoryDrawerOpen(false)}
                 data={historicalData}
                 isLoading={isLoadingHistory}
+                accountId={accountId}
             />
         </div>
     );

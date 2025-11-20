@@ -1,8 +1,10 @@
 // frontend/src/domains/dashboard/components/HistoricalDataDrawer.tsx
 
-import { useEffect } from 'react';
-import { X, TrendingUp, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
+import { getTransactions } from '../../transactions/services/TransactionsService';
+import type { Transaction } from '../../transactions/models/Transaction';
 
 interface MonthlyData {
     month: string;
@@ -30,14 +32,21 @@ interface HistoricalDataDrawerProps {
     onClose: () => void;
     data: HistoricalData | null;
     isLoading: boolean;
+    accountId?: number;
 }
 
 export default function HistoricalDataDrawer({
     isOpen,
     onClose,
     data,
-    isLoading
+    isLoading,
+    accountId
 }: HistoricalDataDrawerProps) {
+    // State for expanded months and their transactions
+    const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+    const [monthTransactions, setMonthTransactions] = useState<Record<string, Transaction[]>>({});
+    const [loadingMonths, setLoadingMonths] = useState<Set<string>>(new Set());
+
     // Prevent body scroll when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -50,12 +59,72 @@ export default function HistoricalDataDrawer({
         };
     }, [isOpen]);
 
+    // Reset state when drawer closes
+    useEffect(() => {
+        if (!isOpen) {
+            setExpandedMonths(new Set());
+            setMonthTransactions({});
+            setLoadingMonths(new Set());
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     // Calculate max value for bar chart scaling
     const maxAmount = data?.history
         ? Math.max(...data.history.map(h => Math.abs(h.total)))
         : 0;
+
+    // Toggle month expansion and fetch transactions
+    const handleMonthToggle = async (month: string) => {
+        const isExpanded = expandedMonths.has(month);
+
+        if (isExpanded) {
+            // Collapse
+            const newExpanded = new Set(expandedMonths);
+            newExpanded.delete(month);
+            setExpandedMonths(newExpanded);
+        } else {
+            // Expand
+            const newExpanded = new Set(expandedMonths);
+            newExpanded.add(month);
+            setExpandedMonths(newExpanded);
+
+            // Fetch transactions if not already loaded
+            if (!monthTransactions[month] && accountId && data) {
+                setLoadingMonths(new Set(loadingMonths).add(month));
+
+                try {
+                    // Calculate date range for the month
+                    const [year, monthNum] = month.split('-');
+                    const startDate = `${year}-${monthNum}-01`;
+                    const lastDay = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+                    const endDate = `${year}-${monthNum}-${lastDay.toString().padStart(2, '0')}`;
+
+                    // Fetch transactions for this month
+                    const response = await getTransactions(accountId, startDate, endDate);
+
+                    // Filter by category
+                    const filteredTransactions = response.data.filter(t => t.category?.id === data.category.id);
+
+                    setMonthTransactions(prev => ({
+                        ...prev,
+                        [month]: filteredTransactions
+                    }));
+                } catch (error) {
+                    console.error('Error fetching transactions for month:', error);
+                    setMonthTransactions(prev => ({
+                        ...prev,
+                        [month]: []
+                    }));
+                } finally {
+                    const newLoading = new Set(loadingMonths);
+                    newLoading.delete(month);
+                    setLoadingMonths(newLoading);
+                }
+            }
+        }
+    };
 
     return (
         <>
@@ -77,9 +146,13 @@ export default function HistoricalDataDrawer({
                         {data && (
                             <>
                                 <div
-                                    className="w-4 h-4 rounded-full flex-shrink-0"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                                     style={{ backgroundColor: data.category.color }}
-                                />
+                                >
+                                    <span className="text-white text-lg">
+                                        {data.category.icon || '📁'}
+                                    </span>
+                                </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-900">{data.category.name}</h2>
                                     <p className="text-sm text-gray-600">Historische gegevens</p>
@@ -156,36 +229,110 @@ export default function HistoricalDataDrawer({
                                     const barWidth = maxAmount > 0
                                         ? (Math.abs(monthData.total) / maxAmount) * 100
                                         : 0;
+                                    const isExpanded = expandedMonths.has(monthData.month);
+                                    const isLoadingMonth = loadingMonths.has(monthData.month);
+                                    const transactions = monthTransactions[monthData.month] || [];
 
                                     return (
                                         <div
                                             key={monthData.month}
-                                            className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                            className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
                                         >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex-1">
-                                                    <p className="font-medium text-gray-900">{monthName}</p>
+                                            {/* Month Header - Clickable */}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMonthToggle(monthData.month)}
+                                                className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        {isExpanded ? (
+                                                            <ChevronUp className="w-5 h-5 text-gray-500" />
+                                                        ) : (
+                                                            <ChevronDown className="w-5 h-5 text-gray-500" />
+                                                        )}
+                                                        <p className="font-medium text-gray-900">{monthName}</p>
+                                                        <span className="text-xs text-gray-500">
+                                                            ({monthData.transactionCount} {monthData.transactionCount === 1 ? 'transactie' : 'transacties'})
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p
+                                                            className={`font-bold text-lg ${
+                                                                isPositive ? 'text-green-600' : 'text-red-600'
+                                                            }`}
+                                                        >
+                                                            {isPositive ? '+' : '-'}
+                                                            {formatMoney(Math.abs(monthData.total))}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p
-                                                        className={`font-bold text-lg ${
-                                                            isPositive ? 'text-green-600' : 'text-red-600'
+                                                {/* Bar Chart */}
+                                                <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`absolute left-0 top-0 h-full rounded-full transition-all ${
+                                                            isPositive ? 'bg-green-500' : 'bg-red-500'
                                                         }`}
-                                                    >
-                                                        {isPositive ? '+' : '-'}
-                                                        {formatMoney(Math.abs(monthData.total))}
-                                                    </p>
+                                                        style={{ width: `${barWidth}%` }}
+                                                    />
                                                 </div>
-                                            </div>
-                                            {/* Bar Chart */}
-                                            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                <div
-                                                    className={`absolute left-0 top-0 h-full rounded-full transition-all ${
-                                                        isPositive ? 'bg-green-500' : 'bg-red-500'
-                                                    }`}
-                                                    style={{ width: `${barWidth}%` }}
-                                                />
-                                            </div>
+                                            </button>
+
+                                            {/* Expanded Transactions */}
+                                            {isExpanded && (
+                                                <div className="border-t border-gray-200 bg-gray-50">
+                                                    {isLoadingMonth ? (
+                                                        <div className="flex items-center justify-center py-8">
+                                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                                        </div>
+                                                    ) : transactions.length === 0 ? (
+                                                        <div className="text-center py-8 text-gray-500">
+                                                            <p className="text-sm">Geen transacties gevonden</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-4 space-y-2">
+                                                            {transactions.map((transaction) => (
+                                                                <div
+                                                                    key={transaction.id}
+                                                                    className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow"
+                                                                >
+                                                                    <div className="flex items-start justify-between">
+                                                                        <div className="flex-1 min-w-0 mr-4">
+                                                                            <p className="font-medium text-gray-900 truncate text-sm">
+                                                                                {transaction.description}
+                                                                            </p>
+                                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                                {new Date(transaction.date).toLocaleDateString('nl-NL', {
+                                                                                    day: 'numeric',
+                                                                                    month: 'short',
+                                                                                    year: 'numeric'
+                                                                                })}
+                                                                            </p>
+                                                                            {transaction.notes && (
+                                                                                <p className="text-xs text-gray-400 mt-1 line-clamp-1">
+                                                                                    {transaction.notes}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-right flex-shrink-0">
+                                                                            <p
+                                                                                className={`font-semibold text-sm ${
+                                                                                    transaction.transactionType === 'credit'
+                                                                                        ? 'text-green-600'
+                                                                                        : 'text-red-600'
+                                                                                }`}
+                                                                            >
+                                                                                {transaction.transactionType === 'credit' ? '+' : '-'}
+                                                                                {formatMoney(Math.abs(transaction.amount))}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
