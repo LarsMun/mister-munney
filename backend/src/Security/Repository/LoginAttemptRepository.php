@@ -56,4 +56,18 @@ class LoginAttemptRepository extends ServiceEntityRepository
             ->getQuery()
             ->execute();
     }
+
+    /**
+     * Delete failed login attempts for a specific email
+     */
+    public function deleteFailedAttempts(string $email): int
+    {
+        return $this->createQueryBuilder('la')
+            ->delete()
+            ->where('la.email = :email')
+            ->andWhere('la.success = false')
+            ->setParameter('email', $email)
+            ->getQuery()
+            ->execute();
+    }
 }

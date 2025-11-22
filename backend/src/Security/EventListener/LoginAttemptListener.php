@@ -102,8 +102,8 @@ readonly class LoginAttemptListener
         // Record successful login attempt
         $this->loginAttemptService->recordAttempt($email, true, $ipAddress, $userAgent);
 
-        // Note: In hybrid approach, failed attempts naturally expire after 1 hour
-        // Successful login doesn't need to clear them (they're outside the time window)
+        // Clear failed attempts to immediately reset CAPTCHA requirement
+        $this->loginAttemptService->clearAttempts($email);
     }
 
     /**
