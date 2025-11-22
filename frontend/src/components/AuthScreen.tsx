@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import logo from '../assets/mister-munney-logo.png';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 
-const HCAPTCHA_SITE_KEY = '08e0af36-6616-4538-b69a-a75c8f2cdea0';
+const HCAPTCHA_SITE_KEY = '89d8116c-c1de-4818-b25c-1abe39bed464';
 
 export default function AuthScreen() {
     const { login } = useAuth();
