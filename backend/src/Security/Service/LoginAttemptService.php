@@ -60,15 +60,13 @@ readonly class LoginAttemptService
 
     /**
      * Clear failed attempts for an email (called on successful login)
-     * Note: We don't actually delete attempts (for audit trail), but this
-     * method exists for potential future use or manual intervention
      */
     public function clearAttempts(string $email): void
     {
-        // For hybrid approach, we rely on time-based window (1 hour)
-        // Successful login is recorded with success=true
-        // Counter naturally resets after 1 hour
-        // This method could be used for manual admin override if needed
+        // Delete failed attempts to immediately reset CAPTCHA requirement
+        // Successful login attempts are kept for audit trail
+        $this->loginAttemptRepository->deleteFailedAttempts($email);
+        $this->entityManager->flush();
     }
 
     /**
