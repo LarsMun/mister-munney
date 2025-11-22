@@ -32,7 +32,7 @@ if [ "$ENV" = "prod" ]; then
 else
     CONTAINER="money-mysql"
     DB_NAME="money_db"
-    DB_PASSWORD="***REMOVED***"
+    DB_PASSWORD="moneymakestheworldgoround"
     BACKUP_DIR="./backups/dev"
 fi
 
