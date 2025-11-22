@@ -36,9 +36,9 @@
 **Severity:** 🔴 **CRITICAL** | **Impact:** SEVERE SECURITY BREACH | **Effort:** S
 
 **Evidence:**
-- `docker-compose.yml` (line 14): Resend API key hardcoded: `***REMOVED***`
-- `deploy/ubuntu/docker-compose.prod.yml` (line 27): JWT passphrase hardcoded: `***REMOVED***`
-- `backend/.env`: hCaptcha secret key exposed: `***REMOVED***`
+- `docker-compose.yml` (line 14): Resend API key hardcoded: `re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu`
+- `deploy/ubuntu/docker-compose.prod.yml` (line 27): JWT passphrase hardcoded: `+Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is=`
+- `backend/.env`: hCaptcha secret key exposed: `ES_e9abae79ed0f4f448f3ef6994d0af93b`
 - Production server `/srv/munney-prod/.env`: OpenAI API key exposed (full key retrieved via earlier SSH)
 
 **Impact:**
@@ -62,7 +62,7 @@
 **Severity:** 🔴 **CRITICAL** | **Impact:** DATABASE COMPROMISE | **Effort:** S
 
 **Evidence:**
-- `docker-compose.yml` (lines 46, 49): Weak password `***REMOVED***` hardcoded
+- `docker-compose.yml` (lines 46, 49): Weak password `moneymakestheworldgoround` hardcoded
 - Root and user passwords identical
 - Password visible in version control
 - Password exposed in container environment variables
@@ -93,10 +93,10 @@ DATABASE_URL: "mysql://money:${MYSQL_PASSWORD}@database:3306/money_db"
 
 **Evidence from `/srv/munney-prod/.env`:**
 ```bash
-OPENAI_API_KEY=***REMOVED***
-MAILER_DSN=resend+api://***REMOVED***@default
-JWT_PASSPHRASE=***REMOVED***
-JWT_PASSPHRASE_PROD=***REMOVED***
+OPENAI_API_KEY=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
+MAILER_DSN=resend+api://re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu@default
+JWT_PASSPHRASE=+Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is=
+JWT_PASSPHRASE_PROD=27deec7964942d0b60d20fed8bc31d59d4b682fc92dadd89cce60af61e934f24
 ```
 
 **Issues:**
@@ -159,7 +159,7 @@ Multiple docker-compose files serving different purposes without clear hierarchy
 
 **Evidence:**
 - `backend/config/services.yaml` (line 63): References `%env(HCAPTCHA_SECRET_KEY)%`
-- `backend/.env` has the secret: `***REMOVED***`
+- `backend/.env` has the secret: `ES_e9abae79ed0f4f448f3ef6994d0af93b`
 - Production `/srv/munney-prod/.env`: **No HCAPTCHA_SECRET_KEY defined**
 - Development `/srv/munney-dev/.env`: **No HCAPTCHA_SECRET_KEY defined**
 
@@ -172,7 +172,7 @@ Multiple docker-compose files serving different purposes without clear hierarchy
 **Immediate Fix:**
 ```bash
 # Add to production .env
-echo "HCAPTCHA_SECRET_KEY=***REMOVED***" >> /srv/munney-prod/.env
+echo "HCAPTCHA_SECRET_KEY=ES_e9abae79ed0f4f448f3ef6994d0af93b" >> /srv/munney-prod/.env
 
 # But also: Generate NEW secret key since the current one is exposed in git
 # Get new keys from https://www.hcaptcha.com/
@@ -280,7 +280,7 @@ git mv *.md docs/archive/
 **Priority:** 🔴 **STOP-THE-WORLD CRITICAL**
 
 1. **Revoke Compromised API Keys**
-   - [ ] Revoke Resend API key `***REMOVED***`
+   - [ ] Revoke Resend API key `re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu`
    - [ ] Rotate OpenAI API key
    - [ ] Generate new hCaptcha site and secret keys
    - [ ] Generate new JWT keypair and passphrase

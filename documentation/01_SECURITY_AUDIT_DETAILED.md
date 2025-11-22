@@ -19,7 +19,7 @@
 
 **Location:** `/docker-compose.yml:14`
 ```yaml
-MAILER_DSN: "resend+api://***REMOVED***@default"
+MAILER_DSN: "resend+api://re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu@default"
 ```
 
 **Attack Vector:**
@@ -42,7 +42,7 @@ MAILER_DSN: "resend+api://***REMOVED***@default"
 
 **Location:** `/srv/munney-prod/.env` (server file)
 ```bash
-OPENAI_API_KEY=***REMOVED***
+OPENAI_API_KEY=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
 ```
 
 **Attack Vector:**
@@ -68,7 +68,7 @@ curl https://api.openai.com/v1/models \
 
 **Location:** `/backend/.env` (local dev)
 ```bash
-HCAPTCHA_SECRET_KEY=***REMOVED***
+HCAPTCHA_SECRET_KEY=ES_e9abae79ed0f4f448f3ef6994d0af93b
 ```
 
 **Attack Vector:**
@@ -85,7 +85,7 @@ HCAPTCHA_SECRET_KEY=***REMOVED***
 
 **Location:** `/deploy/ubuntu/docker-compose.prod.yml:27`
 ```yaml
-JWT_PASSPHRASE: '***REMOVED***'
+JWT_PASSPHRASE: '+Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is='
 ```
 
 **Attack Vector:**
@@ -103,7 +103,7 @@ JWT_PASSPHRASE: '***REMOVED***'
 **Verification:**
 ```bash
 # Check if JWT uses this passphrase
-openssl rsa -in backend/config/jwt/private.pem -passin pass:'***REMOVED***' -text
+openssl rsa -in backend/config/jwt/private.pem -passin pass:'+Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is=' -text
 # If succeeds, passphrase is correct
 ```
 
@@ -116,7 +116,7 @@ openssl rsa -in backend/config/jwt/private.pem -passin pass:'***REMOVED***' -tex
 ```bash
 # 1. Revoke Resend API Key
 # Login to https://resend.com/api-keys
-# Delete key: ***REMOVED***
+# Delete key: re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu
 # Generate new key and store securely
 
 # 2. Rotate OpenAI API Key
@@ -147,11 +147,11 @@ brew install bfg  # or download from https://rtyley.github.io/bfg-repo-cleaner/
 
 # Create file with secrets to remove
 cat > secrets-to-remove.txt << EOF
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
+re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu
+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
+ES_e9abae79ed0f4f448f3ef6994d0af93b
++Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is=
+moneymakestheworldgoround
 EOF
 
 # Run BFG to remove secrets
@@ -320,7 +320,7 @@ curl -X POST https://munney.munne.me/api/login \
 **Severity:** 🟡 **HIGH**
 **Location:** `docker-compose.yml:46,49`, `docker-compose.prod.yml:68,70`
 
-**Current Password:** `***REMOVED***`
+**Current Password:** `moneymakestheworldgoround`
 
 **Weaknesses:**
 - Dictionary word combinations (easy to crack)

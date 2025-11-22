@@ -439,7 +439,7 @@ curl https://munney.munne.me/api
 
 **Location:** `deploy/ubuntu/docker-compose.prod.yml:27`
 ```yaml
-JWT_PASSPHRASE: '***REMOVED***'
+JWT_PASSPHRASE: '+Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is='
 ```
 
 **Issue:**

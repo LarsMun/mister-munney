@@ -12,7 +12,7 @@
         <server name="SHELL_VERBOSITY" value="-1" />
         <server name="SYMFONY_PHPUNIT_REMOVE" value="" />
         <server name="SYMFONY_PHPUNIT_VERSION" value="10.5" />
-        <env name="DATABASE_URL" value="mysql://money:***REMOVED***@money-mysql:3306/money_test" />
+        <env name="DATABASE_URL" value="mysql://money:moneymakestheworldgoround@money-mysql:3306/money_test" />
     </php>
 
     <testsuites>

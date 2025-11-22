@@ -51,7 +51,8 @@ function AppContent() {
         setIsUploading(true);
         try {
             const result = await importTransactions(accountId, file);
-            toast.success(`${result.imported} transacties geïmporteerd, ${result.duplicates} duplicaten overgeslagen`);
+            const skipped = result.duplicates ?? result.skipped ?? 0;
+            toast.success(`${result.imported} transacties geïmporteerd, ${skipped} duplicaten overgeslagen`);
             setShowUploadModal(false);
         } catch (error) {
             console.error('Import failed:', error);

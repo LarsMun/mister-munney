@@ -17,7 +17,7 @@
 ```bash
 # 1. RESEND EMAIL API
 # Login to: https://resend.com/api-keys
-# Revoke key: ***REMOVED***
+# Revoke key: re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu
 # Generate new key and save to password manager
 NEW_RESEND_KEY="re_YOUR_NEW_KEY_HERE"
 
@@ -204,12 +204,12 @@ brew install bfg
 
 # 2. Create list of secrets to remove
 cat > secrets-to-remove.txt << EOF
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
+re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu
+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
+ES_e9abae79ed0f4f448f3ef6994d0af93b
++Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is=
+moneymakestheworldgoround
+27deec7964942d0b60d20fed8bc31d59d4b682fc92dadd89cce60af61e934f24
 EOF
 
 # 3. Create backup
@@ -260,8 +260,8 @@ nano docker-compose.yml
 
 # CHANGE THIS:
 # environment:
-#   DATABASE_URL: "mysql://money:***REMOVED***@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
-#   MAILER_DSN: "resend+api://***REMOVED***@default"
+#   DATABASE_URL: "mysql://money:moneymakestheworldgoround@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
+#   MAILER_DSN: "resend+api://re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu@default"
 
 # TO THIS:
 # environment:
@@ -293,7 +293,7 @@ nano deploy/ubuntu/docker-compose.prod.yml
 
 # LINE 27: REMOVE hardcoded JWT_PASSPHRASE
 # CHANGE:
-#   JWT_PASSPHRASE: '***REMOVED***'
+#   JWT_PASSPHRASE: '+Qdsl7gdFOYMlixhppIKftcHetoUa/G2gxZBBLOx9Is='
 
 # TO:
 #   JWT_PASSPHRASE: ${JWT_PASSPHRASE_PROD}
