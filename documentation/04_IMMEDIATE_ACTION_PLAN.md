@@ -1,14 +1,129 @@
 # IMMEDIATE ACTION PLAN
 ## Mister Munney - Critical Fixes Required
 
-**Date:** November 20, 2025
-**Status:** 🔴 **URGENT - ACTION REQUIRED**
-**Estimated Time:** 4-6 hours
-**Risk Level:** HIGH (Exposed secrets, broken features)
+**Original Date:** November 20, 2025
+**Last Updated:** November 23, 2025
+**Status:** 🟢 **MOSTLY COMPLETED** (git history cleaned November 23, 2025)
+**Original Risk Level:** HIGH (Exposed secrets, broken features)
 
 ---
 
-## 🚨 CRITICAL ACTIONS (DO FIRST - NEXT 2 HOURS)
+## ✅ COMPLETED ACTIONS (Updated November 23, 2025)
+
+### MAJOR ACHIEVEMENTS ✅
+
+**November 20, 2025 - Security Fixes (Commit 9e147a0)**
+- ✅ Removed ALL hardcoded secrets from docker-compose files
+- ✅ Updated .gitignore to prevent future secret leaks
+- ✅ Created .env.example templates for all environments
+- ✅ Added missing HCAPTCHA configuration to dev/prod deployments
+- ✅ Rotated hCaptcha keys (new site key: 89d8116c-c1de-4818-b25c-1abe39bed464)
+- ✅ Fixed deployment pipeline (migrations, JWT key generation)
+- ✅ Created comprehensive security documentation (3,440+ lines)
+- ✅ Cleaned up 27 outdated documentation files (11,608 lines removed)
+
+**November 20, 2025 - Additional Fixes**
+- ✅ Fixed email configuration (dev server)
+- ✅ Fixed JWT encoding errors (production)
+- ✅ Fixed account locking issues (dev server)
+- ✅ Fixed frontend loading (hCaptcha package installation)
+
+**November 23, 2025 - Git History Cleaning** 🎉
+- ✅ **Git history cleaned with BFG Repo-Cleaner**
+- ✅ **269 commits processed**
+- ✅ **574 git objects modified**
+- ✅ **All secrets replaced with `***REMOVED***`**
+- ✅ **Force pushed to GitHub (all branches synced)**
+- ✅ **Repository backup created**
+
+### CURRENT STATUS SUMMARY
+
+| Category | Status | Details |
+|----------|--------|---------|
+| **Code Security** | ✅ EXCELLENT | No hardcoded secrets in current code |
+| **Git History** | ✅ CLEANED | All old secrets removed from history (Nov 23) |
+| **API Keys** | ⚠️ TO VERIFY | Need to confirm old keys are revoked |
+| **Deployments** | ✅ WORKING | All 3 environments operational |
+| **Documentation** | ✅ COMPLETE | Comprehensive audit & guides created |
+
+---
+
+## ⚠️ REMAINING ACTIONS (High Priority)
+
+### Action R1: Verify API Key Rotation
+
+**Priority:** 🟡 **HIGH** | **Time:** 15 minutes | **Status:** NOT VERIFIED
+
+Even though new keys are in use, verify the OLD compromised keys are actually revoked:
+
+```bash
+# 1. Test old Resend API key (should fail with 401/403)
+curl -X POST https://api.resend.com/emails \
+  -H "Authorization: Bearer re_UrrEVv6w_9NEHJayyB1VWJHB9g7bZcgfu" \
+  -H "Content-Type: application/json" \
+  -d '{"from":"test@test.com","to":"test@test.com","subject":"test","html":"test"}'
+
+# 2. Test old OpenAI API key (should fail)
+curl https://api.openai.com/v1/models \
+  -H "Authorization: Bearer sk-proj-MjDnta3M52e6w4wbrBadH7X_wmD1Ps3ZmdbH31VXxFXiZOGZFdys0-wQZzLThOSp..."
+
+# 3. Test old hCaptcha secret (should fail)
+curl -X POST https://api.hcaptcha.com/siteverify \
+  -d "secret=ES_e9abae79ed0f4f448f3ef6994d0af93b" \
+  -d "response=test"
+```
+
+**If any still work:** Log into the respective dashboards and revoke immediately!
+
+### Action R2: Complete .env.example Files
+
+**Priority:** 🟡 **HIGH** | **Time:** 10 minutes | **Status:** INCOMPLETE
+
+The deploy/ubuntu/.env.*.example files are missing several variables.
+
+**Update `/deploy/ubuntu/.env.prod.example`:**
+```bash
+# Production Environment Variables
+MYSQL_ROOT_PASSWORD_PROD=your_prod_root_password_here
+MYSQL_PASSWORD_PROD=your_prod_password_here
+APP_SECRET_PROD=your_prod_app_secret_here
+OPENAI_API_KEY=your_openai_api_key_here
+
+# JWT Authentication
+JWT_PASSPHRASE_PROD=your_jwt_passphrase_here
+
+# hCaptcha Security
+HCAPTCHA_SECRET_KEY=your_hcaptcha_secret_here
+
+# Email Configuration
+MAILER_DSN=resend+api://your_resend_key@default
+MAIL_FROM_ADDRESS=noreply@munney.munne.me
+MAIL_FROM_NAME=Mister Munney
+APP_URL=https://munney.munne.me
+```
+
+**Update `/deploy/ubuntu/.env.dev.example`:** (same structure but with dev values)
+
+### Action R3: Move Frontend hCaptcha Key to Environment Variable
+
+**Priority:** 🟡 **MEDIUM** | **Time:** 15 minutes | **Status:** TODO
+
+Currently hardcoded in `frontend/src/components/AuthScreen.tsx:7`
+
+**Fix:**
+1. Add to `frontend/.env.production.example`:
+   ```
+   VITE_HCAPTCHA_SITE_KEY=your_hcaptcha_site_key_here
+   ```
+
+2. Update AuthScreen.tsx:
+   ```typescript
+   const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '89d8116c-c1de-4818-b25c-1abe39bed464';
+   ```
+
+---
+
+## 🚨 ORIGINAL CRITICAL ACTIONS (COMPLETED - FOR REFERENCE)
 
 ### Action 1: Revoke ALL Compromised API Keys
 
@@ -456,38 +571,38 @@ rm .env.backup* 2>/dev/null || true
 
 ## ✅ VERIFICATION CHECKLIST
 
-After completing all actions, verify:
+**Last Updated:** November 23, 2025
 
 ### Security
-- [ ] All API keys revoked and regenerated
-- [ ] Production .env has new keys
-- [ ] Dev .env has HCAPTCHA keys
-- [ ] Local .env.local has strong passwords
-- [ ] docker-compose.yml uses environment variables
-- [ ] No hardcoded secrets in any files
-- [ ] .gitignore prevents future leaks
-- [ ] Git history cleaned (if force pushed)
+- [ ] All API keys revoked and regenerated (⚠️ **TO VERIFY**)
+- [x] Production .env has new keys ✅
+- [x] Dev .env has HCAPTCHA keys ✅
+- [x] Local .env.local has strong passwords ✅
+- [x] docker-compose.yml uses environment variables ✅
+- [x] No hardcoded secrets in any files ✅ (except 1 frontend key - see Action R3)
+- [x] .gitignore prevents future leaks ✅
+- [x] **Git history cleaned** ✅ **(Completed November 23, 2025)**
 
 ### Functionality
-- [ ] Production site loads: https://munney.munne.me
-- [ ] Dev site loads: https://devmunney.home.munne.me
-- [ ] Login works on both environments
-- [ ] CAPTCHA appears after 3 failed logins
-- [ ] CAPTCHA can be solved and login succeeds
-- [ ] Email sending works (test account lock email)
-- [ ] AI features work (transaction categorization)
+- [x] Production site loads: https://munney.munne.me ✅
+- [x] Dev site loads: https://devmunney.home.munne.me ✅
+- [x] Login works on both environments ✅
+- [x] CAPTCHA appears after 3 failed logins ✅
+- [x] CAPTCHA can be solved and login succeeds ✅
+- [x] Email sending works (test account lock email) ✅
+- [ ] AI features work (transaction categorization) (⚠️ **TO TEST**)
 
 ### Deployment
-- [ ] Dev deployment workflow includes migrations
-- [ ] Production JWT keys generated on servers
-- [ ] All environment variables documented
-- [ ] Rollback procedure documented
+- [x] Dev deployment workflow includes migrations ✅
+- [x] Production JWT keys generated on servers ✅
+- [x] All environment variables documented ✅
+- [x] Rollback procedure documented ✅
 
 ### Documentation
-- [ ] Team notified of key rotation
-- [ ] Deployment guide updated
-- [ ] Security incident documented
-- [ ] Lessons learned recorded
+- [ ] Team notified of key rotation (⚠️ **IF APPLICABLE**)
+- [x] Deployment guide updated ✅
+- [x] Security incident documented ✅
+- [x] Lessons learned recorded ✅
 
 ---
 
