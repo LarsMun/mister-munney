@@ -70,7 +70,7 @@ SAFETY_BACKUP="./backups/pre_restore_$(date +"%Y%m%d_%H%M%S").sql.gz"
 echo -e "${GREEN}📦 Making safety backup of current data...${NC}"
 docker exec $CONTAINER mysqldump \
     -u money \
-    -p***REMOVED*** \
+    -pmoneymakestheworldgoround \
     --single-transaction \
     --databases $DB_NAME \
     | gzip > "$SAFETY_BACKUP"
@@ -84,12 +84,12 @@ if [[ "$BACKUP_FILE" == *.gz ]]; then
     # Gecomprimeerd bestand
     gunzip < "$BACKUP_FILE" | docker exec -i $CONTAINER mysql \
         -u money \
-        -p***REMOVED***
+        -pmoneymakestheworldgoround
 else
     # Niet gecomprimeerd bestand
     docker exec -i $CONTAINER mysql \
         -u money \
-        -p***REMOVED*** \
+        -pmoneymakestheworldgoround \
         < "$BACKUP_FILE"
 fi
 

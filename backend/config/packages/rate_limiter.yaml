@@ -7,3 +7,13 @@ framework:
             policy: 'fixed_window'
             limit: 300
             interval: '1 minute'
+
+        # Login rate limiter: 30 attempts per 5 minutes per IP (6 per minute average)
+        # Provides DoS protection against mass login attempts from single IP
+        # Account lock (at 5 attempts) provides primary brute force protection
+        # Uses sliding window for more accurate enforcement
+        # Higher limit allows multiple users on same IP (e.g., shared network) without issues
+        login:
+            policy: 'sliding_window'
+            limit: 30
+            interval: '5 minutes'

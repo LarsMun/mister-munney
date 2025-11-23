@@ -1,10 +1,11 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import TransactionsModule from './domains/transactions';
 import PatternModule from './domains/patterns';
 import WelcomeScreen from './components/WelcomeScreen';
 import AuthScreen from './components/AuthScreen';
+import UnlockScreen from './components/UnlockScreen';
 import BudgetsModule from './domains/budgets';
 import AccountManagement from './domains/accounts';
 import DashboardModule from './domains/dashboard';
@@ -17,11 +18,15 @@ import { Toaster } from "react-hot-toast";
 import toast from 'react-hot-toast';
 import { importTransactions } from './lib/api';
 
-export default function App() {
+function AppContent() {
+    const location = useLocation();
     const { isAuthenticated, isLoading: authLoading, logout, user } = useAuth();
     const { accounts, accountId, setAccountId, hasAccounts, isLoading: accountsLoading, refreshAccounts, resetAccountState } = useAccount();
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Check if we're on the unlock page
+    const isUnlockPage = location.pathname === '/unlock';
 
     // Fetch accounts when user is authenticated
     useEffect(() => {
@@ -46,7 +51,8 @@ export default function App() {
         setIsUploading(true);
         try {
             const result = await importTransactions(accountId, file);
-            toast.success(`${result.imported} transacties geïmporteerd, ${result.duplicates} duplicaten overgeslagen`);
+            const skipped = result.duplicates ?? result.skipped ?? 0;
+            toast.success(`${result.imported} transacties geïmporteerd, ${skipped} duplicaten overgeslagen`);
             setShowUploadModal(false);
         } catch (error) {
             console.error('Import failed:', error);
@@ -55,6 +61,16 @@ export default function App() {
             setIsUploading(false);
         }
     };
+
+    // Show unlock page if on unlock route (no authentication required)
+    if (isUnlockPage) {
+        return (
+            <>
+                <UnlockScreen />
+                <Toaster position="top-center" />
+            </>
+        );
+    }
 
     // Show loading state while checking authentication
     if (authLoading) {
@@ -101,7 +117,7 @@ export default function App() {
     }
 
     return (
-        <BrowserRouter>
+        <>
             <Toaster position="top-center" />
             <div className="flex flex-col min-h-screen">
                 {/* Header */}
@@ -292,6 +308,14 @@ export default function App() {
                     </div>
                 </div>
             )}
+        </>
+    );
+}
+
+export default function App() {
+    return (
+        <BrowserRouter>
+            <AppContent />
         </BrowserRouter>
     );
 }

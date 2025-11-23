@@ -40,10 +40,27 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    # Account lock service with mail configuration
+    App\Security\Service\AccountLockService:
+        arguments:
+            $mailFromAddress: '%env(MAIL_FROM_ADDRESS)%'
+            $mailFromName: '%env(MAIL_FROM_NAME)%'
+            $appUrl: '%env(APP_URL)%'
+
     # Rate limiter factory for API requests
     App\EventListener\RateLimitListener:
         arguments:
             $apiLimiter: '@limiter.api'
+
+    # Rate limiter factory for login requests
+    App\Security\EventListener\LoginRateLimitListener:
+        arguments:
+            $loginLimiter: '@limiter.login'
+
+    # CAPTCHA service for hCaptcha verification
+    App\Security\Service\CaptchaService:
+        arguments:
+            $hcaptchaSecretKey: '%env(HCAPTCHA_SECRET_KEY)%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

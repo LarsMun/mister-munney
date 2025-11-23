@@ -177,37 +177,37 @@ export default function ProjectDetailPage() {
 
             {/* Tabs */}
             <div className="bg-white rounded-lg shadow mb-6">
-                <div className="border-b border-gray-200">
-                    <div className="flex gap-8 px-6">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                    <div className="flex gap-2 px-4 py-2">
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`py-4 font-medium text-sm transition-colors relative ${
+                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
                                 activeTab === 'overview'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
+                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
                             }`}
                         >
-                            Overzicht
+                            📊 Overzicht
                         </button>
                         <button
                             onClick={() => setActiveTab('entries')}
-                            className={`py-4 font-medium text-sm transition-colors relative ${
+                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
                                 activeTab === 'entries'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
+                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
                             }`}
                         >
-                            Inkomsten & Uitgaven
+                            💰 Inkomsten & Uitgaven
                         </button>
                         <button
                             onClick={() => setActiveTab('files')}
-                            className={`py-4 font-medium text-sm transition-colors relative ${
+                            className={`px-6 py-3 font-semibold text-base rounded-t-lg transition-all relative ${
                                 activeTab === 'files'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-blue-700 shadow-md border-b-4 border-blue-600'
+                                    : 'text-gray-700 hover:bg-white/50 hover:text-blue-600'
                             }`}
                         >
-                            Bestanden
+                            📁 Bestanden
                         </button>
                     </div>
                 </div>

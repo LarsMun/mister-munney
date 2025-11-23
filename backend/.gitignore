@@ -18,3 +18,14 @@
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
 ###< lexik/jwt-authentication-bundle ###
+
+###> uploads (user generated content) ###
+/public/uploads/
+###< uploads (user generated content) ###
+
+###> environment-specific config ###
+/config/packages/*.local
+/config/packages/**/*.local
+/.dockerignore
+/php-uploads.ini
+###< environment-specific config ###

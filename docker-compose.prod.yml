@@ -7,6 +7,7 @@ services:
     volumes:
       - ./backend:/var/www/html:ro  # Read-only in productie
       - uploads_prod:/var/www/html/public/uploads  # Read-write voor uploads
+      - ./backend/var:/var/www/html/var  # Read-write voor cache en logs
     environment:
       APP_ENV: prod
       APP_DEBUG: "false"
@@ -16,6 +17,23 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_PASSPHRASE: ${JWT_PASSPHRASE}
+      MAILER_DSN: ${MAILER_DSN}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      APP_URL: ${APP_URL}
+      LOCK_DSN: ${LOCK_DSN}
+      # hCaptcha for login protection
+      HCAPTCHA_SECRET_KEY: ${HCAPTCHA_SECRET_KEY}
+      HCAPTCHA_SITE_KEY: ${HCAPTCHA_SITE_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.munne.me`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.munney-prod-backend.entrypoints=websecure"
+      - "traefik.http.routers.munney-prod-backend.tls.certresolver=le"
+      - "traefik.http.services.munney-prod-backend.loadbalancer.server.port=80"
+    networks:
+      - proxy
+      - default
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
@@ -28,11 +46,20 @@ services:
     restart: unless-stopped
     ports:
       - "3001:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.munne.me`)"
+      - "traefik.http.routers.munney-prod-frontend.entrypoints=websecure"
+      - "traefik.http.routers.munney-prod-frontend.tls.certresolver=le"
+      - "traefik.http.services.munney-prod-frontend.loadbalancer.server.port=80"
+    networks:
+      - proxy
+      - default
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "http://${NAS_IP}:8687"
+        VITE_API_URL: "https://munney.munne.me/api"
     depends_on:
       - backend
 
@@ -63,3 +90,9 @@ volumes:
     name: munney_db_data_prod
   uploads_prod:
     name: munney_uploads_prod
+
+networks:
+  proxy:
+    external: true
+  default:
+    name: munney-prod_default

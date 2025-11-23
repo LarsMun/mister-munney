@@ -432,7 +432,7 @@ FRONTEND_DEV_URL=http://localhost:3000
 ```yaml
 # docker-compose.yml
 environment:
-  DATABASE_URL: "mysql://money:***REMOVED***@database:3306/money_db"
+  DATABASE_URL: "mysql://money:moneymakestheworldgoround@database:3306/money_db"
   #                       ^^^^^ Password in plain text
 ```
 
