@@ -11,7 +11,7 @@ import { API_URL } from '../../../lib/api';
 interface BudgetCardProps {
     budget: Budget;
     categoryStats: CategoryStatistics | null;
-    onUpdate: (budgetId: number, updates: any) => Promise<void>;
+    onUpdate: (budgetId: number, updates: Partial<Budget>) => Promise<void>;
     onDelete: (budgetId: number) => void;
     onDrop: (budgetId: number, categoryIds: number[]) => void;
     onRemoveCategory: (budgetId: number, categoryId: number) => void;

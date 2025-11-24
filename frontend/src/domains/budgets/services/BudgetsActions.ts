@@ -8,15 +8,28 @@ import type {
     AssignCategories
 } from '../models/Budget';
 
+interface ApiError {
+    response?: {
+        data?: {
+            message?: string;
+            error?: string;
+        };
+    };
+}
+
+function getErrorMessage(error: unknown, defaultMessage: string): string {
+    const err = error as ApiError;
+    return err.response?.data?.message || err.response?.data?.error || defaultMessage;
+}
+
 export const budgetsActions = {
     async createBudget(accountId: number, budget: CreateBudget) {
         try {
             const result = await BudgetsService.createBudget(accountId, budget);
             toast.success('Budget succesvol aangemaakt!');
             return result;
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het aanmaken van het budget';
-            toast.error(message);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Er is een fout opgetreden bij het aanmaken van het budget'));
             throw error;
         }
     },
@@ -26,9 +39,8 @@ export const budgetsActions = {
             const result = await BudgetsService.updateBudget(accountId, budgetId, budget);
             toast.success('Budget succesvol bijgewerkt!');
             return result;
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het bijwerken van het budget';
-            toast.error(message);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Er is een fout opgetreden bij het bijwerken van het budget'));
             throw error;
         }
     },
@@ -37,9 +49,8 @@ export const budgetsActions = {
         try {
             await BudgetsService.deleteBudget(accountId, budgetId);
             toast.success('Budget succesvol verwijderd!');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het verwijderen van het budget';
-            toast.error(message);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Er is een fout opgetreden bij het verwijderen van het budget'));
             throw error;
         }
     },
@@ -48,9 +59,8 @@ export const budgetsActions = {
         try {
             await BudgetsService.assignCategories(accountId, budgetId, data);
             toast.success('Categorieën succesvol toegewezen!');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het toewijzen van categorieën';
-            toast.error(message);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Er is een fout opgetreden bij het toewijzen van categorieën'));
             throw error;
         }
     },
@@ -59,9 +69,8 @@ export const budgetsActions = {
         try {
             await BudgetsService.removeCategory(accountId, budgetId, categoryId);
             toast.success('Categorie succesvol verwijderd uit budget!');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het verwijderen van de categorie';
-            toast.error(message);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Er is een fout opgetreden bij het verwijderen van de categorie'));
             throw error;
         }
     }

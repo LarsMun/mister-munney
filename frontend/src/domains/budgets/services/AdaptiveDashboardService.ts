@@ -1,5 +1,4 @@
 import api from '../../../lib/axios';
-import { API_URL } from '../../../lib/api';
 import {
     ActiveBudget,
     OlderBudget,
@@ -160,7 +159,7 @@ export async function uploadExternalPaymentAttachment(
  */
 export async function fetchProjectEntries(
     projectId: number
-): Promise<any[]> {
+): Promise<unknown[]> {
     const response = await api.get(`/budgets/${projectId}/entries`);
     return response.data;
 }

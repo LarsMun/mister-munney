@@ -24,9 +24,10 @@ export function useBudgetSummary(accountId: number | null, monthYear: string) {
             const data = await getBudgetSummaries(accountId, monthYear);
             setSummaries(data.summaries || []);
             setUncategorized(data.uncategorized || { totalAmount: 0, count: 0 });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error fetching budget summaries:', err);
-            setError(err.response?.data?.message || 'Failed to load budget summaries');
+            const error = err as { response?: { data?: { message?: string } } };
+            setError(error.response?.data?.message || 'Failed to load budget summaries');
             setSummaries([]);
             setUncategorized({ totalAmount: 0, count: 0 });
         } finally {

@@ -70,15 +70,16 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
 
             // Trigger the account refresh and UI update
             onAccountCreated();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Upload error:', error);
 
             let errorMessage = 'Fout bij uploaden van CSV-bestand';
 
-            if (error.response?.data?.error) {
-                errorMessage = error.response.data.error;
-            } else if (error.message) {
-                errorMessage = error.message;
+            const err = error as { response?: { data?: { error?: string } }; message?: string };
+            if (err.response?.data?.error) {
+                errorMessage = err.response.data.error;
+            } else if (err.message) {
+                errorMessage = err.message;
             }
 
             toast.error(errorMessage);

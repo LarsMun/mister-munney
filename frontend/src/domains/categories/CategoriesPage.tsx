@@ -10,7 +10,6 @@ import { CategoryMergeDialog } from './components/CategoryMergeDialog';
 import { getTransactions } from '../transactions/services/TransactionsService';
 import { mergeCategories } from './services/CategoryService';
 import type { Category } from './models/Category';
-import type { CategoryStatistic } from './models/CategoryStatistics';
 import type { Transaction } from '../transactions/models/Transaction';
 
 type SortField = 'name' | 'transactionCount' | 'totalAmount';

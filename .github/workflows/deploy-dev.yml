@@ -4,12 +4,24 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:  # Manual trigger option
+
+# Ensure only one deployment runs at a time
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
 
 jobs:
+  # Run CI checks first (on GitHub-hosted runner)
+  ci:
+    name: CI Checks
+    uses: ./.github/workflows/ci.yml
+
   deploy:
     name: Deploy to Dev Server
     runs-on: self-hosted
-    
+    needs: ci  # Only deploy if CI passes
+
     steps:
       - name: 📥 Pull latest code
         run: |

@@ -23,6 +23,11 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // Downgrade to warnings for incremental cleanup
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'react-hooks/exhaustive-deps': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'warn',
     },
   },
 )

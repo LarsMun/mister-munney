@@ -70,8 +70,9 @@ export default function DashboardPage() {
         setEndDate,
         summary,
         transactions,
-        refresh,
+        refresh: _refresh,
     } = useTransactions();
+    void _refresh; // Mark as intentionally unused
 
     const { statistics } = useMonthlyStatistics(accountId, 12);
 
