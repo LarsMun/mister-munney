@@ -58,12 +58,13 @@ jobs:
       - name: 📋 Validate composer.json
         run: composer validate 2>&1 | grep -q "valid for simple usage" && echo "✅ composer.json valid" || composer validate
 
-      - name: 🧪 Run PHPUnit tests
+      - name: 🧪 Run PHPUnit tests (Unit tests only)
         run: |
-          if [ -d "tests" ] && [ "$(find tests -name '*Test.php' | head -1)" ]; then
-            ./vendor/bin/phpunit --testdox
+          if [ -d "tests/Unit" ] && [ "$(find tests/Unit -name '*Test.php' 2>/dev/null | head -1)" ]; then
+            ./vendor/bin/phpunit --testdox --testsuite=Unit
           else
-            echo "ℹ️  No tests found, skipping PHPUnit"
+            echo "ℹ️  No unit tests found, skipping PHPUnit"
+            echo "ℹ️  Integration tests require database and are skipped in CI"
           fi
         env:
           APP_ENV: test
