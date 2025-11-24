@@ -14,7 +14,6 @@ type Props = {
 };
 
 export default function TransactionDrawer({ transaction, onClose, onFilterByDescription, onFilterByNotes }: Props) {
-    if (!transaction) return null;
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
     const [closing, setClosing] = useState(false);
@@ -27,6 +26,8 @@ export default function TransactionDrawer({ transaction, onClose, onFilterByDesc
             setClosing(false);
         }
     }, [transaction]);
+
+    if (!transaction) return null;
 
     const handleClose = () => {
         setClosing(true);

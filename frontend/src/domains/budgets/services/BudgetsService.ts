@@ -8,7 +8,7 @@ import type {
     AvailableCategory,
     AssignCategories
 } from "../models/Budget";
-import type { BudgetSummary, BudgetSummaryResponse } from "../models/BudgetSummary";
+import type { BudgetSummaryResponse } from "../models/BudgetSummary";
 import type { CategoryBreakdown } from "../models/CategoryBreakdown";
 
 // ===============================
@@ -73,10 +73,18 @@ export async function getCategoryBreakdown(
 // CATEGORY MANAGEMENT
 // ===============================
 
+interface CategoryResponse {
+    id: number;
+    name: string;
+    color?: string;
+    icon?: string;
+    budgetId?: number;
+}
+
 export function getAvailableCategories(accountId: number): Promise<AvailableCategory[]> {
     return api.get(`/account/${accountId}/categories`)
         .then(res => {
-            return res.data.map((category: any) => ({
+            return res.data.map((category: CategoryResponse) => ({
                 id: category.id,
                 name: category.name,
                 color: category.color,

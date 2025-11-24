@@ -40,7 +40,7 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
         try {
             await onCreate(formData);
             handleClose();
-        } catch (error) {
+        } catch {
             // Error is handled by the action
         } finally {
             setIsSubmitting(false);

@@ -10,16 +10,14 @@ interface Props {
 
 export default function SimpleSavingsAccountCombobox({ savingsAccountId, onChange }: Props) {
     const { accountId } = useAccount();
-    if (accountId === null) return null;
-
-    const { savingsAccounts, addSavingsAccount } = useSavingsAccounts(accountId);
+    const { savingsAccounts, addSavingsAccount } = useSavingsAccounts(accountId ?? 0);
     const inputRef = useRef<HTMLInputElement>(null);
     const [showList, setShowList] = useState(false);
+    const [input, setInput] = useState("");
 
     const selectedSavingsAccount = savingsAccountId
         ? savingsAccounts.find(sa => sa.id === savingsAccountId) ?? null
         : null;
-    const [input, setInput] = useState("");
 
     useEffect(() => {
         if (selectedSavingsAccount) {
@@ -27,7 +25,9 @@ export default function SimpleSavingsAccountCombobox({ savingsAccountId, onChang
         } else {
             setInput("");
         }
-    }, [selectedSavingsAccount?.id]);
+    }, [selectedSavingsAccount?.id, selectedSavingsAccount?.name]);
+
+    if (accountId === null) return null;
 
     const filtered = input.trim() === ""
         ? savingsAccounts.slice(0, 10)

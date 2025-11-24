@@ -2,6 +2,14 @@ import toast from 'react-hot-toast';
 import AccountService from './AccountService';
 import { Account } from '../models/Account';
 
+interface ApiError {
+    response?: {
+        data?: {
+            detail?: string;
+        };
+    };
+}
+
 /**
  * Action om een account naam te updaten
  */
@@ -14,8 +22,9 @@ export async function updateAccountName(
         const updatedAccount = await AccountService.updateName(accountId, newName);
         toast.success('Accountnaam bijgewerkt');
         onSuccess?.(updatedAccount);
-    } catch (error: any) {
-        const message = error.response?.data?.detail || 'Fout bij bijwerken accountnaam';
+    } catch (error: unknown) {
+        const err = error as ApiError;
+        const message = err.response?.data?.detail || 'Fout bij bijwerken accountnaam';
         toast.error(message);
         throw error;
     }
@@ -32,8 +41,9 @@ export async function setDefaultAccount(
         const updatedAccount = await AccountService.setDefault(accountId);
         toast.success('Default account ingesteld');
         onSuccess?.(updatedAccount);
-    } catch (error: any) {
-        const message = error.response?.data?.detail || 'Fout bij instellen default account';
+    } catch (error: unknown) {
+        const err = error as ApiError;
+        const message = err.response?.data?.detail || 'Fout bij instellen default account';
         toast.error(message);
         throw error;
     }

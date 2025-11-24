@@ -25,11 +25,25 @@ export default function CategoryCombobox({
     refresh,
     categories,
     setCategories,
-    transactionType
 }: Props) {
     const { accountId } = useAccount();
     const inputRef = useRef<HTMLInputElement>(null);
     const [showList, setShowList] = useState(false);
+    const [input, setInput] = useState("");
+
+    // Safety check voor categories array
+    const safeCategories = Array.isArray(categories) ? categories : [];
+
+    // Categories can now contain both CREDIT and DEBIT transactions - no filtering by type
+    const filteredByType = safeCategories;
+
+    const selected = categoryId
+        ? safeCategories.find((c) => c.id === categoryId) ?? null
+        : null;
+
+    useEffect(() => {
+        setInput(selected?.name ?? "");
+    }, [selected?.id, selected?.name]);
 
     // Error boundary - als accountId null is, toon een loading state
     if (accountId === null) {
@@ -44,22 +58,6 @@ export default function CategoryCombobox({
             </div>
         );
     }
-
-    // Safety check voor categories array
-    const safeCategories = Array.isArray(categories) ? categories : [];
-
-    // Categories can now contain both CREDIT and DEBIT transactions - no filtering by type
-    const filteredByType = safeCategories;
-
-    const selected = categoryId
-        ? safeCategories.find((c) => c.id === categoryId) ?? null
-        : null;
-
-    const [input, setInput] = useState("");
-
-    useEffect(() => {
-        setInput(selected?.name ?? "");
-    }, [selected?.id]);
 
     // Safety check voor filtering
     const filtered = input.trim() === ""

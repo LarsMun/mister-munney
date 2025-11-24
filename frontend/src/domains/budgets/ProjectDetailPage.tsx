@@ -6,8 +6,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import ExternalPaymentForm from './components/ExternalPaymentForm';
 import ProjectAttachmentForm from './components/ProjectAttachmentForm';
 import EditProjectForm from './components/EditProjectForm';
-import TransactionDrawer from '../transactions/components/TransactionDrawer';
-import type { Transaction } from '../transactions/models/Transaction';
 import { BASE_URL } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
@@ -15,8 +13,20 @@ import { formatMoney } from '../../shared/utils/MoneyFormat';
 
 type TabType = 'overview' | 'entries' | 'files';
 
+interface ProjectEntry {
+    id: number;
+    type: 'transaction' | 'external_payment';
+    attachmentUrl?: string;
+    amount: string | number;
+    date: string;
+    description: string;
+    category?: string | { name: string };
+    payerSource?: string;
+    transactionType?: 'DEBIT' | 'CREDIT';
+}
+
 // Helper functions to generate download URLs for attachments
-const getAttachmentDownloadUrl = (entry: any): string => {
+const getAttachmentDownloadUrl = (entry: ProjectEntry): string => {
     if (entry.type === 'external_payment' && entry.id) {
         return `${BASE_URL}/api/external-payments/${entry.id}/download`;
     }
@@ -66,15 +76,6 @@ export default function ProjectDetailPage() {
         if (projectId) {
             loadProjectDetails(parseInt(projectId));
         }
-    };
-
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return null;
-        return new Date(dateString).toLocaleDateString('nl-NL', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
     };
 
     // Helper to format project money (backend sends euro amounts)
@@ -301,7 +302,7 @@ function OverviewTab({ project }: { project: ProjectDetails }) {
 
 // Entries Tab Component
 function EntriesTab({ project }: { project: ProjectDetails }) {
-    const [entries, setEntries] = useState<any[]>([]);
+    const [entries, setEntries] = useState<ProjectEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'debit' | 'credit' | 'external_payment'>('all');
     const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
@@ -313,23 +314,22 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
         return formatMoney(numAmount);
     };
 
-    useEffect(() => {
-        loadEntries();
-    }, [project.id]);
-
     const loadEntries = async () => {
         setIsLoading(true);
         try {
             const data = await fetchProjectEntries(project.id);
-            console.log('Loaded entries:', data);
-            console.log('Sample entry:', data[0]);
-            setEntries(data);
+            setEntries(data as ProjectEntry[]);
         } catch (error) {
             console.error('Error loading entries:', error);
         } finally {
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadEntries();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project.id]);
 
     const handleDeleteExternalPayment = async (paymentId: number, note: string) => {
         const result = await confirm({
@@ -349,8 +349,26 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
         }
     };
 
+    const handleRemoveAttachment = async (paymentId: number, note: string) => {
+        const result = await confirm({
+            title: 'Bijlage verwijderen?',
+            description: `Weet je zeker dat je de bijlage van "${note}" wilt verwijderen?`
+        });
+
+        if (!result.confirmed) return;
+
+        try {
+            await removeExternalPaymentAttachment(paymentId);
+            toast.success('Bijlage verwijderd');
+            loadEntries();
+        } catch (error) {
+            console.error('Error removing attachment:', error);
+            toast.error('Fout bij het verwijderen van bijlage');
+        }
+    };
+
     // Helper to safely parse amount
-    const parseAmount = (amount: any): number => {
+    const parseAmount = (amount: string | number): number => {
         if (typeof amount === 'number') return amount;
         if (typeof amount === 'string') {
             return parseFloat(amount.replace(',', '.'));
@@ -572,10 +590,6 @@ function FilesTab({ project }: { project: ProjectDetails }) {
         return formatMoney(numAmount);
     };
 
-    useEffect(() => {
-        loadFiles();
-    }, [project.id]);
-
     const loadFiles = async () => {
         setIsLoading(true);
         try {
@@ -591,6 +605,11 @@ function FilesTab({ project }: { project: ProjectDetails }) {
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadFiles();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project.id]);
 
     const handleDeleteAttachment = async (attachmentId: number, title: string) => {
         const result = await confirm({
@@ -636,24 +655,6 @@ function FilesTab({ project }: { project: ProjectDetails }) {
         } catch (error) {
             console.error('Error deleting attachment:', error);
             toast.error('Fout bij het verwijderen');
-        }
-    };
-
-    const handleDeletePayment = async (paymentId: number, note: string) => {
-        const result = await confirm({
-            title: 'Externe betaling verwijderen?',
-            description: `Weet je zeker dat je de externe betaling "${note}" wilt verwijderen? Dit verwijdert ook de bijlage. Deze actie kan niet ongedaan gemaakt worden.`
-        });
-
-        if (!result.confirmed) return;
-
-        try {
-            await deleteExternalPayment(paymentId);
-            toast.success('Externe betaling verwijderd');
-            loadFiles();
-        } catch (error) {
-            console.error('Error deleting payment:', error);
-            toast.error('Fout bij het verwijderen van betaling');
         }
     };
 

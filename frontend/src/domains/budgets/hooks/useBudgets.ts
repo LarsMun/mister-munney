@@ -27,8 +27,9 @@ export function useBudgets() {
             setError(null);
             const data = await BudgetsService.getBudgets(accountId);
             setBudgets(data);
-        } catch (err: any) {
-            setError(err.response?.data?.message || err.response?.data?.error || 'Er is een fout opgetreden bij het laden van budgets');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string; error?: string } } };
+            setError(error.response?.data?.message || error.response?.data?.error || 'Er is een fout opgetreden bij het laden van budgets');
             console.error('Error loading budgets:', err);
         } finally {
             setIsLoading(false);
@@ -41,7 +42,7 @@ export function useBudgets() {
         try {
             const data = await BudgetsService.getAvailableCategories(accountId);
             setAvailableCategories(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error loading available categories:', err);
         }
     };
@@ -92,6 +93,7 @@ export function useBudgets() {
     useEffect(() => {
         loadBudgets();
         loadAvailableCategories();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [accountId]);
 
     return {
