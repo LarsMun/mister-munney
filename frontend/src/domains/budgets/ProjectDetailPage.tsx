@@ -77,6 +77,12 @@ export default function ProjectDetailPage() {
         });
     };
 
+    // Helper to format project money (backend sends euro amounts)
+    const formatProjectMoney = (amount: string | number): string => {
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return formatMoney(numAmount);
+    };
+
     const getStatusStyle = () => {
         if (!project) return '';
         switch (project.status) {
@@ -154,23 +160,23 @@ export default function ProjectDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                     <div className="bg-red-50 rounded-lg p-4">
                         <p className="text-sm text-red-600 font-medium mb-1">Getrackte uitgaven (DEBIT)</p>
-                        <p className="text-2xl font-bold text-red-900">{project.totals.trackedDebit}</p>
+                        <p className="text-2xl font-bold text-red-900">{formatProjectMoney(project.totals.trackedDebit)}</p>
                     </div>
                     <div className="bg-green-50 rounded-lg p-4">
                         <p className="text-sm text-green-600 font-medium mb-1">Getrackte inkomsten (CREDIT)</p>
-                        <p className="text-2xl font-bold text-green-900">{project.totals.trackedCredit}</p>
+                        <p className="text-2xl font-bold text-green-900">{formatProjectMoney(project.totals.trackedCredit)}</p>
                     </div>
                     <div className="bg-blue-50 rounded-lg p-4">
                         <p className="text-sm text-blue-600 font-medium mb-1">Netto getrackt</p>
-                        <p className="text-2xl font-bold text-blue-900">{project.totals.tracked}</p>
+                        <p className="text-2xl font-bold text-blue-900">{formatProjectMoney(project.totals.tracked)}</p>
                     </div>
                     <div className="bg-purple-50 rounded-lg p-4">
                         <p className="text-sm text-purple-600 font-medium mb-1">Externe betalingen</p>
-                        <p className="text-2xl font-bold text-purple-900">{project.totals.external}</p>
+                        <p className="text-2xl font-bold text-purple-900">{formatProjectMoney(project.totals.external)}</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-300">
                         <p className="text-sm text-gray-600 font-medium mb-1">Totaal</p>
-                        <p className="text-2xl font-bold text-gray-900">{project.totals.total}</p>
+                        <p className="text-2xl font-bold text-gray-900">{formatProjectMoney(project.totals.total)}</p>
                     </div>
                 </div>
             </div>
@@ -233,6 +239,12 @@ export default function ProjectDetailPage() {
 
 // Overview Tab Component
 function OverviewTab({ project }: { project: ProjectDetails }) {
+    // Helper to format project money (backend sends euro amounts)
+    const formatProjectMoney = (amount: string | number): string => {
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return formatMoney(numAmount);
+    };
+
     return (
         <div className="space-y-6">
             {/* Time Series Chart */}
@@ -277,7 +289,7 @@ function OverviewTab({ project }: { project: ProjectDetails }) {
                         {project.totals.categoryBreakdown.map((cat) => (
                             <div key={cat.categoryId} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
                                 <span className="font-medium text-gray-900">{cat.categoryName}</span>
-                                <span className="font-semibold text-gray-700">{cat.total}</span>
+                                <span className="font-semibold text-gray-700">{formatProjectMoney(cat.total)}</span>
                             </div>
                         ))}
                     </div>
@@ -294,6 +306,12 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
     const [filter, setFilter] = useState<'all' | 'debit' | 'credit' | 'external_payment'>('all');
     const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
     const { confirm, Confirm } = useConfirmDialog();
+
+    // Helper to format project money (backend sends euro amounts)
+    const formatProjectMoney = (amount: string | number): string => {
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return formatMoney(numAmount);
+    };
 
     useEffect(() => {
         loadEntries();
@@ -331,6 +349,15 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
         }
     };
 
+    // Helper to safely parse amount
+    const parseAmount = (amount: any): number => {
+        if (typeof amount === 'number') return amount;
+        if (typeof amount === 'string') {
+            return parseFloat(amount.replace(',', '.'));
+        }
+        return 0;
+    };
+
     const filteredEntries = entries.filter(entry => {
         if (filter === 'all') return true;
         if (filter === 'external_payment') return entry.type === 'external_payment';
@@ -340,7 +367,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
             if (entry.type !== 'transaction') return false;
             // If transactionType is not available yet, check amount (negative = DEBIT)
             if (!entry.transactionType) {
-                const amount = parseFloat(entry.amount.replace(',', '.'));
+                const amount = parseAmount(entry.amount);
                 return amount < 0;
             }
             return entry.transactionType === 'DEBIT';
@@ -350,7 +377,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
             if (entry.type !== 'transaction') return false;
             // If transactionType is not available yet, check amount (positive = CREDIT)
             if (!entry.transactionType) {
-                const amount = parseFloat(entry.amount.replace(',', '.'));
+                const amount = parseAmount(entry.amount);
                 return amount > 0;
             }
             return entry.transactionType === 'CREDIT';
@@ -462,7 +489,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                         <span className="text-sm text-gray-600">{formatDate(entry.date)}</span>
                                         {entry.category && (
                                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
-                                                {entry.category}
+                                                {typeof entry.category === 'string' ? entry.category : entry.category.name}
                                             </span>
                                         )}
                                         {entry.payerSource && (
@@ -498,7 +525,7 @@ function EntriesTab({ project }: { project: ProjectDetails }) {
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <div className="text-right">
-                                        <p className="text-lg font-bold text-gray-900">{entry.amount}</p>
+                                        <p className="text-lg font-bold text-gray-900">{formatProjectMoney(entry.amount)}</p>
                                     </div>
                                     {entry.type === 'external_payment' && (
                                         <button
@@ -538,6 +565,12 @@ function FilesTab({ project }: { project: ProjectDetails }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isUploadFormOpen, setIsUploadFormOpen] = useState(false);
     const { confirm, Confirm } = useConfirmDialog();
+
+    // Helper to format project money (backend sends euro amounts)
+    const formatProjectMoney = (amount: string | number): string => {
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return formatMoney(numAmount);
+    };
 
     useEffect(() => {
         loadFiles();
@@ -778,7 +811,7 @@ function FilesTab({ project }: { project: ProjectDetails }) {
                                     </span>
                                 </div>
                                 <p className="text-sm text-gray-600 mb-2">{formatDate(payment.paidOn)}</p>
-                                <p className="text-lg font-bold text-gray-900 mb-3">€ {payment.amount}</p>
+                                <p className="text-lg font-bold text-gray-900 mb-3">{formatProjectMoney(payment.amount)}</p>
                                 <div className="flex gap-2 flex-wrap">
                                     <a
                                         href={getExternalPaymentAttachmentUrl(payment.id)}

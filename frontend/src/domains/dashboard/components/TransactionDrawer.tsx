@@ -13,6 +13,7 @@ interface TransactionDrawerProps {
     monthYear: string;
     transactions: Transaction[];
     isLoading: boolean;
+    isBudgetView?: boolean;
 }
 
 export default function TransactionDrawer({
@@ -22,7 +23,8 @@ export default function TransactionDrawer({
     categoryColor,
     monthYear,
     transactions,
-    isLoading
+    isLoading,
+    isBudgetView = false
 }: TransactionDrawerProps) {
     // Prevent body scroll when drawer is open
     useEffect(() => {
@@ -60,10 +62,16 @@ export default function TransactionDrawer({
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center gap-3">
-                        <div
-                            className="w-4 h-4 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: categoryColor }}
-                        />
+                        {isBudgetView ? (
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xl">💰</span>
+                            </div>
+                        ) : (
+                            <div
+                                className="w-4 h-4 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: categoryColor }}
+                            />
+                        )}
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">{categoryName}</h2>
                             <p className="text-sm text-gray-600">{monthName}</p>
@@ -105,13 +113,27 @@ export default function TransactionDrawer({
                                                 <p className="font-medium text-gray-900 truncate">
                                                     {transaction.description}
                                                 </p>
-                                                <p className="text-sm text-gray-500 mt-1">
-                                                    {new Date(transaction.date).toLocaleDateString('nl-NL', {
-                                                        day: 'numeric',
-                                                        month: 'short',
-                                                        year: 'numeric'
-                                                    })}
-                                                </p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    {isBudgetView && transaction.category && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div
+                                                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                                                style={{ backgroundColor: transaction.category.color }}
+                                                            />
+                                                            <span className="text-xs text-gray-600 font-medium">
+                                                                {transaction.category.name}
+                                                            </span>
+                                                            <span className="text-gray-300">•</span>
+                                                        </div>
+                                                    )}
+                                                    <p className="text-sm text-gray-500">
+                                                        {new Date(transaction.date).toLocaleDateString('nl-NL', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </p>
+                                                </div>
                                                 {transaction.notes && (
                                                     <p className="text-xs text-gray-400 mt-1 line-clamp-2">
                                                         {transaction.notes}

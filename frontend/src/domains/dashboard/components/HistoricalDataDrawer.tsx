@@ -5,6 +5,7 @@ import { X, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import { getTransactions } from '../../transactions/services/TransactionsService';
 import type { Transaction } from '../../transactions/models/Transaction';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MonthlyData {
     month: string;
@@ -33,6 +34,7 @@ interface HistoricalDataDrawerProps {
     data: HistoricalData | null;
     isLoading: boolean;
     accountId?: number;
+    isBudgetView?: boolean;
 }
 
 export default function HistoricalDataDrawer({
@@ -40,7 +42,8 @@ export default function HistoricalDataDrawer({
     onClose,
     data,
     isLoading,
-    accountId
+    accountId,
+    isBudgetView = false
 }: HistoricalDataDrawerProps) {
     // State for expanded months and their transactions
     const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
@@ -104,8 +107,19 @@ export default function HistoricalDataDrawer({
                     // Fetch transactions for this month
                     const response = await getTransactions(accountId, startDate, endDate);
 
-                    // Filter by category
-                    const filteredTransactions = response.data.filter(t => t.category?.id === data.category.id);
+                    let filteredTransactions: Transaction[];
+
+                    if (isBudgetView) {
+                        // For budget view, filter by categories in this budget
+                        const budgetCategoryIds = (data as any).budget?.categoryIds || [];
+                        filteredTransactions = response.data.filter(t =>
+                            t.category && budgetCategoryIds.includes(t.category.id)
+                        );
+                    } else {
+                        // For category view, filter by category
+                        const categoryId = (data as any).category?.id;
+                        filteredTransactions = response.data.filter(t => t.category?.id === categoryId);
+                    }
 
                     setMonthTransactions(prev => ({
                         ...prev,
@@ -145,18 +159,38 @@ export default function HistoricalDataDrawer({
                     <div className="flex items-center gap-3">
                         {data && (
                             <>
-                                <div
-                                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                                    style={{ backgroundColor: data.category.color }}
-                                >
-                                    <span className="text-white text-lg">
-                                        {data.category.icon || '📁'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900">{data.category.name}</h2>
-                                    <p className="text-sm text-gray-600">Historische gegevens</p>
-                                </div>
+                                {isBudgetView ? (
+                                    // Budget view header
+                                    <>
+                                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                            <span className="text-xl">💰</span>
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-bold text-gray-900">
+                                                {(data as any).budget?.name || 'Budget'}
+                                            </h2>
+                                            <p className="text-sm text-gray-600">Historische budgetgegevens</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    // Category view header
+                                    <>
+                                        <div
+                                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                                            style={{ backgroundColor: (data as any).category?.color }}
+                                        >
+                                            <span className="text-white text-lg">
+                                                {(data as any).category?.icon || '📁'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-bold text-gray-900">
+                                                {(data as any).category?.name}
+                                            </h2>
+                                            <p className="text-sm text-gray-600">Historische gegevens</p>
+                                        </div>
+                                    </>
+                                )}
                             </>
                         )}
                     </div>
@@ -214,6 +248,55 @@ export default function HistoricalDataDrawer({
                                 </div>
                             </div>
 
+                            {/* Chart */}
+                            {data.history.length > 0 && (
+                                <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                        Grafiek
+                                    </h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart
+                                            data={data.history.map(item => {
+                                                const monthDate = new Date(item.month + '-01');
+                                                const monthName = monthDate.toLocaleDateString('nl-NL', {
+                                                    month: 'short',
+                                                    year: 'numeric'
+                                                });
+                                                return {
+                                                    month: monthName,
+                                                    amount: Math.abs(item.total),
+                                                    originalTotal: item.total
+                                                };
+                                            })}
+                                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis
+                                                dataKey="month"
+                                                angle={-45}
+                                                textAnchor="end"
+                                                height={80}
+                                                tick={{ fontSize: 12 }}
+                                            />
+                                            <YAxis
+                                                tickFormatter={(value) => `€${value.toLocaleString('nl-NL')}`}
+                                                tick={{ fontSize: 12 }}
+                                            />
+                                            <Tooltip
+                                                formatter={(value: any) => [`€${Number(value).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Bedrag']}
+                                                labelStyle={{ color: '#374151' }}
+                                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.375rem' }}
+                                            />
+                                            <Bar
+                                                dataKey="amount"
+                                                fill={isBudgetView ? '#3B82F6' : ((data as any).category?.color || '#3B82F6')}
+                                                radius={[4, 4, 0, 0]}
+                                            />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+
                             {/* Monthly Data List with Bar Chart */}
                             <div className="space-y-3">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -225,7 +308,9 @@ export default function HistoricalDataDrawer({
                                         month: 'long',
                                         year: 'numeric'
                                     });
-                                    const isPositive = monthData.total >= 0;
+                                    // For INCOME budgets, we want to show negative totals as positive
+                                    const isIncomeBudget = isBudgetView && (data as any).budget?.budgetType === 'INCOME';
+                                    const isPositive = isIncomeBudget ? monthData.total < 0 : monthData.total >= 0;
                                     const barWidth = maxAmount > 0
                                         ? (Math.abs(monthData.total) / maxAmount) * 100
                                         : 0;
@@ -301,13 +386,27 @@ export default function HistoricalDataDrawer({
                                                                             <p className="font-medium text-gray-900 truncate text-sm">
                                                                                 {transaction.description}
                                                                             </p>
-                                                                            <p className="text-xs text-gray-500 mt-1">
-                                                                                {new Date(transaction.date).toLocaleDateString('nl-NL', {
-                                                                                    day: 'numeric',
-                                                                                    month: 'short',
-                                                                                    year: 'numeric'
-                                                                                })}
-                                                                            </p>
+                                                                            <div className="flex items-center gap-2 mt-1">
+                                                                                {isBudgetView && transaction.category && (
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <div
+                                                                                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                                                            style={{ backgroundColor: transaction.category.color }}
+                                                                                        />
+                                                                                        <span className="text-xs text-gray-600 font-medium">
+                                                                                            {transaction.category.name}
+                                                                                        </span>
+                                                                                        <span className="text-gray-300 text-xs">•</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                <p className="text-xs text-gray-500">
+                                                                                    {new Date(transaction.date).toLocaleDateString('nl-NL', {
+                                                                                        day: 'numeric',
+                                                                                        month: 'short',
+                                                                                        year: 'numeric'
+                                                                                    })}
+                                                                                </p>
+                                                                            </div>
                                                                             {transaction.notes && (
                                                                                 <p className="text-xs text-gray-400 mt-1 line-clamp-1">
                                                                                     {transaction.notes}
