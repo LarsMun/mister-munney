@@ -38,8 +38,16 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
+      - name: 📄 Create .env file for Symfony
+        run: |
+          echo "APP_ENV=test" > .env
+          echo "APP_SECRET=ci-test-secret-not-for-production" >> .env
+          echo "DATABASE_URL=sqlite:///:memory:" >> .env
+
       - name: 📦 Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
+        env:
+          APP_ENV: test
 
       - name: ✅ Symfony requirements check
         run: composer check-platform-reqs
