@@ -490,4 +490,79 @@ class BudgetService
         return $breakdowns;
     }
 
+    /**
+     * Get historical spending data for a specific budget per month
+     */
+    public function getBudgetHistory(int $accountId, int $budgetId, ?int $monthLimit = null): array
+    {
+        // Verificatie account
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            throw new NotFoundHttpException("Account niet gevonden");
+        }
+
+        // Verificatie budget
+        $budget = $this->budgetRepository->find($budgetId);
+        if (!$budget || $budget->getAccount()->getId() !== $accountId) {
+            throw new NotFoundHttpException("Budget niet gevonden");
+        }
+
+        // Verzamel category IDs van dit budget
+        $categoryIds = [];
+        foreach ($budget->getCategories() as $category) {
+            $categoryIds[] = $category->getId();
+        }
+
+        if (empty($categoryIds)) {
+            // Geen categorieën, return empty history
+            return [
+                'budget' => [
+                    'id' => $budget->getId(),
+                    'name' => $budget->getName(),
+                    'budgetType' => $budget->getBudgetType()->value,
+                    'categoryIds' => []
+                ],
+                'history' => [],
+                'totalAmount' => '0.00',
+                'averagePerMonth' => '0.00',
+                'monthCount' => 0
+            ];
+        }
+
+        // Haal maandelijkse totalen op voor alle categorieën in dit budget
+        $monthlyData = $this->transactionRepository->getMonthlyTotalsByCategories($accountId, $categoryIds, $monthLimit);
+
+        // Bereken totalen
+        $totalAmount = 0;
+        $monthCount = count($monthlyData);
+
+        // Format de history array
+        $history = array_map(function($row) use (&$totalAmount) {
+            $monthTotal = $this->moneyFactory->toFloat(Money::EUR($row['total']));
+            $totalAmount += $monthTotal;
+
+            return [
+                'month' => $row['month'],
+                'total' => number_format(abs($monthTotal), 2, '.', ''),
+                'transactionCount' => $row['transactionCount']
+            ];
+        }, $monthlyData);
+
+        // Bereken gemiddelde per maand
+        $averagePerMonth = $monthCount > 0 ? $totalAmount / $monthCount : 0;
+
+        return [
+            'budget' => [
+                'id' => $budget->getId(),
+                'name' => $budget->getName(),
+                'budgetType' => $budget->getBudgetType()->value,
+                'categoryIds' => $categoryIds
+            ],
+            'history' => $history,
+            'totalAmount' => number_format(abs($totalAmount), 2, '.', ''),
+            'averagePerMonth' => number_format(abs($averagePerMonth), 2, '.', ''),
+            'monthCount' => $monthCount
+        ];
+    }
+
 }

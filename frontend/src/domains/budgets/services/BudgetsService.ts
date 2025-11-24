@@ -121,3 +121,34 @@ export function getNextMonth(): string {
     next.setMonth(next.getMonth() + 1);
     return formatDateToMonth(next);
 }
+
+// ===============================
+// BUDGET HISTORY
+// ===============================
+
+export interface BudgetHistory {
+    budget: {
+        id: number;
+        name: string;
+        budgetType: string;
+        categoryIds: number[];
+    };
+    history: Array<{
+        month: string;
+        total: number;
+        transactionCount: number;
+    }>;
+    totalAmount: number;
+    averagePerMonth: number;
+    monthCount: number;
+}
+
+export async function fetchBudgetHistory(
+    accountId: number,
+    budgetId: number,
+    months?: number
+): Promise<BudgetHistory> {
+    const params = months ? { months } : {};
+    const response = await api.get(`/account/${accountId}/budget/${budgetId}/history`, { params });
+    return response.data;
+}

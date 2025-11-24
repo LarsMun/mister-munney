@@ -1,5 +1,6 @@
 import { ProjectDetails } from '../models/AdaptiveBudget';
 import { useNavigate } from 'react-router-dom';
+import { formatMoney } from '../../../shared/utils/MoneyFormat';
 
 interface ProjectCardProps {
     project: ProjectDetails;
@@ -16,6 +17,12 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             month: 'short',
             year: 'numeric'
         });
+    };
+
+    // Helper to format project money (backend sends euro amounts)
+    const formatProjectMoney = (amount: string | number): string => {
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return formatMoney(numAmount);
     };
 
     // Determine status styling
@@ -119,23 +126,23 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             <div className="space-y-2 mb-4">
                 <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-700">Getrackte uitgaven (DEBIT):</span>
-                    <span className="font-semibold text-red-600">{project.totals.trackedDebit}</span>
+                    <span className="font-semibold text-red-600">{formatProjectMoney(project.totals.trackedDebit)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-700">Getrackte inkomsten (CREDIT):</span>
-                    <span className="font-semibold text-green-600">{project.totals.trackedCredit}</span>
+                    <span className="font-semibold text-green-600">{formatProjectMoney(project.totals.trackedCredit)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-700">Netto getrackt:</span>
-                    <span className="font-semibold text-gray-900">{project.totals.tracked}</span>
+                    <span className="font-semibold text-gray-900">{formatProjectMoney(project.totals.tracked)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-700">Externe betalingen:</span>
-                    <span className="font-semibold text-gray-900">{project.totals.external}</span>
+                    <span className="font-semibold text-gray-900">{formatProjectMoney(project.totals.external)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm pt-2 border-t-2 border-gray-200">
                     <span className="text-gray-800 font-medium">Totaal:</span>
-                    <span className="font-bold text-gray-900 text-base">{project.totals.total}</span>
+                    <span className="font-bold text-gray-900 text-base">{formatProjectMoney(project.totals.total)}</span>
                 </div>
             </div>
 
@@ -150,7 +157,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
                             <span
                                 key={cat.categoryId}
                                 className="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded"
-                                title={`${cat.categoryName}: ${cat.total}`}
+                                title={`${cat.categoryName}: ${formatProjectMoney(cat.total)}`}
                             >
                                 {cat.categoryName}
                             </span>

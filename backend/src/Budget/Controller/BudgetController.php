@@ -692,4 +692,91 @@ class BudgetController extends AbstractController
         return $this->json($breakdown);
     }
 
+    #[Route('/{budgetId}/history', name: 'get_budget_history', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/account/{accountId}/budget/{budgetId}/history',
+        summary: 'Haal historische data op voor een specifiek budget per maand',
+        tags: ['Budgetten'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+            new OA\Parameter(
+                name: 'budgetId',
+                description: 'ID van het budget',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 5)
+            ),
+            new OA\Parameter(
+                name: 'months',
+                description: 'Aantal maanden terug (optioneel, standaard = alles)',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'integer', example: 12)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Historische data per maand voor het budget',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'budget',
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer', example: 5),
+                                new OA\Property(property: 'name', type: 'string', example: 'Vaste Lasten'),
+                                new OA\Property(property: 'budgetType', type: 'string', example: 'EXPENSE'),
+                                new OA\Property(
+                                    property: 'categoryIds',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'integer'),
+                                    example: [1, 2, 3]
+                                )
+                            ],
+                            type: 'object'
+                        ),
+                        new OA\Property(
+                            property: 'history',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'month', type: 'string', example: '2025-01'),
+                                    new OA\Property(property: 'total', type: 'string', example: '1250.50'),
+                                    new OA\Property(property: 'transactionCount', type: 'integer', example: 45)
+                                ]
+                            )
+                        ),
+                        new OA\Property(property: 'totalAmount', type: 'string', example: '15006.00'),
+                        new OA\Property(property: 'averagePerMonth', type: 'string', example: '1250.50'),
+                        new OA\Property(property: 'monthCount', type: 'integer', example: 12)
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: 'Budget of account niet gevonden')
+        ]
+    )]
+    public function getBudgetHistory(
+        int $accountId,
+        int $budgetId,
+        Request $request
+    ): JsonResponse {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $months = $request->query->get('months');
+        $monthLimit = $months !== null ? (int)$months : null;
+
+        $history = $this->budgetService->getBudgetHistory($accountId, $budgetId, $monthLimit);
+
+        return $this->json($history, 200);
+    }
+
 }
