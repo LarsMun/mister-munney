@@ -23,8 +23,8 @@ jobs:
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          extensions: pdo_mysql, intl, zip
+          php-version: '8.3'
+          extensions: pdo_pgsql, intl, zip
           coverage: none
 
       - name: 📦 Get Composer cache directory
