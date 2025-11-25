@@ -40,7 +40,9 @@ class TransactionImportService
     private array $existingTransactions = [];
     private $currentUser = null;
     private const string REQUIRED_EXTENSION = 'csv';
-    private const array CSV_LAYOUT = [
+
+    // ING Betaalrekening CSV layout
+    private const array CSV_LAYOUT_CHECKING = [
         'Datum',
         'Naam / Omschrijving',
         'Rekening',
@@ -53,35 +55,96 @@ class TransactionImportService
         'Saldo na mutatie',
         'Tag'
     ];
-    private const array REQUIRED_FIELDS = [
+
+    // ING Spaarrekening CSV layout
+    private const array CSV_LAYOUT_SAVINGS = [
         'Datum',
-        'Naam / Omschrijving',
+        'Omschrijving',
         'Rekening',
-        'Af Bij',
-        'Bedrag (EUR)',
-        'Saldo na mutatie'
-    ];
-    private const array HASH_FIELDS = [
-        'Datum',
-        'Naam / Omschrijving',
-        'Rekening',
+        'Rekening naam',
         'Tegenrekening',
         'Af Bij',
-        'Bedrag (EUR)',
+        'Bedrag',
+        'Valuta',
+        'Mutatiesoort',
+        'Mededelingen',
         'Saldo na mutatie'
     ];
 
-    private const string FIELD_DATE = 'Datum';
-    private const string FIELD_TYPE = 'Af Bij';
-    private const string FIELD_AMOUNT = 'Bedrag (EUR)';
-    private const string FIELD_BALANCE = 'Saldo na mutatie';
-    private const string FIELD_DESCRIPTION = 'Naam / Omschrijving';
-    private const string FIELD_ACCOUNT = 'Rekening';
-    private const string FIELD_COUNTERPARTY = 'Tegenrekening';
-    private const string FIELD_CODE = 'Code';
-    private const string FIELD_MUTATION_TYPE = 'Mutatiesoort';
-    private const string FIELD_NOTES = 'Mededelingen';
-    private const string FIELD_TAG = 'Tag';
+    // Field mappings per CSV type
+    private const array FIELD_MAP_CHECKING = [
+        'date' => 'Datum',
+        'type' => 'Af Bij',
+        'amount' => 'Bedrag (EUR)',
+        'balance' => 'Saldo na mutatie',
+        'description' => 'Naam / Omschrijving',
+        'account' => 'Rekening',
+        'counterparty' => 'Tegenrekening',
+        'code' => 'Code',
+        'mutation_type' => 'Mutatiesoort',
+        'notes' => 'Mededelingen',
+        'tag' => 'Tag',
+    ];
+
+    private const array FIELD_MAP_SAVINGS = [
+        'date' => 'Datum',
+        'type' => 'Af Bij',
+        'amount' => 'Bedrag',
+        'balance' => 'Saldo na mutatie',
+        'description' => 'Omschrijving',
+        'account' => 'Rekening',
+        'counterparty' => 'Tegenrekening',
+        'code' => null,
+        'mutation_type' => 'Mutatiesoort',
+        'notes' => 'Mededelingen',
+        'tag' => null,
+    ];
+
+    // Current field mapping (set during import based on detected format)
+    private array $fieldMap = self::FIELD_MAP_CHECKING;
+
+    /**
+     * Get a field value from a record using the current field mapping
+     */
+    private function getField(array $record, string $fieldKey): ?string
+    {
+        $csvField = $this->fieldMap[$fieldKey] ?? null;
+        if ($csvField === null) {
+            return null;
+        }
+        return $record[$csvField] ?? null;
+    }
+
+    /**
+     * Get required fields based on current field mapping
+     */
+    private function getRequiredFields(): array
+    {
+        return array_filter([
+            $this->fieldMap['date'],
+            $this->fieldMap['description'],
+            $this->fieldMap['account'],
+            $this->fieldMap['type'],
+            $this->fieldMap['amount'],
+            $this->fieldMap['balance'],
+        ]);
+    }
+
+    /**
+     * Get hash fields based on current field mapping
+     */
+    private function getHashFields(): array
+    {
+        return array_filter([
+            $this->fieldMap['date'],
+            $this->fieldMap['description'],
+            $this->fieldMap['account'],
+            $this->fieldMap['counterparty'],
+            $this->fieldMap['type'],
+            $this->fieldMap['amount'],
+            $this->fieldMap['balance'],
+        ]);
+    }
 
     public function __construct(
         TransactionRepository $transactionRepository,
@@ -217,12 +280,22 @@ class TransactionImportService
      * Deze methode haalt alle unieke hashes op van transacties die vallen binnen de opgegeven datums.
      * Zo kunnen dubbele records uit de CSV herkend en overgeslagen worden.
      *
-     * @param array $dates Een lijst van datumstrings in 'Ymd'-formaat (zoals uit de CSV)
+     * @param array $dates Een lijst van datumstrings (Ymd of Y-m-d formaat)
      */
     private function loadExistingTransactions(array $dates): void
     {
         $formattedDates = array_map(function ($d) {
-            return DateTime::createFromFormat('Ymd', $d)->format('Y-m-d');
+            // Try Ymd format first
+            $date = DateTime::createFromFormat('Ymd', $d);
+            if ($date) {
+                return $date->format('Y-m-d');
+            }
+            // Try Y-m-d format (already correct)
+            $date = DateTime::createFromFormat('Y-m-d', $d);
+            if ($date) {
+                return $date->format('Y-m-d');
+            }
+            return $d; // Return as-is if parsing fails
         }, $dates);
 
         $hashes = $this->transactionRepository->findHashesByDates($formattedDates);
@@ -291,9 +364,10 @@ class TransactionImportService
     private function extractUniqueDatesFromCsv(iterable $records): array
     {
         $dates = [];
+        $dateField = $this->fieldMap['date'];
         foreach ($records as $record) {
-            if (isset($record[self::FIELD_DATE])) {
-                $dates[] = $record[self::FIELD_DATE];
+            if (isset($record[$dateField])) {
+                $dates[] = $record[$dateField];
             }
         }
 
@@ -319,10 +393,10 @@ class TransactionImportService
     {
         try {
             $this->validateRequiredFields($record, $index);
-            $date = $this->parseDate($record[self::FIELD_DATE], $index);
-            $amount = $this->convertToMoney($record[self::FIELD_AMOUNT]);
-            $balanceAfter = $this->convertToMoney($record[self::FIELD_BALANCE]);
-            $transactionType = TransactionType::fromCsvValue($record[self::FIELD_TYPE]);
+            $date = $this->parseDate($this->getField($record, 'date'), $index);
+            $amount = $this->convertToMoney($this->getField($record, 'amount'));
+            $balanceAfter = $this->convertToMoney($this->getField($record, 'balance'));
+            $transactionType = TransactionType::fromCsvValue($this->getField($record, 'type'));
 
             // Bereken de unieke hash
             $hash = $this->generateTransactionHash($record);
@@ -353,7 +427,7 @@ class TransactionImportService
      */
     private function validateRequiredFields(array $record, int $index): void
     {
-        foreach (self::REQUIRED_FIELDS as $field) {
+        foreach ($this->getRequiredFields() as $field) {
             if (!array_key_exists($field, $record)) {
                 throw new BadRequestHttpException("Ontbrekend veld '$field' in rij " . ($index + 1));
             }
@@ -362,23 +436,42 @@ class TransactionImportService
 
     /**
      * Controleert of de header van het CSV-bestand alle verwachte kolomnamen bevat.
+     * Detecteert automatisch of het een betaalrekening of spaarrekening CSV is.
      *
      * @param array $header De array met kolomnamen uit de CSV
-     * @throws BadRequestHttpException Als een kolom ontbreekt
+     * @throws BadRequestHttpException Als het CSV-formaat niet herkend wordt
      */
     private function validateCsvHeader(array $header): void
     {
-        $missing = array_diff(self::CSV_LAYOUT, $header);
-        if (!empty($missing)) {
-            throw new BadRequestHttpException("De CSV mist verplichte kolommen: " . implode(', ', $missing));
+        // Try checking account format first
+        $missingChecking = array_diff(self::CSV_LAYOUT_CHECKING, $header);
+        if (empty($missingChecking)) {
+            $this->fieldMap = self::FIELD_MAP_CHECKING;
+            $this->logger->info("CSV formaat gedetecteerd: betaalrekening");
+            return;
         }
+
+        // Try savings account format
+        $missingSavings = array_diff(self::CSV_LAYOUT_SAVINGS, $header);
+        if (empty($missingSavings)) {
+            $this->fieldMap = self::FIELD_MAP_SAVINGS;
+            $this->logger->info("CSV formaat gedetecteerd: spaarrekening");
+            return;
+        }
+
+        // Neither format matched - show what's missing from the most likely format
+        throw new BadRequestHttpException(
+            "CSV formaat niet herkend. Ontbrekende kolommen voor betaalrekening: " .
+            implode(', ', $missingChecking)
+        );
     }
 
     /**
      * Zet een datumstring uit de CSV om naar een `DateTime` object.
      *
-     * Verwacht formaat: 'Ymd' (bijv. 20240121). Als de datum ongeldig is,
-     * wordt een foutmelding gegenereerd.
+     * Ondersteunt twee formaten:
+     * - 'Ymd' (bijv. 20240121) - ING betaalrekening
+     * - 'Y-m-d' (bijv. 2024-01-21) - ING spaarrekening
      *
      * @param string $dateString De datum als string
      * @param int $index De rij-index voor foutmeldingen
@@ -387,11 +480,19 @@ class TransactionImportService
      */
     private function parseDate(string $dateString, int $index): DateTime
     {
+        // Try Ymd format first (checking account)
         $date = DateTime::createFromFormat('Ymd', $dateString);
-        if (!$date) {
-            throw new BadRequestHttpException("Ongeldige datum in rij " . ($index + 1));
+        if ($date) {
+            return $date;
         }
-        return $date;
+
+        // Try Y-m-d format (savings account)
+        $date = DateTime::createFromFormat('Y-m-d', $dateString);
+        if ($date) {
+            return $date;
+        }
+
+        throw new BadRequestHttpException("Ongeldige datum '$dateString' in rij " . ($index + 1));
     }
 
     /**
@@ -417,27 +518,28 @@ class TransactionImportService
         string $hash
     ): Transaction {
         // Haal account op of maak hem aan (en link aan user indien ingesteld)
+        $accountNumber = $this->getField($record, 'account');
         if ($this->currentUser) {
             $account = $this->accountService->getOrCreateAccountByNumberForUser(
-                $record[self::FIELD_ACCOUNT],
+                $accountNumber,
                 $this->currentUser
             );
         } else {
-            $account = $this->accountService->getOrCreateAccountByNumber($record[self::FIELD_ACCOUNT]);
+            $account = $this->accountService->getOrCreateAccountByNumber($accountNumber);
         }
 
         $transaction = new Transaction();
         $transaction->setDate($date);
-        $transaction->setDescription($record[self::FIELD_DESCRIPTION]);
-        $transaction->setAccount($account); // daadwerkelijke relatie
-        $transaction->setCounterpartyAccount($record[self::FIELD_COUNTERPARTY] ?? null);
-        $transaction->setTransactionCode($record[self::FIELD_CODE] ?? null);
+        $transaction->setDescription($this->getField($record, 'description'));
+        $transaction->setAccount($account);
+        $transaction->setCounterpartyAccount($this->getField($record, 'counterparty'));
+        $transaction->setTransactionCode($this->getField($record, 'code'));
         $transaction->setTransactionType($transactionType);
         $transaction->setAmount($amount);
-        $transaction->setMutationType($record[self::FIELD_MUTATION_TYPE] ?? null);
-        $transaction->setNotes($record[self::FIELD_NOTES] ?? null);
+        $transaction->setMutationType($this->getField($record, 'mutation_type'));
+        $transaction->setNotes($this->getField($record, 'notes'));
         $transaction->setBalanceAfter($balanceAfter);
-        $transaction->setTag($record[self::FIELD_TAG] ?? null);
+        $transaction->setTag($this->getField($record, 'tag'));
         $transaction->setHash($hash);
 
         return $transaction;
@@ -462,7 +564,7 @@ class TransactionImportService
      *
      * Deze hash wordt gebruikt om duplicaten te detecteren tijdens import.
      * Gebruikte velden: Datum, Omschrijving, Rekening, Tegenrekening, Af Bij,
-     * Bedrag (EUR), Saldo na mutatie.
+     * Bedrag, Saldo na mutatie.
      *
      * @param array $record De CSV-record als associatieve array
      * @return string De SHA-256 hash van de samengevoegde gegevens
@@ -470,10 +572,12 @@ class TransactionImportService
     private function generateTransactionHash(array $record): string
     {
         $data = [];
+        $amountField = $this->fieldMap['amount'];
+        $balanceField = $this->fieldMap['balance'];
 
-        foreach (self::HASH_FIELDS as $field) {
+        foreach ($this->getHashFields() as $field) {
             $value = $record[$field] ?? '';
-            if (in_array($field, [self::FIELD_AMOUNT, self::FIELD_BALANCE])) {
+            if (in_array($field, [$amountField, $balanceField])) {
                 // Maak gebruik van MoneyFactory voor consistente normalisatie
                 $normalized = str_replace(',', '.', $value);
                 $money = $this->moneyFactory->fromString($normalized);
