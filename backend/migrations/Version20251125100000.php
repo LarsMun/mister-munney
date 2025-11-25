@@ -20,16 +20,40 @@ final class Version20251125100000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // First, drop foreign key constraints
-        $this->addSql('ALTER TABLE transaction DROP FOREIGN KEY IF EXISTS FK_723705D13B727EAE');
-        $this->addSql('ALTER TABLE pattern DROP FOREIGN KEY IF EXISTS FK_A44E7B143B727EAE');
+        $conn = $this->connection;
 
-        // Remove savings_account_id columns
-        $this->addSql('ALTER TABLE transaction DROP COLUMN IF EXISTS savings_account_id');
-        $this->addSql('ALTER TABLE pattern DROP COLUMN IF EXISTS savings_account_id');
+        // Check if savings_account_id column exists in transaction table
+        $transactionColumns = $conn->fetchAllAssociative('SHOW COLUMNS FROM transaction LIKE "savings_account_id"');
+        if (count($transactionColumns) > 0) {
+            // Find all foreign keys on this column dynamically
+            $fks = $conn->fetchAllAssociative(
+                "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'transaction'
+                 AND COLUMN_NAME = 'savings_account_id' AND REFERENCED_TABLE_NAME IS NOT NULL"
+            );
+            foreach ($fks as $fk) {
+                $conn->executeStatement("ALTER TABLE transaction DROP FOREIGN KEY {$fk['CONSTRAINT_NAME']}");
+            }
+            $conn->executeStatement('ALTER TABLE transaction DROP COLUMN savings_account_id');
+        }
 
-        // Drop the savings_account table
-        $this->addSql('DROP TABLE IF EXISTS savings_account');
+        // Check if savings_account_id column exists in pattern table
+        $patternColumns = $conn->fetchAllAssociative('SHOW COLUMNS FROM pattern LIKE "savings_account_id"');
+        if (count($patternColumns) > 0) {
+            // Find all foreign keys on this column dynamically
+            $fks = $conn->fetchAllAssociative(
+                "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pattern'
+                 AND COLUMN_NAME = 'savings_account_id' AND REFERENCED_TABLE_NAME IS NOT NULL"
+            );
+            foreach ($fks as $fk) {
+                $conn->executeStatement("ALTER TABLE pattern DROP FOREIGN KEY {$fk['CONSTRAINT_NAME']}");
+            }
+            $conn->executeStatement('ALTER TABLE pattern DROP COLUMN savings_account_id');
+        }
+
+        // Drop the savings_account table if it exists
+        $conn->executeStatement('DROP TABLE IF EXISTS savings_account');
     }
 
     public function down(Schema $schema): void
