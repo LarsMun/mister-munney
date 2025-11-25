@@ -308,9 +308,8 @@ export default function HistoricalDataDrawer({
                                         month: 'long',
                                         year: 'numeric'
                                     });
-                                    // For INCOME budgets, we want to show negative totals as positive
+                                    // For INCOME budgets, amounts are stored as negative (credit), so we invert the display
                                     const isIncomeBudget = isBudgetView && (data as any).budget?.budgetType === 'INCOME';
-                                    const isPositive = isIncomeBudget ? monthData.total < 0 : monthData.total >= 0;
                                     const barWidth = maxAmount > 0
                                         ? (Math.abs(monthData.total) / maxAmount) * 100
                                         : 0;
@@ -344,10 +343,10 @@ export default function HistoricalDataDrawer({
                                                     <div className="text-right">
                                                         <p
                                                             className={`font-bold text-lg ${
-                                                                isPositive ? 'text-green-600' : 'text-red-600'
+                                                                isIncomeBudget ? 'text-green-600' : 'text-red-600'
                                                             }`}
                                                         >
-                                                            {isPositive ? '+' : '-'}
+                                                            {isIncomeBudget ? '+' : '-'}
                                                             {formatMoney(Math.abs(monthData.total))}
                                                         </p>
                                                     </div>
@@ -356,7 +355,7 @@ export default function HistoricalDataDrawer({
                                                 <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
                                                     <div
                                                         className={`absolute left-0 top-0 h-full rounded-full transition-all ${
-                                                            isPositive ? 'bg-green-500' : 'bg-red-500'
+                                                            isIncomeBudget ? 'bg-green-500' : 'bg-red-500'
                                                         }`}
                                                         style={{ width: `${barWidth}%` }}
                                                     />
