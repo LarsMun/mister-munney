@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from '../../../app/context/AccountContext';
-import { updateAccountName, setDefaultAccount } from '../services/AccountActions';
-import { Account } from '../models/Account';
+import { updateAccountName, setDefaultAccount, updateAccountType } from '../services/AccountActions';
+import { Account, AccountType } from '../models/Account';
 
 export default function AccountManagement() {
     const { accounts, isLoading, refreshAccounts } = useAccount();
@@ -46,6 +46,14 @@ export default function AccountManagement() {
         });
     };
 
+    const handleTypeChange = async (account: Account, newType: AccountType) => {
+        await updateAccountType(account.id, account.name || '', newType, (updatedAccount) => {
+            setLocalAccounts(prev =>
+                prev.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)
+            );
+        });
+    };
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center py-12">
@@ -77,6 +85,9 @@ export default function AccountManagement() {
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Rekeningnummer
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Type
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Acties
@@ -134,6 +145,22 @@ export default function AccountManagement() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {account.accountNumber}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        <select
+                                            value={account.type}
+                                            onChange={(e) => handleTypeChange(account, e.target.value as AccountType)}
+                                            className={`
+                                                border rounded px-2 py-1 text-sm
+                                                ${account.type === 'SAVINGS'
+                                                    ? 'bg-green-50 border-green-300 text-green-800'
+                                                    : 'border-gray-300 text-gray-700'
+                                                }
+                                            `}
+                                        >
+                                            <option value="CHECKING">Betaalrekening</option>
+                                            <option value="SAVINGS">Spaarrekening</option>
+                                        </select>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         {editingId === account.id ? (

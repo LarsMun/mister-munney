@@ -13,7 +13,8 @@ class AccountMapper
         $dto->id = $entity->getId();
         $dto->name = $entity->getName();
         $dto->accountNumber = $entity->getAccountNumber();
-        $dto->isDefault = $entity->isDefault(); // ← zorg dat Account::isDefault() bestaat
+        $dto->isDefault = $entity->isDefault();
+        $dto->type = $entity->getType()->value;
 
         return $dto;
     }

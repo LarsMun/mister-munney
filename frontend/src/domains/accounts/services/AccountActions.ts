@@ -1,6 +1,6 @@
 import toast from 'react-hot-toast';
 import AccountService from './AccountService';
-import { Account } from '../models/Account';
+import { Account, AccountType } from '../models/Account';
 
 interface ApiError {
     response?: {
@@ -44,6 +44,27 @@ export async function setDefaultAccount(
     } catch (error: unknown) {
         const err = error as ApiError;
         const message = err.response?.data?.detail || 'Fout bij instellen default account';
+        toast.error(message);
+        throw error;
+    }
+}
+
+/**
+ * Action om een account type te wijzigen
+ */
+export async function updateAccountType(
+    accountId: number,
+    name: string,
+    type: AccountType,
+    onSuccess?: (account: Account) => void
+): Promise<void> {
+    try {
+        const updatedAccount = await AccountService.update(accountId, { name, type });
+        toast.success('Account type bijgewerkt');
+        onSuccess?.(updatedAccount);
+    } catch (error: unknown) {
+        const err = error as ApiError;
+        const message = err.response?.data?.detail || 'Fout bij bijwerken account type';
         toast.error(message);
         throw error;
     }

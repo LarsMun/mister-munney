@@ -33,6 +33,14 @@ class AccountService {
     }
 
     /**
+     * Update een account (naam en/of type)
+     */
+    async update(id: number, data: UpdateAccountRequest): Promise<Account> {
+        const response = await api.put<Account>(`${this.baseUrl}/${id}`, data);
+        return response.data;
+    }
+
+    /**
      * Stel een account in als default
      */
     async setDefault(id: number): Promise<Account> {

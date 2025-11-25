@@ -8,4 +8,5 @@ class AccountDTO
     public ?string $name = null;
     public string $accountNumber;
     public bool $isDefault;
+    public string $type;
 }
