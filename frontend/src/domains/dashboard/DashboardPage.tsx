@@ -209,6 +209,20 @@ export default function DashboardPage() {
         const expenseBudgets = activeBudgets.filter(b => b.budgetType === 'EXPENSE');
         const incomeBudgets = activeBudgets.filter(b => b.budgetType === 'INCOME');
 
+        // Calculate totals for each budget type
+        const totalIncome = incomeBudgets.reduce((sum, b) => {
+            const current = Math.abs(parseFloat(b.insight?.current || '0'));
+            return sum + current;
+        }, 0);
+
+        const totalExpense = expenseBudgets.reduce((sum, b) => {
+            const current = Math.abs(parseFloat(b.insight?.current || '0'));
+            return sum + current;
+        }, 0);
+
+        const formatAmount = (amount: number) =>
+            `€ ${amount.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
         return (
             <div className="min-h-screen bg-gray-50 p-6">
                 <Toaster position="top-center" />
@@ -237,7 +251,16 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                <div className="mb-8 flex justify-end">
+                <div className="mb-8 flex justify-between items-center">
+                    {summary?.end_balance && (
+                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                            <span className="text-sm text-gray-600">Saldo:</span>
+                            <span className="text-lg font-bold text-blue-600">
+                                € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    )}
+                    {!summary?.end_balance && <div />}
                     <PeriodPicker
                         months={months}
                         onChange={handlePeriodChange}
@@ -272,6 +295,9 @@ export default function DashboardPage() {
                                             <span className="text-sm text-green-700 font-medium">
                                                 {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
                                             </span>
+                                            <span className="text-lg font-bold text-green-800">
+                                                {formatAmount(totalIncome)}
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-green-700 font-medium">
@@ -304,11 +330,9 @@ export default function DashboardPage() {
                                             <span className="text-sm text-blue-700 font-medium">
                                                 {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
                                             </span>
-                                            {summary?.end_balance && (
-                                                <span className="text-sm font-semibold text-blue-700">
-                                                    Saldo: € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </span>
-                                            )}
+                                            <span className="text-lg font-bold text-blue-800">
+                                                {formatAmount(totalExpense)}
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-blue-700 font-medium">
