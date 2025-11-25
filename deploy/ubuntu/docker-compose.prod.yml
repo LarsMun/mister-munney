@@ -31,7 +31,8 @@ services:
       MAIL_FROM_NAME: ${MAIL_FROM_NAME}
       APP_URL: ${APP_URL}
       LOCK_DSN: flock
-    # NO VOLUMES IN PRODUCTION - use the built image
+    volumes:
+      - ../../backend/config/jwt:/var/www/html/config/jwt:ro
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
@@ -114,7 +115,7 @@ services:
       MYSQL_USER: money
       MYSQL_PASSWORD: ${MYSQL_PASSWORD_PROD}
     volumes:
-      - munney-prod-mysql-data:/var/lib/mysql
+      - munney-prod-db-data:/var/lib/mysql
       - ../../backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf
       - ../../backups:/backups
     command: --default-time-zone='+00:00'
@@ -137,5 +138,5 @@ networks:
     driver: bridge
 
 volumes:
-  munney-prod-mysql-data:
-    name: munney_prod_mysql_data
+  munney-prod-db-data:
+    name: munney_db_data_prod

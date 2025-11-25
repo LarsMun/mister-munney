@@ -8,6 +8,7 @@ use App\Pattern\DTO\CreatePatternDTO;
 use App\Pattern\DTO\PatternDTO;
 use App\Pattern\DTO\UpdatePatternDTO;
 use App\Pattern\Service\PatternService;
+use App\Shared\Controller\AccountOwnershipTrait;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +27,8 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 #[Route('/api/account/{accountId}/patterns')]
 class PatternController extends AbstractController
 {
+    use AccountOwnershipTrait;
+
     private PatternService $patternService;
     private PayloadMapper $payloadMapper;
     private ValidatorInterface $validator;
@@ -44,26 +47,9 @@ class PatternController extends AbstractController
         $this->accountRepository = $accountRepository;
     }
 
-    /**
-     * Verify that the authenticated user owns the specified account
-     */
-    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    protected function getAccountRepository(): AccountRepository
     {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $account = $this->accountRepository->find($accountId);
-        if (!$account) {
-            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if (!$account->isOwnedBy($user)) {
-            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
-        }
-
-        return null;
+        return $this->accountRepository;
     }
 
     #[Route('', name: 'create_pattern', methods: ['POST'])]

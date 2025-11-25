@@ -13,16 +13,9 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
     const [isUploading, setIsUploading] = useState(false);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        console.log('File select triggered', event.target.files);
         const selectedFile = event.target.files?.[0];
 
         if (selectedFile) {
-            console.log('File details:', {
-                name: selectedFile.name,
-                type: selectedFile.type,
-                size: selectedFile.size
-            });
-
             // Accepteer CSV bestanden op basis van extensie én MIME type
             const isCSV = selectedFile.name.toLowerCase().endsWith('.csv') ||
                 selectedFile.type === 'text/csv' ||
@@ -30,15 +23,11 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
                 selectedFile.type === 'text/plain';
 
             if (isCSV) {
-                console.log('Valid CSV file selected:', selectedFile.name);
                 setFile(selectedFile);
                 toast.success(`Bestand geselecteerd: ${selectedFile.name}`);
             } else {
-                console.log('Invalid file type:', selectedFile.type);
                 toast.error(`Ongeldig bestandstype: ${selectedFile.type}. Selecteer een CSV-bestand.`);
             }
-        } else {
-            console.log('No file selected');
         }
     };
 
@@ -58,8 +47,6 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
                     'Content-Type': 'multipart/form-data',
                 },
             });
-
-            console.log('Import response:', response.data);
 
             const { imported, skipped, duplicates } = response.data;
             if (imported > 0) {
