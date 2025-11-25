@@ -106,8 +106,6 @@ export default function PatternList({ resetSignal, onEdit }: Props) {
                     <>categorie <span className="italic text-gray-400">(onbekend)</span></>
                 )
             );
-        } else {
-            console.log("geen categorie gevonden");
         }
 
         if (p.savingsAccount?.id) {

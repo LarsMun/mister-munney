@@ -17,8 +17,8 @@ export async function updateSingleTransactionCategory(
         await assignCategoryToTransaction(accountId, transactionId, category.id);
         await refresh();
         toast.success(`Categorie bijgewerkt!`);
-    } catch (error) {
-        toast.error('Kon categorie niet bijwerken: {error}');
+    } catch {
+        toast.error('Kon categorie niet bijwerken');
     }
 }
 

@@ -5,6 +5,7 @@ namespace App\Transaction\Controller;
 use App\Account\Repository\AccountRepository;
 use App\Entity\Transaction;
 use App\Mapper\PayloadMapper;
+use App\Shared\Controller\AccountOwnershipTrait;
 use App\Transaction\DTO\AssignSavingsAccountDTO;
 use App\Transaction\DTO\SetCategoryDTO;
 use App\Transaction\DTO\TransactionDTO;
@@ -31,6 +32,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 #[Route('/api/account/{accountId}/transactions')]
 class TransactionController extends AbstractController
 {
+    use AccountOwnershipTrait;
+
     private TransactionService $transactionService;
     private TransactionMapper $transactionMapper;
     private PayloadMapper $payloadMapper;
@@ -51,26 +54,9 @@ class TransactionController extends AbstractController
         $this->accountRepository = $accountRepository;
     }
 
-    /**
-     * Verify that the authenticated user owns the specified account
-     */
-    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    protected function getAccountRepository(): AccountRepository
     {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $account = $this->accountRepository->find($accountId);
-        if (!$account) {
-            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if (!$account->isOwnedBy($user)) {
-            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
-        }
-
-        return null;
+        return $this->accountRepository;
     }
 
     #[OA\Get(

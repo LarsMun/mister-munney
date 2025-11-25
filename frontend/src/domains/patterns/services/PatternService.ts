@@ -7,7 +7,6 @@ import {PatternDTO} from "../models/PatternDTO.ts";
 
 export async function fetchPatternMatches(accountId: number, pattern: PatternInput): Promise<{ total: number, data: Transaction[] }> {
     const sanitized = sanitizePattern(pattern);
-    console.log(sanitized);
     const response = await api.post(
         `/account/${accountId}/patterns/match`,
         sanitized
