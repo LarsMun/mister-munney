@@ -70,7 +70,7 @@ class CreatePatternDTO
     public ?string $tag = null;
 
     #[OA\Property(
-        description: 'Overschrijf bestaande categorieën of spaarrekeningen',
+        description: 'Overschrijf bestaande categorieën',
         type: 'boolean',
         example: false
     )]
@@ -85,14 +85,4 @@ class CreatePatternDTO
         example: 4
     )]
     public ?int $categoryId = null;
-
-    #[Assert\Positive]
-    #[OA\Property(
-        description: 'ID van de toe te wijzen spaarrekening',
-        type: 'integer',
-        maximum: 2147483647,
-        minimum: 1,
-        example: 2
-    )]
-    public ?int $savingsAccountId = null;
 }

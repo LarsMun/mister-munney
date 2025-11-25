@@ -16,10 +16,5 @@ export interface PatternDTO {
         name: string;
         color?: string;
     };
-    savingsAccount?: {
-        id: number;
-        name: string;
-        color?: string;
-    };
     strict?: boolean;
 }

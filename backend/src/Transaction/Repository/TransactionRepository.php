@@ -186,7 +186,6 @@ class TransactionRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('t')
             ->andWhere('t.account = :accountId')
             ->andWhere('t.category IS NULL')
-            ->andWhere('t.savingsAccount IS NULL')
             ->setParameter('accountId', $accountId);
 
         if ($startDate !== null) {

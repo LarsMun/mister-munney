@@ -56,15 +56,4 @@ class PatternDTO
         nullable: true
     )]
     public ?array $category = null;
-
-    #[OA\Property(
-        properties: [
-            new OA\Property(property: 'id', type: 'integer'),
-            new OA\Property(property: 'name', type: 'string'),
-            new OA\Property(property: 'color', type: 'string', nullable: true),
-        ],
-        type: 'object',
-        nullable: true
-    )]
-    public ?array $savingsAccount = null;
 }

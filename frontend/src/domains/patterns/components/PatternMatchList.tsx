@@ -57,26 +57,13 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
         ? relevantMatches.filter(t => t.category?.id && t.category.id !== pattern.categoryId)
         : [];
 
-    const conflictingSavings = !pattern.strict
-        ? relevantMatches.filter(t => t.savingsAccount?.id && t.savingsAccount.id !== pattern.savingsAccountId)
-        : [];
-
     const matchingCategory = useMemo(() =>
             relevantMatches.filter(t => pattern.categoryId != null && t.category?.id === pattern.categoryId),
         [relevantMatches, pattern.categoryId]
     );
 
-    const matchingSavings = useMemo(() =>
-            relevantMatches.filter(t => pattern.savingsAccountId != null && t.savingsAccount?.id === pattern.savingsAccountId),
-        [relevantMatches, pattern.savingsAccountId]
-    );
-
     const withoutCategory = pattern.categoryId != null
         ? relevantMatches.length - matchingCategory.length - conflictingCategory.length
-        : 0;
-
-    const withoutSavingsAccount = pattern.savingsAccountId != null
-        ? relevantMatches.length - matchingSavings.length - conflictingSavings.length
         : 0;
 
     const handleFetch = async () => {
@@ -148,28 +135,8 @@ export default function PatternMatchList({ pattern, resetSignal }: Props) {
                 </>
             )}
 
-            {pattern.savingsAccountId != null && (
-                <>
-                    {conflictingSavings.length > 0 && (
-                        <FeedbackBox type="error">
-                            ⚠️ {conflictingSavings.length} transacties hebben al een <b>andere spaarrekening</b>.
-                        </FeedbackBox>
-                    )}
-                    {matchingSavings.length > 0 && (
-                        <FeedbackBox type="success">
-                            ✅ {matchingSavings.length} transacties hebben deze <b>spaarrekening</b> al.
-                        </FeedbackBox>
-                    )}
-                    {withoutSavingsAccount > 0 && (
-                        <FeedbackBox type="new">
-                            🆕 {withoutSavingsAccount} nieuwe toewijzingen aan deze <b>spaarrekening</b>.
-                        </FeedbackBox>
-                    )}
-                </>
-            )}
-
             {error && <div className="p-2 text-xs text-red-600">{error}</div>}
-            {(pattern.categoryId != null || pattern.savingsAccountId != null) && relevantMatches.length > 0 && (
+            {pattern.categoryId != null && relevantMatches.length > 0 && (
                 <div className="h-5" />
             )}
             {relevantMatches.map((m) => {

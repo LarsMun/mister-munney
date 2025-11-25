@@ -5,7 +5,6 @@ namespace App\Pattern\Mapper;
 use App\Entity\Account;
 use App\Entity\Category;
 use App\Entity\Pattern;
-use App\Entity\SavingsAccount;
 use App\Enum\MatchType;
 use App\Enum\TransactionType;
 use App\Money\MoneyFactory;
@@ -47,20 +46,13 @@ class PatternMapper
             'color' => $pattern->getCategory()->getColor(),
         ] : null;
 
-        $dto->savingsAccount = $pattern->getSavingsAccount() ? [
-            'id' => $pattern->getSavingsAccount()->getId(),
-            'name' => $pattern->getSavingsAccount()->getName(),
-            'color' => $pattern->getSavingsAccount()->getColor(),
-        ] : null;
-
         return $dto;
     }
 
     public function fromCreateDto(
         CreatePatternDTO $dto,
         Account $account,
-        ?Category $category = null,
-        ?SavingsAccount $savingsAccount = null
+        ?Category $category = null
     ): Pattern {
         $pattern = new Pattern();
         $pattern->setAccount($account);
@@ -84,12 +76,10 @@ class PatternMapper
                 $account->getId(),
                 $dto->description,
                 $dto->notes,
-                $dto->categoryId,
-                $dto->savingsAccountId
+                $dto->categoryId
             )
         );
         $pattern->setCategory($category);
-        $pattern->setSavingsAccount($savingsAccount);
 
         return $pattern;
     }
@@ -117,15 +107,13 @@ class PatternMapper
         int $accountId,
         ?string $description,
         ?string $notes,
-        ?int $categoryId,
-        ?int $savingsAccountId
+        ?int $categoryId
     ): string {
         $parts = [
             $accountId,
             strtolower(trim($description ?? '')),
             strtolower(trim($notes ?? '')),
             $categoryId ?? 0,
-            $savingsAccountId ?? 0,
         ];
 
         return hash('sha256', implode('|', $parts));

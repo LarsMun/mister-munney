@@ -3,7 +3,6 @@
 namespace App\Transaction\DTO;
 
 use App\Category\DTO\CategoryDTO;
-use App\SavingsAccount\DTO\SavingsAccountDTO;
 
 class TransactionDTO
 {
@@ -21,7 +20,6 @@ class TransactionDTO
     public float $balanceAfter;
     public ?string $tag;
     public ?CategoryDTO $category = null;
-    public ?SavingsAccountDTO $savingsAccount = null;
     public bool $hasSplits = false;
     public int $splitCount = 0;
     public ?int $parentTransactionId = null;

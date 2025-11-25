@@ -13,5 +13,4 @@ export type Transaction = {
     balanceAfter: number;
     tag: string | null;
     categoryId: number | null;
-    savingsAccountId: number | null;
 };

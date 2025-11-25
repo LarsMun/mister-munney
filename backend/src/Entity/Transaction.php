@@ -63,10 +63,6 @@ class Transaction
     #[ORM\JoinColumn(nullable: true)]
     private ?Category $category = null;
 
-    #[ORM\ManyToOne(inversedBy: 'transactions')]
-    #[ORM\JoinColumn(nullable: true, onDelete: "SET NULL")]
-    private ?SavingsAccount $savingsAccount = null;
-
     #[ORM\ManyToOne(targetEntity: Transaction::class, inversedBy: 'splits')]
     #[ORM\JoinColumn(name: 'parent_transaction_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
     private ?Transaction $parentTransaction = null;
@@ -248,25 +244,6 @@ class Transaction
         $this->category = $category;
 
         return $this;
-    }
-
-    #[Ignore]
-    public function getSavingsAccount(): ?SavingsAccount
-    {
-        return $this->savingsAccount;
-    }
-
-    public function setSavingsAccount(?SavingsAccount $savingsAccount): static
-    {
-        $this->savingsAccount = $savingsAccount;
-
-        return $this;
-    }
-
-    #[Groups('transaction:read')]
-    public function getSavingsAccountId(): ?int
-    {
-        return $this->savingsAccount?->getId();
     }
 
     public function getParentTransaction(): ?Transaction

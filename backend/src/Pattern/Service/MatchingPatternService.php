@@ -115,10 +115,6 @@ class MatchingPatternService
                 $conflict = true;
             }
 
-            if ($pattern->savingsAccountId && $t->getSavingsAccount()?->getId() !== $pattern->savingsAccountId) {
-                $conflict = true;
-            }
-
             $dto->matchConflict = $conflict;
 
             return $dto;

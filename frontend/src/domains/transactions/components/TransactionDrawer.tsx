@@ -85,7 +85,6 @@ export default function TransactionDrawer({ transaction, onClose, onFilterByDesc
                         <Detail label="Code" value={transaction.transactionCode}/>
                         <Detail label="Tegenrekening" value={transaction.counterpartyAccount || null}/>
                         <Detail label="Categorie" value={transaction.category?.name || null}/>
-                        <Detail label="Spaarrekening" value={transaction.savingsAccount?.name || null}/>
                         <Detail label="Tag" value={transaction.tag || null}/>
                         <ClickableDetail
                             label="Notities"

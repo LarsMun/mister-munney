@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import SimpleCategoryCombobox from "../../categories/components/SimpleCategoryCombobox";
-import SimpleSavingsAccountCombobox from "../../savingsAccounts/components/SimpleSavingsAccountCombobox";
 import { createPattern } from "../../patterns/services/PatternService";
 import { toast } from "react-hot-toast";
 import type { Transaction } from "../models/Transaction";
@@ -17,7 +16,6 @@ interface FilterState {
     endDate?: string;
     transactionType?: "debit" | "credit" | "both";
     categoryId?: number;
-    savingsAccountId?: number;
     strict?: boolean;
     withoutCategory?: boolean;
 }
@@ -54,7 +52,7 @@ export default function TransactionFilterForm({
     onOpenAiSuggestions
 }: Props) {
 
-    // Check if user is doing pattern matching (has other filters besides categoryId/savingsAccountId/dates)
+    // Check if user is doing pattern matching (has other filters besides categoryId/dates)
     const isPatternMatching = useMemo(() => {
         return !!(filters.description || filters.notes || filters.tag ||
                   filters.minAmount || filters.maxAmount || filters.withoutCategory);
@@ -66,27 +64,13 @@ export default function TransactionFilterForm({
         return filteredTransactions.filter(t => t.category?.id && t.category.id !== filters.categoryId);
     }, [filteredTransactions, filters.categoryId, filters.strict]);
 
-    const conflictingSavings = useMemo(() => {
-        if (!filters.savingsAccountId || filters.strict) return [];
-        return filteredTransactions.filter(t => t.savingsAccount?.id && t.savingsAccount.id !== filters.savingsAccountId);
-    }, [filteredTransactions, filters.savingsAccountId, filters.strict]);
-
     const matchingCategory = useMemo(() => {
         if (!filters.categoryId) return [];
         return filteredTransactions.filter(t => t.category?.id === filters.categoryId);
     }, [filteredTransactions, filters.categoryId]);
 
-    const matchingSavings = useMemo(() => {
-        if (!filters.savingsAccountId) return [];
-        return filteredTransactions.filter(t => t.savingsAccount?.id === filters.savingsAccountId);
-    }, [filteredTransactions, filters.savingsAccountId]);
-
     const withoutCategory = filters.categoryId != null
         ? filteredTransactions.length - matchingCategory.length - conflictingCategory.length
-        : 0;
-
-    const withoutSavingsAccount = filters.savingsAccountId != null
-        ? filteredTransactions.length - matchingSavings.length - conflictingSavings.length
         : 0;
 
     const updateFilter = (key: keyof FilterState, value: any) => {
@@ -106,8 +90,8 @@ export default function TransactionFilterForm({
     };
 
     const handleCreatePattern = async () => {
-        if (!filters.categoryId && !filters.savingsAccountId) {
-            toast.error("Selecteer een categorie of spaarrekening");
+        if (!filters.categoryId) {
+            toast.error("Selecteer een categorie");
             return;
         }
 
@@ -334,25 +318,6 @@ export default function TransactionFilterForm({
                             </>
                         )}
 
-                        {filters.savingsAccountId != null && (
-                            <>
-                                {conflictingSavings.length > 0 && (
-                                    <FeedbackBox type="error">
-                                        ⚠️ {conflictingSavings.length} transacties hebben al een <b>andere spaarrekening</b>.
-                                    </FeedbackBox>
-                                )}
-                                {matchingSavings.length > 0 && (
-                                    <FeedbackBox type="success">
-                                        ✅ {matchingSavings.length} transacties hebben deze <b>spaarrekening</b> al.
-                                    </FeedbackBox>
-                                )}
-                                {withoutSavingsAccount > 0 && (
-                                    <FeedbackBox type="new">
-                                        🆕 {withoutSavingsAccount} nieuwe toewijzingen aan deze <b>spaarrekening</b>.
-                                    </FeedbackBox>
-                                )}
-                            </>
-                        )}
                     </div>
                 )}
 
@@ -367,14 +332,6 @@ export default function TransactionFilterForm({
                         />
                     </div>
 
-                    <div className="w-64">
-                        <label className="block text-xs font-medium text-gray-600">Spaarrekening</label>
-                        <SimpleSavingsAccountCombobox
-                            savingsAccountId={filters.savingsAccountId ?? null}
-                            onChange={(sa) => updateFilter("savingsAccountId", sa?.id ?? null)}
-                        />
-                    </div>
-
                     <div className="flex items-center h-8">
                         <label className="inline-flex items-center text-xs text-gray-700 group">
                             <input
@@ -385,7 +342,7 @@ export default function TransactionFilterForm({
                             />
                             Overschrijf bestaande
                             <span className="ml-1 text-gray-400 cursor-help group-hover:underline"
-                                  title="Als dit aanstaat, worden ook transacties met een bestaande categorie of spaarrekening overschreven.">
+                                  title="Als dit aanstaat, worden ook transacties met een bestaande categorie overschreven.">
                                 ⓘ
                             </span>
                         </label>

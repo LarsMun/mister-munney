@@ -43,16 +43,6 @@ class PatternRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findBySavingsAccountId(int $savingsAccountId): array
-    {
-        return $this->createQueryBuilder('p')
-            ->join('p.savingsAccount', 's')
-            ->andWhere('s.id = :savingsAccountId')
-            ->setParameter('savingsAccountId', $savingsAccountId)
-            ->getQuery()
-            ->getResult();
-    }
-
     public function save(Pattern $pattern, bool $flush = true): void
     {
         $this->em->persist($pattern);

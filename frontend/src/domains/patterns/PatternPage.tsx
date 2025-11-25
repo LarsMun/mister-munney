@@ -19,8 +19,7 @@ export default function PatternPage() {
             description: transaction.description,
             notes: transaction.notes,
             categoryId: transaction.category?.id ?? null,
-            savingsAccountId: transaction.savingsAccount?.id ?? null,
-            transactionType: transaction.type,
+            transactionType: transaction.transactionType,
         }
         : undefined;
 

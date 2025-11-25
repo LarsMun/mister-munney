@@ -257,8 +257,7 @@ class AiPatternDiscoveryController extends AbstractController
                 $accountId,
                 $dto->descriptionPattern,
                 $dto->notesPattern,
-                $categoryId,
-                null // savingsAccountId
+                $categoryId
             );
             $patternEntity = $this->patternRepository->findByHash($patternHash);
 

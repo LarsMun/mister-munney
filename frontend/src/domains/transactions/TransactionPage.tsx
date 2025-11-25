@@ -27,7 +27,6 @@ interface FilterState {
     endDate?: string;
     transactionType?: "debit" | "credit" | "both";
     categoryId?: number;
-    savingsAccountId?: number;
     strict?: boolean;
     withoutCategory?: boolean;
 }
@@ -102,8 +101,8 @@ export default function TransactionPage() {
 
     // Check if any filters are applied (including categoryId for display filtering)
     const hasFilters = Object.entries(filters).some(([key, value]) => {
-        // Don't count savingsAccountId, strict as filters for transaction display
-        if (key === 'savingsAccountId' || key === 'strict') return false;
+        // Don't count strict as filter for transaction display
+        if (key === 'strict') return false;
         // Don't count default values (matchType selectors and transactionType "both")
         if (key === 'matchTypeDescription' || key === 'matchTypeNotes' || key === 'transactionType') return false;
         // Count categoryId, withoutCategory, and other actual filter values

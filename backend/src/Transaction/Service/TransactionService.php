@@ -7,7 +7,6 @@ use App\Category\Repository\CategoryRepository;
 use App\Entity\Transaction;
 use App\Enum\TransactionType;
 use App\Money\MoneyFactory;
-use App\SavingsAccount\Repository\SavingsAccountRepository;
 use App\Transaction\DTO\TransactionFilterDTO;
 use App\Transaction\Repository\TransactionRepository;
 use DatePeriod;
@@ -22,13 +21,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * Service voor het ophalen en bewerken van transacties.
  *
- * Haalt transacties op en wijst savingsaccount en categorie toe.
+ * Haalt transacties op en wijst categorie toe.
  */
 class TransactionService
 {
     private EntityManagerInterface $entityManager;
     private TransactionRepository $transactionRepository;
-    private SavingsAccountRepository $savingsAccountRepository;
     private CategoryRepository $categoryRepository;
     private AccountRepository $accountRepository;
     private MoneyFactory $moneyFactory;
@@ -36,7 +34,6 @@ class TransactionService
     public function __construct(
         EntityManagerInterface $entityManager,
         TransactionRepository $transactionRepository,
-        SavingsAccountRepository $savingsAccountRepository,
         CategoryRepository $categoryRepository,
         AccountRepository $accountRepository,
         MoneyFactory $moneyFactory
@@ -44,7 +41,6 @@ class TransactionService
     {
         $this->entityManager = $entityManager;
         $this->transactionRepository = $transactionRepository;
-        $this->savingsAccountRepository = $savingsAccountRepository;
         $this->categoryRepository = $categoryRepository;
         $this->accountRepository = $accountRepository;
         $this->moneyFactory = $moneyFactory;
@@ -324,37 +320,6 @@ class TransactionService
     public function bulkRemoveCategory(array $transactionIds): void
     {
         $this->transactionRepository->bulkRemoveCategory($transactionIds);
-    }
-
-    /**
-     * Wijst handmatig een spaarrekening toe aan een bestaande transactie.
-     *
-     * @param int $transactionId ID van de transactie
-     * @param int $savingsAccountId ID van de spaarrekening
-     * @return Transaction De bijgewerkte transactie
-     *
-     * @throws InvalidArgumentException Als ID's niet bestaan
-     */
-    public function setSavingsAccount(int $transactionId, int $savingsAccountId): Transaction
-    {
-        if (empty($savingsAccountId)) {
-            throw new BadRequestHttpException('savingsAccountId is verplicht.');
-        }
-
-        $transaction = $this->transactionRepository->find($transactionId);
-        if (!$transaction) {
-            throw new NotFoundHttpException("Transactie met ID $transactionId niet gevonden.");
-        }
-
-        $savingsAccount = $this->savingsAccountRepository->find($savingsAccountId);
-        if (!$savingsAccount) {
-            throw new NotFoundHttpException("Spaarrekening met ID $savingsAccountId niet gevonden.");
-        }
-
-        $transaction->setSavingsAccount($savingsAccount);
-        $this->entityManager->flush();
-
-        return $transaction;
     }
 
     /**

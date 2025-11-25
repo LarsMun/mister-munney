@@ -2,11 +2,9 @@
 
 export type matchTypeNotes = "LIKE" | "EXACT";
 export type TransactionType = "debit" | "credit" | "both";
-export type PatternType = "category" | "savings";
 
 export interface PatternInput {
     accountId: number;
-    patternType: PatternType;
     description?: string;
     matchTypeDescription?: "LIKE" | "EXACT";
     notes?: string;
@@ -18,6 +16,5 @@ export interface PatternInput {
     startDate?: string;
     endDate?: string;
     categoryId?: number;
-    savingsAccountId?: number;
     strict?: boolean;
 }

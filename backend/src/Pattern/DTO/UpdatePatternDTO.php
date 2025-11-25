@@ -68,7 +68,7 @@ class UpdatePatternDTO
     public ?string $tag = null;
 
     #[OA\Property(
-        description: 'Overschrijf bestaande categorieën of spaarrekeningen',
+        description: 'Overschrijf bestaande categorieën',
         type: 'boolean',
         example: false
     )]
@@ -77,8 +77,4 @@ class UpdatePatternDTO
     #[Assert\Positive]
     #[OA\Property(type: 'integer', maximum: 2147483647, minimum: 1, example: 3)]
     public ?int $categoryId = null;
-
-    #[Assert\Positive]
-    #[OA\Property(type: 'integer', maximum: 2147483647, minimum: 1, example: 5)]
-    public ?int $savingsAccountId = null;
 }

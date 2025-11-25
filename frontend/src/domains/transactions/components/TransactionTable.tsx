@@ -8,8 +8,6 @@ import { useCategories } from "../../categories/hooks/useCategories";
 import CategoryCombobox from "../../categories/components/CategoryCombobox.tsx";
 import type { Transaction } from "../models/Transaction";
 import TransactionDrawer from "./TransactionDrawer.tsx";
-import SavingsAccountCombobox from "../../savingsAccounts/components/SavingsAccountCombobox.tsx";
-import { useSavingsAccounts } from "../../savingsAccounts/hooks/useSavingsAccounts";
 import CreditCardUploadModal from "./CreditCardUploadModal";
 import TransactionSplitsList from "./TransactionSplitsList";
 import { createSplits, ParseResult } from "../services/TransactionSplitService";
@@ -41,8 +39,6 @@ export default function TransactionTable({ accountId, transactions, refresh, onF
             setSortDirection("asc");
         }
     };
-
-    const { savingsAccounts, addSavingsAccount } = useSavingsAccounts(accountId);
 
     const sortedTransactions = [...transactions].sort((a, b) => {
         let aValue = a[sortBy];
@@ -163,7 +159,6 @@ export default function TransactionTable({ accountId, transactions, refresh, onF
                     >
                         Categorie {getSortIcon("category")}
                     </th>
-                    <th className="w-32 px-4 py-3 font-semibold">Spaarrekening</th>
                     <th className="w-24 px-4 py-3 font-semibold text-center">Splits</th>
                 </tr>
                 </thead>
@@ -208,15 +203,6 @@ export default function TransactionTable({ accountId, transactions, refresh, onF
                                         transactionType={t.transactionType}
                                     />
                                 </td>
-                                <td className="w-32 px-4 py-2" onClick={(e) => e.stopPropagation()}>
-                                    <SavingsAccountCombobox
-                                        transactionId={t.id}
-                                        savingsAccountId={t.savingsAccount?.id ?? null}
-                                        refresh={refresh}
-                                        savingsAccounts={savingsAccounts}
-                                        onCreate={addSavingsAccount}
-                                    />
-                                </td>
                                 <td className="w-24 px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                                     {hasSplits ? (
                                         <button
@@ -239,7 +225,7 @@ export default function TransactionTable({ accountId, transactions, refresh, onF
                             </tr>
                             {hasSplits && (
                                 <tr>
-                                    <td colSpan={7} className="p-0">
+                                    <td colSpan={6} className="p-0">
                                         <TransactionSplitsList
                                             accountId={accountId}
                                             transactionId={t.id}

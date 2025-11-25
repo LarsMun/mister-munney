@@ -64,11 +64,6 @@ class PatternAssignService
             $params['categoryId'] = $pattern->getCategory()->getId();
         }
 
-        if ($pattern->getSavingsAccount()) {
-            $set[] = 'savings_account_id = :savingsAccountId';
-            $params['savingsAccountId'] = $pattern->getSavingsAccount()->getId();
-        }
-
         if (empty($set)) {
             return 0;
         }
@@ -117,9 +112,6 @@ class PatternAssignService
         if (!$pattern->isStrict()) {
             if ($pattern->getCategory()) {
                 $where[] = 'category_id IS NULL';
-            }
-            if ($pattern->getSavingsAccount()) {
-                $where[] = 'savings_account_id IS NULL';
             }
         }
 
