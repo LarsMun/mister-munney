@@ -117,12 +117,10 @@ jobs:
             echo "⚠️  Frontend check failed"
             exit 1
           fi
-          # Check if backend responds (404 is OK - means backend is running, just no route for /api)
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://munney.munne.me/api)
-          if [ "$HTTP_CODE" = "404" ] || [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Backend API responding (HTTP $HTTP_CODE)"
+          if curl -f -s https://munney.munne.me/api/doc.json > /dev/null; then
+            echo "✅ Backend API responding"
           else
-            echo "⚠️  Backend API check failed (HTTP $HTTP_CODE)"
+            echo "⚠️  Backend API check failed"
             exit 1
           fi
           
