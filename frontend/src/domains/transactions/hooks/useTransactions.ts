@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAccount } from "../../../app/context/AccountContext";
 import { getAvailableMonths, getTransactions, importTransactions as importTransactionsService } from "../services/TransactionsService";
 import { toast } from "react-hot-toast";
@@ -16,28 +16,28 @@ export function useTransactions() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [summary, setSummary] = useState<SummaryType | null>(null);
     const [treeMapData, setTreeMapData] = useState<TreeMapDataType | null>(null);
-    const initialDatesSet = useRef(false);
+    const [initialDatesSet, setInitialDatesSet] = useState(false);
 
     useEffect(() => {
-        if (!accountId) return;
+        if (!accountId || initialDatesSet) return;
 
         getAvailableMonths(accountId)
             .then(availableMonths => {
                 setMonths(availableMonths);
                 // Only set initial dates once, on first load
-                if (availableMonths.length > 0 && !initialDatesSet.current) {
+                if (availableMonths.length > 0) {
                     const [year, month] = availableMonths[0].split("-");
                     const start = formatDateToLocalString(new Date(Number(year), Number(month) - 1, 1));
                     const end = formatDateToLocalString(new Date(Number(year), Number(month), 0));
                     setStartDate(start);
                     setEndDate(end);
-                    initialDatesSet.current = true;
+                    setInitialDatesSet(true);
                 }
             })
             .catch(() => {
                 toast.error("Fout bij ophalen beschikbare maanden.");
             });
-    }, [accountId]);
+    }, [accountId, initialDatesSet]);
 
     useEffect(() => {
         if (!accountId || !startDate || !endDate) return;

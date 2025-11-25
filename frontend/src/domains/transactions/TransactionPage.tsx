@@ -202,6 +202,8 @@ export default function TransactionPage() {
                 </button>
                 <PeriodPicker
                     months={months}
+                    currentStartDate={startDate}
+                    currentEndDate={endDate}
                     onChange={(newStartDate, newEndDate) => {
                         setStartDate(newStartDate);
                         setEndDate(newEndDate);
@@ -249,6 +251,8 @@ export default function TransactionPage() {
                     <div className="mt-4 flex justify-end">
                         <PeriodPicker
                             months={months}
+                            currentStartDate={startDate}
+                            currentEndDate={endDate}
                             onChange={(newStartDate, newEndDate) => {
                                 setStartDate(newStartDate);
                                 setEndDate(newEndDate);
