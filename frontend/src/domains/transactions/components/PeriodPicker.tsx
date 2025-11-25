@@ -6,15 +6,18 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface Props {
     months: string[];
     onChange: (startDate: string, endDate: string) => void;
+    currentStartDate?: string | null;
+    currentEndDate?: string | null;
 }
 
-export default function PeriodPicker({ months, onChange }: Props) {
+export default function PeriodPicker({ months, onChange, currentStartDate, currentEndDate }: Props) {
     const [periodType, setPeriodType] = useState<"month" | "quarter" | "halfyear" | "year">("month");
     const [selectedYear, setSelectedYear] = useState<string>("");
     const [selectedMonth, setSelectedMonth] = useState<string>("01");
     const [selectedQuarter, setSelectedQuarter] = useState<"1" | "2" | "3" | "4">("1");
     const [selectedHalf, setSelectedHalf] = useState<"1" | "2">("1");
     const previousDatesRef = useRef<{ start: string; end: string } | null>(null);
+    const isInitialized = useRef(false);
     const lastMonth = months.length > 0 ? months[0] : null;
     const [lastYear, lastMonthNumber] = lastMonth ? lastMonth.split("-").map(Number) : [null, null];
     const lastDate = lastYear && lastMonthNumber ? new Date(lastYear, lastMonthNumber - 1) : null;
@@ -39,14 +42,51 @@ export default function PeriodPicker({ months, onChange }: Props) {
         return start <= lastDate;
     });
 
-    // Zet automatisch nieuwste jaar & maand bij laden (alleen eerste keer)
+    // Initialize from currentStartDate/currentEndDate or default to newest month
     useEffect(() => {
-        if (months.length > 0 && !selectedYear) {
+        if (months.length === 0 || isInitialized.current) return;
+
+        if (currentStartDate && currentEndDate) {
+            // Sync from parent's current dates
+            const startParts = currentStartDate.split('-');
+            const endParts = currentEndDate.split('-');
+            const startYear = startParts[0];
+            const startMonth = startParts[1];
+            const endYear = endParts[0];
+            const endMonth = endParts[1];
+
+            setSelectedYear(startYear);
+            setSelectedMonth(startMonth);
+
+            // Detect period type from date range
+            if (startYear === endYear) {
+                if (startMonth === '01' && endMonth === '12') {
+                    setPeriodType('year');
+                } else if (startMonth === '01' && endMonth === '06') {
+                    setPeriodType('halfyear');
+                    setSelectedHalf('1');
+                } else if (startMonth === '07' && endMonth === '12') {
+                    setPeriodType('halfyear');
+                    setSelectedHalf('2');
+                } else {
+                    // Check for quarters
+                    const monthDiff = Number(endMonth) - Number(startMonth);
+                    if (monthDiff === 2 && ['01', '04', '07', '10'].includes(startMonth)) {
+                        setPeriodType('quarter');
+                        setSelectedQuarter(String(Math.floor((Number(startMonth) - 1) / 3) + 1) as any);
+                    }
+                    // Otherwise keep as month
+                }
+            }
+            previousDatesRef.current = { start: currentStartDate, end: currentEndDate };
+        } else {
+            // Default to newest month
             const [year, month] = months[0].split('-');
             setSelectedYear(year);
             setSelectedMonth(month);
         }
-    }, [months, selectedYear]);
+        isInitialized.current = true;
+    }, [months, currentStartDate, currentEndDate]);
 
     // Reageer bij wijziging van selectie
     useEffect(() => {
