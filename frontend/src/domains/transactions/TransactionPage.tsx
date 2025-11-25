@@ -116,6 +116,14 @@ export default function TransactionPage() {
     //        Has filters + filterByPeriod checked = show period transactions
     const transactionsToFilter = (!hasFilters || filterByPeriod) ? transactions : allTransactions;
 
+    // Check if we have pattern-related filters (not just categoryId/withoutCategory toggles)
+    const hasPatternFilters = !!(
+        filters.description || filters.notes || filters.tag ||
+        filters.minAmount || filters.maxAmount ||
+        filters.startDate || filters.endDate ||
+        (filters.transactionType && filters.transactionType !== 'both')
+    );
+
     const filteredTransactions = transactionsToFilter.filter(t => {
         // Exclude ONLY split child transactions - parent transactions should be visible
         // even if they have splits (they show adjusted amounts in budgets)
@@ -133,8 +141,8 @@ export default function TransactionPage() {
             return false;
         }
 
-        // If no filters are set, show all from the selected source
-        if (!hasFilters) return true;
+        // If no pattern-related filters are set, show all from the selected source
+        if (!hasPatternFilters) return true;
 
         // Use matchesPattern utility for other filters
         return matchesPattern(t, filters as any);
