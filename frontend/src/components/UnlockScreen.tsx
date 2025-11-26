@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import logo from '../assets/mister-munney-logo.png';
@@ -11,16 +11,7 @@ export default function UnlockScreen() {
     const [error, setError] = useState<string | null>(null);
     const token = searchParams.get('token');
 
-    useEffect(() => {
-        if (!token) {
-            setError('Geen unlock token gevonden in de URL');
-            return;
-        }
-
-        unlockAccount(token);
-    }, [token]);
-
-    const unlockAccount = async (unlockToken: string) => {
+    const unlockAccount = useCallback(async (unlockToken: string) => {
         setIsUnlocking(true);
         setError(null);
 
@@ -55,13 +46,22 @@ export default function UnlockScreen() {
             setTimeout(() => {
                 navigate('/');
             }, 3000);
-        } catch (error) {
-            console.error('Unlock error:', error);
+        } catch (err) {
+            console.error('Unlock error:', err);
             setError('Er is een fout opgetreden bij het verbinden met de server. Probeer het later opnieuw.');
         } finally {
             setIsUnlocking(false);
         }
-    };
+    }, [navigate]);
+
+    useEffect(() => {
+        if (!token) {
+            setError('Geen unlock token gevonden in de URL');
+            return;
+        }
+
+        unlockAccount(token);
+    }, [token, unlockAccount]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">

@@ -5,6 +5,7 @@ namespace App\Account\Service;
 use App\Account\Exception\AccountAccessDeniedException;
 use App\Account\Repository\AccountRepository;
 use App\Entity\Account;
+use App\Enum\AccountType;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -85,6 +86,16 @@ class AccountService
         }
 
         $account->setName($data['name']);
+
+        // Update type if provided
+        if (isset($data['type'])) {
+            $type = AccountType::tryFrom($data['type']);
+            if ($type === null) {
+                throw new BadRequestHttpException('Ongeldig account type. Gebruik CHECKING of SAVINGS.');
+            }
+            $account->setType($type);
+        }
+
         $this->accountRepository->save($account);
 
         return $account;

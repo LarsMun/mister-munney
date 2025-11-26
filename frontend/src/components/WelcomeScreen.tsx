@@ -13,16 +13,9 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
     const [isUploading, setIsUploading] = useState(false);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        console.log('File select triggered', event.target.files);
         const selectedFile = event.target.files?.[0];
 
         if (selectedFile) {
-            console.log('File details:', {
-                name: selectedFile.name,
-                type: selectedFile.type,
-                size: selectedFile.size
-            });
-
             // Accepteer CSV bestanden op basis van extensie én MIME type
             const isCSV = selectedFile.name.toLowerCase().endsWith('.csv') ||
                 selectedFile.type === 'text/csv' ||
@@ -30,15 +23,11 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
                 selectedFile.type === 'text/plain';
 
             if (isCSV) {
-                console.log('Valid CSV file selected:', selectedFile.name);
                 setFile(selectedFile);
                 toast.success(`Bestand geselecteerd: ${selectedFile.name}`);
             } else {
-                console.log('Invalid file type:', selectedFile.type);
                 toast.error(`Ongeldig bestandstype: ${selectedFile.type}. Selecteer een CSV-bestand.`);
             }
-        } else {
-            console.log('No file selected');
         }
     };
 
@@ -59,8 +48,6 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
                 },
             });
 
-            console.log('Import response:', response.data);
-
             const { imported, skipped, duplicates } = response.data;
             if (imported > 0) {
                 toast.success(`${imported} transacties succesvol geïmporteerd! Accounts zijn automatisch aangemaakt.${skipped || duplicates > 0 ? ` (${skipped || duplicates} overgeslagen)` : ''}`);
@@ -70,15 +57,16 @@ export default function WelcomeScreen({ onAccountCreated }: WelcomeScreenProps) 
 
             // Trigger the account refresh and UI update
             onAccountCreated();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Upload error:', error);
 
             let errorMessage = 'Fout bij uploaden van CSV-bestand';
 
-            if (error.response?.data?.error) {
-                errorMessage = error.response.data.error;
-            } else if (error.message) {
-                errorMessage = error.message;
+            const err = error as { response?: { data?: { error?: string } }; message?: string };
+            if (err.response?.data?.error) {
+                errorMessage = err.response.data.error;
+            } else if (err.message) {
+                errorMessage = err.message;
             }
 
             toast.error(errorMessage);

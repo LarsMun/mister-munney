@@ -15,16 +15,14 @@ interface Props {
 export default function SimpleCategoryCombobox({
                                                    categoryId,
                                                    onChange,
-                                                   transactionType  // <-- NIEUW
                                                }: Props) {
     const { accountId } = useAccount();
-    if (accountId === null) return null;
-    const { categories, setCategories } = useCategories(accountId);
+    const { categories, setCategories } = useCategories(accountId ?? 0);
     const inputRef = useRef<HTMLInputElement>(null);
     const [showList, setShowList] = useState(false);
+    const [input, setInput] = useState("");
 
     const selectedCategory = categoryId ? categories.find(c => c.id === categoryId) ?? null : null;
-    const [input, setInput] = useState("");
 
     // Prefill input alleen bij laden of wissel van categorie
     useEffect(() => {
@@ -33,7 +31,9 @@ export default function SimpleCategoryCombobox({
         } else {
             setInput("");
         }
-    }, [selectedCategory?.id]);
+    }, [selectedCategory?.id, selectedCategory?.name]);
+
+    if (accountId === null) return null;
 
     // Categories can now contain both CREDIT and DEBIT transactions - no filtering by type
     const filteredByType = categories;

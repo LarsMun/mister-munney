@@ -8,6 +8,7 @@ use App\Pattern\DTO\CreatePatternDTO;
 use App\Pattern\DTO\PatternDTO;
 use App\Pattern\DTO\UpdatePatternDTO;
 use App\Pattern\Service\PatternService;
+use App\Shared\Controller\AccountOwnershipTrait;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +27,8 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 #[Route('/api/account/{accountId}/patterns')]
 class PatternController extends AbstractController
 {
+    use AccountOwnershipTrait;
+
     private PatternService $patternService;
     private PayloadMapper $payloadMapper;
     private ValidatorInterface $validator;
@@ -44,26 +47,9 @@ class PatternController extends AbstractController
         $this->accountRepository = $accountRepository;
     }
 
-    /**
-     * Verify that the authenticated user owns the specified account
-     */
-    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    protected function getAccountRepository(): AccountRepository
     {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $account = $this->accountRepository->find($accountId);
-        if (!$account) {
-            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if (!$account->isOwnedBy($user)) {
-            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
-        }
-
-        return null;
+        return $this->accountRepository;
     }
 
     #[Route('', name: 'create_pattern', methods: ['POST'])]
@@ -338,46 +324,6 @@ class PatternController extends AbstractController
         }
 
         return $this->json($this->patternService->getByCategory($accountId, $categoryId));
-    }
-
-    #[Route('/savings-account/{savingsAccountId}', name: 'get_patterns_by_savings_account', methods: ['GET'])]
-    #[OA\Get(
-        summary: 'Alle patterns voor een spaarrekening',
-        parameters: [
-            new OA\Parameter(
-                name: 'accountId',
-                description: 'ID van het account',
-                in: 'path',
-                required: true,
-                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 1)
-            ),
-            new OA\Parameter(
-                name: 'savingsAccountId',
-                description: 'ID van de spaarrekening',
-                in: 'path',
-                required: true,
-                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 5)
-            )
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Lijst van patterns',
-                content: new OA\JsonContent(
-                    type: 'array',
-                    items: new OA\Items(ref: new Model(type: PatternDTO::class))
-                )
-            )
-        ]
-    )]
-    public function listBySavingsAccount(int $accountId, int $savingsAccountId): JsonResponse
-    {
-        // Verify account ownership
-        if ($error = $this->verifyAccountOwnership($accountId)) {
-            return $error;
-        }
-
-        return $this->json($this->patternService->getBySavingsAccount($accountId, $savingsAccountId));
     }
 
     #[Route('/{patternId}', name: 'get_pattern_by_id', methods: ['GET'])]

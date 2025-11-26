@@ -6,8 +6,6 @@ use App\Category\DTO\CategoryDTO;
 use App\Category\Mapper\CategoryMapper;
 use App\Entity\Transaction;
 use App\Money\MoneyFactory;
-use App\SavingsAccount\DTO\SavingsAccountDTO;
-use App\SavingsAccount\Mapper\SavingsAccountMapper;
 use App\Transaction\DTO\TransactionDTO;
 use App\Transaction\DTO\TransactionMatchesDTO;
 
@@ -15,15 +13,12 @@ class TransactionMapper
 {
     private MoneyFactory $moneyFactory;
     private ?CategoryMapper $categoryMapper = null;
-    private SavingsAccountMapper $savingsAccountMapper;
 
     public function __construct(
-        MoneyFactory $moneyFactory,
-        SavingsAccountMapper $savingsAccountMapper
+        MoneyFactory $moneyFactory
     )
     {
         $this->moneyFactory = $moneyFactory;
-        $this->savingsAccountMapper = $savingsAccountMapper;
     }
     public function toDto(Transaction $transaction): TransactionDTO
     {
@@ -55,16 +50,6 @@ class TransactionMapper
             $dto->category = $categoryDto;
         }
 
-        if ($transaction->getSavingsAccount()) {
-            $sa = $transaction->getSavingsAccount();
-            $saDto = new SavingsAccountDTO();
-            $saDto->id = $sa->getId();
-            $saDto->name = $sa->getName();
-            $saDto->targetAmount = $sa->getTargetAmount(); // als string
-            $saDto->accountId = $transaction->getAccountId();
-            $dto->savingsAccount = $saDto;
-        }
-
         // Add split information
         $dto->hasSplits = $transaction->hasSplits();
         $dto->splitCount = $transaction->getSplits()->count();
@@ -90,7 +75,6 @@ class TransactionMapper
         $dto->balanceAfter = $this->moneyFactory->toFloat($transaction->getBalanceAfter());
         $dto->tag = $transaction->getTag();
         $dto->category = $transaction->getCategory() ? $this->categoryMapper->toDto($transaction->getCategory()) : null;
-        $dto->savingsAccount = $transaction->getSavingsAccount() ? $this->savingsAccountMapper->toSimpleDto($transaction->getSavingsAccount()) : null;
         $dto->matchConflict = false;
 
         return $dto;

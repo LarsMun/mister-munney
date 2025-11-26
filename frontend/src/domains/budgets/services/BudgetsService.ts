@@ -8,7 +8,7 @@ import type {
     AvailableCategory,
     AssignCategories
 } from "../models/Budget";
-import type { BudgetSummary, BudgetSummaryResponse } from "../models/BudgetSummary";
+import type { BudgetSummaryResponse } from "../models/BudgetSummary";
 import type { CategoryBreakdown } from "../models/CategoryBreakdown";
 
 // ===============================
@@ -73,10 +73,18 @@ export async function getCategoryBreakdown(
 // CATEGORY MANAGEMENT
 // ===============================
 
+interface CategoryResponse {
+    id: number;
+    name: string;
+    color?: string;
+    icon?: string;
+    budgetId?: number;
+}
+
 export function getAvailableCategories(accountId: number): Promise<AvailableCategory[]> {
     return api.get(`/account/${accountId}/categories`)
         .then(res => {
-            return res.data.map((category: any) => ({
+            return res.data.map((category: CategoryResponse) => ({
                 id: category.id,
                 name: category.name,
                 color: category.color,
@@ -120,4 +128,35 @@ export function getNextMonth(): string {
     const next = new Date();
     next.setMonth(next.getMonth() + 1);
     return formatDateToMonth(next);
+}
+
+// ===============================
+// BUDGET HISTORY
+// ===============================
+
+export interface BudgetHistory {
+    budget: {
+        id: number;
+        name: string;
+        budgetType: string;
+        categoryIds: number[];
+    };
+    history: Array<{
+        month: string;
+        total: number;
+        transactionCount: number;
+    }>;
+    totalAmount: number;
+    averagePerMonth: number;
+    monthCount: number;
+}
+
+export async function fetchBudgetHistory(
+    accountId: number,
+    budgetId: number,
+    months?: number
+): Promise<BudgetHistory> {
+    const params = months ? { months } : {};
+    const response = await api.get(`/account/${accountId}/budget/${budgetId}/history`, { params });
+    return response.data;
 }

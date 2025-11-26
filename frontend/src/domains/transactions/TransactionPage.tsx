@@ -27,7 +27,6 @@ interface FilterState {
     endDate?: string;
     transactionType?: "debit" | "credit" | "both";
     categoryId?: number;
-    savingsAccountId?: number;
     strict?: boolean;
     withoutCategory?: boolean;
 }
@@ -102,8 +101,8 @@ export default function TransactionPage() {
 
     // Check if any filters are applied (including categoryId for display filtering)
     const hasFilters = Object.entries(filters).some(([key, value]) => {
-        // Don't count savingsAccountId, strict as filters for transaction display
-        if (key === 'savingsAccountId' || key === 'strict') return false;
+        // Don't count strict as filter for transaction display
+        if (key === 'strict') return false;
         // Don't count default values (matchType selectors and transactionType "both")
         if (key === 'matchTypeDescription' || key === 'matchTypeNotes' || key === 'transactionType') return false;
         // Count categoryId, withoutCategory, and other actual filter values
@@ -115,6 +114,14 @@ export default function TransactionPage() {
     //        Has filters + filterByPeriod unchecked = show all transactions
     //        Has filters + filterByPeriod checked = show period transactions
     const transactionsToFilter = (!hasFilters || filterByPeriod) ? transactions : allTransactions;
+
+    // Check if we have pattern-related filters (not just categoryId/withoutCategory toggles)
+    const hasPatternFilters = !!(
+        filters.description || filters.notes || filters.tag ||
+        filters.minAmount || filters.maxAmount ||
+        filters.startDate || filters.endDate ||
+        (filters.transactionType && filters.transactionType !== 'both')
+    );
 
     const filteredTransactions = transactionsToFilter.filter(t => {
         // Exclude ONLY split child transactions - parent transactions should be visible
@@ -133,8 +140,8 @@ export default function TransactionPage() {
             return false;
         }
 
-        // If no filters are set, show all from the selected source
-        if (!hasFilters) return true;
+        // If no pattern-related filters are set, show all from the selected source
+        if (!hasPatternFilters) return true;
 
         // Use matchesPattern utility for other filters
         return matchesPattern(t, filters as any);
@@ -194,6 +201,8 @@ export default function TransactionPage() {
                 </button>
                 <PeriodPicker
                     months={months}
+                    currentStartDate={startDate}
+                    currentEndDate={endDate}
                     onChange={(newStartDate, newEndDate) => {
                         setStartDate(newStartDate);
                         setEndDate(newEndDate);
@@ -241,6 +250,8 @@ export default function TransactionPage() {
                     <div className="mt-4 flex justify-end">
                         <PeriodPicker
                             months={months}
+                            currentStartDate={startDate}
+                            currentEndDate={endDate}
                             onChange={(newStartDate, newEndDate) => {
                                 setStartDate(newStartDate);
                                 setEndDate(newEndDate);

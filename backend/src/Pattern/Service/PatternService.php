@@ -12,7 +12,6 @@ use App\Pattern\DTO\PatternDTO;
 use App\Pattern\DTO\UpdatePatternDTO;
 use App\Pattern\Mapper\PatternMapper;
 use App\Pattern\Repository\PatternRepository;
-use App\SavingsAccount\Repository\SavingsAccountRepository;
 use DateTimeImmutable;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -24,7 +23,6 @@ readonly class PatternService
     private PatternRepository $patternRepository;
     private AccountRepository $accountRepository;
     private CategoryRepository $categoryRepository;
-    private SavingsAccountRepository $savingsAccountRepository;
     private PatternAssignService $assignService;
     public function __construct
     (
@@ -32,7 +30,6 @@ readonly class PatternService
         PatternRepository $patternRepository,
         AccountRepository $accountRepository,
         CategoryRepository $categoryRepository,
-        SavingsAccountRepository $savingsAccountRepository,
         PatternAssignService $assignService
     )
     {
@@ -40,7 +37,6 @@ readonly class PatternService
         $this->patternRepository = $patternRepository;
         $this->accountRepository = $accountRepository;
         $this->categoryRepository = $categoryRepository;
-        $this->savingsAccountRepository = $savingsAccountRepository;
         $this->assignService = $assignService;
     }
 
@@ -50,8 +46,7 @@ readonly class PatternService
             $dto->accountId,
             $dto->description,
             $dto->notes,
-            $dto->categoryId,
-            $dto->savingsAccountId
+            $dto->categoryId
         );
         if ($this->patternRepository->findByHash($hash)) {
             throw new BadRequestHttpException("Er bestaat al een identiek patroon.");
@@ -70,22 +65,7 @@ readonly class PatternService
             }
         }
 
-        // Categories can now contain both CREDIT and DEBIT transactions
-        // No validation needed for transaction type matching
-
-        $savingsAccount = null;
-        if ($dto->savingsAccountId !== null) {
-            $savingsAccount = $this->savingsAccountRepository->find($dto->savingsAccountId);
-            if (!$savingsAccount) {
-                throw new NotFoundHttpException("Spaarrekening met ID $dto->savingsAccountId niet gevonden.");
-            }
-        }
-
-        if ($savingsAccount && $savingsAccount->getAccount()->getId() !== $account->getId()) {
-            throw new NotFoundHttpException("Spaarrekening behoort niet tot dit account.");
-        }
-
-        $pattern = $this->mapper->fromCreateDto($dto, $account, $category, $savingsAccount);
+        $pattern = $this->mapper->fromCreateDto($dto, $account, $category);
         $this->patternRepository->save($pattern);
         $this->assignService->assignSinglePattern($pattern);
 
@@ -109,23 +89,7 @@ readonly class PatternService
                 throw new NotFoundHttpException("Categorie met ID $dto->categoryId niet gevonden.");
             }
 
-            // Categories can now contain both CREDIT and DEBIT transactions
-            // No validation needed for transaction type matching
-
             $pattern->setCategory($category);
-        }
-
-        if ($dto->savingsAccountId !== null) {
-            $savingsAccount = $this->savingsAccountRepository->find($dto->savingsAccountId);
-            if (!$savingsAccount) {
-                throw new NotFoundHttpException("Spaarrekening met ID $dto->savingsAccountId niet gevonden.");
-            }
-
-            if ($savingsAccount->getAccount()->getId() !== $dto->accountId) {
-                throw new NotFoundHttpException("Spaarrekening behoort niet tot dit account.");
-            }
-
-            $pattern->setSavingsAccount($savingsAccount);
         }
 
         $this->mapper->updateFromDto($pattern, $dto);
@@ -160,12 +124,6 @@ readonly class PatternService
     public function getByCategory(int $categoryId): array
     {
         $patterns = $this->patternRepository->findByCategoryId($categoryId);
-        return array_map(fn(Pattern $p) => $this->mapper->toDto($p), $patterns);
-    }
-
-    public function getBySavingsAccount(int $savingsAccountId): array
-    {
-        $patterns = $this->patternRepository->findBySavingsAccountId($savingsAccountId);
         return array_map(fn(Pattern $p) => $this->mapper->toDto($p), $patterns);
     }
 

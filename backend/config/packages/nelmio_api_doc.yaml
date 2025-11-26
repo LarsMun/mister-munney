@@ -11,10 +11,6 @@ nelmio_api_doc:
             path_patterns: [ ^/api/account/.*/categories ]
         accounts:
             path_patterns: [ ^/api/accounts ]
-        savings_accounts:
-            path_patterns: [ ^/api/account/.*/savings-accounts ]
-        savings_patterns:
-            path_patterns: [ ^/api/account/.*/savings-accounts/.*/patterns ]
         transactions:
             path_patterns:
                 - ^/api/transactions

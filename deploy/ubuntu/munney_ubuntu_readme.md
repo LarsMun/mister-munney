@@ -5,13 +5,13 @@ Complete deployment setup for Munney on Ubuntu server with Traefik reverse proxy
 ## Architecture
 
 ```
-├── Development: https://devmunney.home.munne.me
+├── Development: https://dev.munney.example.com
 │   ├── Location: /srv/munney-dev
 │   ├── Branch: develop
 │   ├── Database: munney-mysql-dev (port 3334)
 │   └── Network: proxy + munney-dev-internal
 │
-└── Production: https://munney.home.munne.me
+└── Production: https://munney.example.com
     ├── Location: /srv/munney-prod
     ├── Branch: main
     ├── Database: munney-mysql-prod (port 3333)
@@ -24,8 +24,8 @@ Complete deployment setup for Munney on Ubuntu server with Traefik reverse proxy
 - ✅ Docker & Docker Compose installed
 - ✅ Traefik running with `proxy` network
 - ✅ DNS records pointing to server:
-  - `devmunney.home.munne.me` → 192.168.0.105
-  - `munney.home.munne.me` → 192.168.0.105
+  - `dev.munney.example.com` → YOUR_SERVER_IP
+  - `munney.example.com` → YOUR_SERVER_IP
 
 ## Initial Setup
 
@@ -35,10 +35,10 @@ From your **development machine** (where you have the code):
 
 ```bash
 # Copy setup script to server
-scp deploy/ubuntu/setup-server.sh lars@apollowebserv:/tmp/
+scp deploy/ubuntu/setup-server.sh user@your-server:/tmp/
 
 # SSH into server
-ssh lars@apollowebserv
+ssh user@your-server
 
 # Run setup
 bash /tmp/setup-server.sh
@@ -58,7 +58,7 @@ The setup script will display your SSH public key. Add it to GitHub:
 
 1. Go to https://github.com/settings/keys
 2. Click "New SSH key"
-3. Title: `apollowebserv-munney`
+3. Title: `your-server-munney`
 4. Paste the key shown by the setup script
 5. Save
 
@@ -67,22 +67,22 @@ The setup script will display your SSH public key. Add it to GitHub:
 ### Deploy Development
 
 ```bash
-ssh lars@apollowebserv
+ssh user@your-server
 cd /srv/munney-dev
 bash deploy/ubuntu/deploy-dev.sh
 ```
 
-Access: https://devmunney.home.munne.me
+Access: https://devmunney.home.example.com
 
 ### Deploy Production
 
 ```bash
-ssh lars@apollowebserv
+ssh user@your-server
 cd /srv/munney-prod
 bash deploy/ubuntu/deploy-prod.sh
 ```
 
-Access: https://munney.home.munne.me
+Access: https://munney.home.example.com
 
 ⚠️ **Production deployment includes:**
 - Automatic database backup before deployment
@@ -120,7 +120,7 @@ docker exec -it munney-mysql-dev mysql -u money -p
 # Password from /srv/munney-dev/.env
 
 # Via external tool (MySQL Workbench, etc.)
-Host: apollowebserv (or 192.168.0.105)
+Host: your-server (or YOUR_SERVER_IP)
 Port: 3334
 User: money
 Password: [from .env]
@@ -135,7 +135,7 @@ docker exec -it munney-mysql-prod mysql -u money -p
 # Password from /srv/munney-prod/.env
 
 # Via external tool
-Host: apollowebserv (or 192.168.0.105)
+Host: your-server (or YOUR_SERVER_IP)
 Port: 3333
 User: money
 Password: [from .env]
@@ -321,12 +321,12 @@ bash deploy/ubuntu/deploy-prod.sh
 
 ```bash
 # Frontend
-curl -I https://devmunney.home.munne.me
-curl -I https://munney.home.munne.me
+curl -I https://devmunney.home.example.com
+curl -I https://munney.home.example.com
 
 # Backend API
-curl -I https://devmunney.home.munne.me/api
-curl -I https://munney.home.munne.me/api
+curl -I https://devmunney.home.example.com/api
+curl -I https://munney.home.example.com/api
 ```
 
 ### Docker Stats
@@ -405,6 +405,6 @@ The deploy scripts automatically:
 
 For issues or questions:
 - Check logs: `docker logs [container-name] -f`
-- Check Traefik dashboard: https://traefik.home.munne.me
-- Verify DNS: `ping devmunney.home.munne.me`
-- Test SSL: `curl -I https://munney.home.munne.me`
+- Check Traefik dashboard: https://traefik.home.example.com
+- Verify DNS: `ping devmunney.home.example.com`
+- Test SSL: `curl -I https://munney.home.example.com`

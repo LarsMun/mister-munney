@@ -223,7 +223,7 @@ class CategoryService
 
     /**
      * Verwijdert een categorie op basis van ID binnen het opgegeven account.
-     * Verwijdert ook patronen die deze categorie gebruiken en geen savingsAccount hebben.
+     * Verwijdert ook patronen die deze categorie gebruiken.
      *
      * @param int $id ID van de categorie
      * @param int $accountId ID van het account waartoe de categorie moet behoren
@@ -247,14 +247,10 @@ class CategoryService
             );
         }
 
-        // Vind alle patronen die deze categorie gebruiken
+        // Vind en verwijder alle patronen die deze categorie gebruiken
         $patterns = $this->patternRepository->findBy(['category' => $category]);
-
-        // Verwijder patronen die geen savingsAccount hebben
         foreach ($patterns as $pattern) {
-            if ($pattern->getSavingsAccount() === null) {
-                $this->patternRepository->remove($pattern);
-            }
+            $this->patternRepository->remove($pattern);
         }
 
         $this->categoryRepository->remove($category);
@@ -380,10 +376,7 @@ class CategoryService
         // Update alle patronen die naar source wijzen
         $patterns = $this->patternRepository->findBy(['category' => $source]);
         foreach ($patterns as $pattern) {
-            // Als pattern geen savingsAccount heeft, wijs het toe aan target
-            if ($pattern->getSavingsAccount() === null) {
-                $pattern->setCategory($target);
-            }
+            $pattern->setCategory($target);
         }
 
         // Verwijder source categorie (dit triggert ook cascade deletes if configured)

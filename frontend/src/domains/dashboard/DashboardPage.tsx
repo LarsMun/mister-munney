@@ -70,8 +70,9 @@ export default function DashboardPage() {
         setEndDate,
         summary,
         transactions,
-        refresh,
+        refresh: _refresh,
     } = useTransactions();
+    void _refresh; // Mark as intentionally unused
 
     const { statistics } = useMonthlyStatistics(accountId, 12);
 
@@ -204,10 +205,23 @@ export default function DashboardPage() {
 
     // Render adaptive dashboard if feature flag is enabled
     if (livingDashboardEnabled) {
-        // Separate EXPENSE/INCOME budgets from PROJECTS
-        const expenseIncomeBudgets = activeBudgets.filter(
-            b => b.budgetType === 'EXPENSE' || b.budgetType === 'INCOME'
-        );
+        // Separate EXPENSE and INCOME budgets
+        const expenseBudgets = activeBudgets.filter(b => b.budgetType === 'EXPENSE');
+        const incomeBudgets = activeBudgets.filter(b => b.budgetType === 'INCOME');
+
+        // Calculate totals for each budget type
+        const totalIncome = incomeBudgets.reduce((sum, b) => {
+            const current = Math.abs(parseFloat(b.insight?.current || '0'));
+            return sum + current;
+        }, 0);
+
+        const totalExpense = expenseBudgets.reduce((sum, b) => {
+            const current = Math.abs(parseFloat(b.insight?.current || '0'));
+            return sum + current;
+        }, 0);
+
+        const formatAmount = (amount: number) =>
+            `€ ${amount.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
         return (
             <div className="min-h-screen bg-gray-50 p-6">
@@ -237,14 +251,22 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                <div className="mb-8 flex justify-end">
+                <div className="mb-8 flex justify-between items-center">
+                    {summary?.end_balance && (
+                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                            <span className="text-sm text-gray-600">Saldo:</span>
+                            <span className="text-lg font-bold text-blue-600">
+                                € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    )}
+                    {!summary?.end_balance && <div />}
                     <PeriodPicker
                         months={months}
                         onChange={handlePeriodChange}
                     />
                 </div>
 
-                {/* Active Budgets Grid (EXPENSE/INCOME only) */}
                 {isLoadingAdaptive ? (
                     <div className="mb-8">
                         <div className="bg-white rounded-lg shadow p-6">
@@ -256,32 +278,78 @@ export default function DashboardPage() {
                             </div>
                         </div>
                     </div>
-                ) : expenseIncomeBudgets.length > 0 && (
-                    <div className="mb-8">
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <div className="flex items-baseline gap-4">
-                                    <h2 className="text-2xl font-bold text-gray-900">
-                                        {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
-                                    </h2>
-                                    {summary?.end_balance && (
-                                        <span className="text-lg font-semibold text-blue-600">
-                                            Saldo: € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </span>
-                                    )}
+                ) : (
+                    <>
+                        {/* Income Budgets Section */}
+                        {incomeBudgets.length > 0 && (
+                            <div className="mb-8">
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-md border-2 border-green-200 p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="flex items-baseline gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-2xl">💰</span>
+                                                <h2 className="text-2xl font-bold text-green-900">
+                                                    Inkomsten
+                                                </h2>
+                                            </div>
+                                            <span className="text-sm text-green-700 font-medium">
+                                                {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
+                                            </span>
+                                            <span className="text-lg font-bold text-green-800">
+                                                {formatAmount(totalIncome)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-green-700 font-medium">
+                                                {incomeBudgets.length} {incomeBudgets.length === 1 ? 'budget' : 'budgetten'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <ActiveBudgetsGrid
+                                        budgets={incomeBudgets}
+                                        accountId={accountId}
+                                        startDate={startDate ?? undefined}
+                                        endDate={endDate ?? undefined}
+                                    />
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-800">
-                                    Actieve Budgetten ({expenseIncomeBudgets.length})
-                                </h3>
                             </div>
-                            <ActiveBudgetsGrid
-                                budgets={expenseIncomeBudgets}
-                                accountId={accountId}
-                                startDate={startDate ?? undefined}
-                                endDate={endDate ?? undefined}
-                            />
-                        </div>
-                    </div>
+                        )}
+
+                        {/* Expense Budgets Section */}
+                        {expenseBudgets.length > 0 && (
+                            <div className="mb-8">
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md border-2 border-blue-200 p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="flex items-baseline gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-2xl">💸</span>
+                                                <h2 className="text-2xl font-bold text-blue-900">
+                                                    Uitgaven
+                                                </h2>
+                                            </div>
+                                            <span className="text-sm text-blue-700 font-medium">
+                                                {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
+                                            </span>
+                                            <span className="text-lg font-bold text-blue-800">
+                                                {formatAmount(totalExpense)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-blue-700 font-medium">
+                                                {expenseBudgets.length} {expenseBudgets.length === 1 ? 'budget' : 'budgetten'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <ActiveBudgetsGrid
+                                        budgets={expenseBudgets}
+                                        accountId={accountId}
+                                        startDate={startDate ?? undefined}
+                                        endDate={endDate ?? undefined}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Projects Section (if enabled) */}

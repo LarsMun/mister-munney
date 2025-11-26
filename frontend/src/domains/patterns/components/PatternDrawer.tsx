@@ -61,7 +61,6 @@ export default function PatternDrawer({ transaction, onClose }: Props) {
                             description: transaction.description,
                             notes: undefined,
                             categoryId: transaction.category?.id,
-                            savingsAccountId: transaction.savingsAccount?.id,
                         }}
                         onSuccess={handleSuccess}
                     />

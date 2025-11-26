@@ -106,23 +106,6 @@ export default function PatternList({ resetSignal, onEdit }: Props) {
                     <>categorie <span className="italic text-gray-400">(onbekend)</span></>
                 )
             );
-        } else {
-            console.log("geen categorie gevonden");
-        }
-
-        if (p.savingsAccount?.id) {
-            parts.push(
-                p.savingsAccount.name ? (
-                    <>
-                        spaarrekening{" "}
-                        <span className="inline-block px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 font-medium">
-                    {p.savingsAccount.name}
-                </span>
-                    </>
-                ) : (
-                    <>spaarrekening <span className="italic text-gray-400">(onbekend)</span></>
-                )
-            );
         }
 
         if (parts.length === 0) {

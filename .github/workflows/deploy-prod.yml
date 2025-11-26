@@ -6,16 +6,27 @@ on:
       - main
   workflow_dispatch:  # Manual trigger option
 
+# Ensure only one deployment runs at a time
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
 jobs:
+  # Run CI checks first (on GitHub-hosted runner)
+  ci:
+    name: CI Checks
+    uses: ./.github/workflows/ci.yml
+
   deploy:
     name: Deploy to Production Server
     runs-on: self-hosted
-    
+    needs: ci  # Only deploy if CI passes
+
     steps:
       - name: 📋 Pre-deployment checklist
         run: |
           echo "🚀 Starting Production Deployment"
-          echo "Target: https://munney.munne.me"
+          echo "Target: https://munney.example.com"
           echo "Location: /srv/munney-prod"
           
       - name: 💾 Create database backup
@@ -100,13 +111,13 @@ jobs:
         run: |
           echo "Running health checks..."
           sleep 5
-          if curl -f -s https://munney.munne.me/ > /dev/null; then
+          if curl -f -s https://munney.example.com/ > /dev/null; then
             echo "✅ Frontend responding"
           else
             echo "⚠️  Frontend check failed"
             exit 1
           fi
-          if curl -f -s https://munney.munne.me/api > /dev/null; then
+          if curl -f -s https://munney.example.com/api/doc.json > /dev/null; then
             echo "✅ Backend API responding"
           else
             echo "⚠️  Backend API check failed"
@@ -118,5 +129,5 @@ jobs:
           echo "========================================"
           echo "✅ Production deployment successful!"
           echo "========================================"
-          echo "🌐 URL: https://munney.munne.me"
+          echo "🌐 URL: https://munney.example.com"
           docker ps --filter 'label=project=munney' --filter 'label=environment=production'

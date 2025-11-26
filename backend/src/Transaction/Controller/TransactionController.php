@@ -5,7 +5,7 @@ namespace App\Transaction\Controller;
 use App\Account\Repository\AccountRepository;
 use App\Entity\Transaction;
 use App\Mapper\PayloadMapper;
-use App\Transaction\DTO\AssignSavingsAccountDTO;
+use App\Shared\Controller\AccountOwnershipTrait;
 use App\Transaction\DTO\SetCategoryDTO;
 use App\Transaction\DTO\TransactionDTO;
 use App\Transaction\DTO\TransactionFilterDTO;
@@ -31,6 +31,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 #[Route('/api/account/{accountId}/transactions')]
 class TransactionController extends AbstractController
 {
+    use AccountOwnershipTrait;
+
     private TransactionService $transactionService;
     private TransactionMapper $transactionMapper;
     private PayloadMapper $payloadMapper;
@@ -51,26 +53,9 @@ class TransactionController extends AbstractController
         $this->accountRepository = $accountRepository;
     }
 
-    /**
-     * Verify that the authenticated user owns the specified account
-     */
-    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    protected function getAccountRepository(): AccountRepository
     {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $account = $this->accountRepository->find($accountId);
-        if (!$account) {
-            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if (!$account->isOwnedBy($user)) {
-            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
-        }
-
-        return null;
+        return $this->accountRepository;
     }
 
     #[OA\Get(
@@ -399,77 +384,6 @@ class TransactionController extends AbstractController
         $this->transactionService->bulkRemoveCategory($transactionIds);
 
         return new JsonResponse(null, 204);
-    }
-
-    #[OA\Patch(
-        path: '/api/account/{accountId}/transactions/{id}/assign_savings',
-        summary: 'Wijs een spaarrekening toe aan een transactie',
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['savingsAccountId'],
-                properties: [
-                    new OA\Property(
-                        property: 'savingsAccountId',
-                        type: 'integer',
-                        maximum: 2147483647,
-                        minimum: 1,
-                        example: 2
-                    )
-                ]
-            )
-        ),
-        tags: ['Transactions'],
-        parameters: [
-            new OA\Parameter(
-                name: 'accountId',
-                description: 'ID van de betaalrekening',
-                in: 'path',
-                required: true,
-                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 1)
-            ),
-            new OA\Parameter(
-                name: 'id',
-                description: 'ID van de transactie',
-                in: 'path',
-                required: true,
-                schema: new OA\Schema(type: 'integer', maximum: 2147483647, minimum: 1, example: 42)
-            )
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'De bijgewerkte transactie',
-                content: new OA\JsonContent(ref: new Model(type: TransactionDTO::class))
-            ),
-            new OA\Response(response: 404, description: 'Transactie of spaarrekening niet gevonden')
-        ]
-    )]
-    #[Route('/{id}/assign_savings', name: 'assign_savings_account', methods: ['PATCH'])]
-    public function assignSavingsAccount(
-        int $accountId,
-        int $id,
-        Request $request,
-        PayloadMapper $payloadMapper,
-        ValidatorInterface $validator
-    ): JsonResponse {
-        // Verify account ownership
-        if ($error = $this->verifyAccountOwnership($accountId)) {
-            return $error;
-        }
-
-        $data = json_decode($request->getContent(), true);
-        $dto = $payloadMapper->map($data, new AssignSavingsAccountDTO(), true);
-
-        $errors = $validator->validate($dto);
-        if (count($errors) > 0) {
-            throw new BadRequestHttpException((string) $errors);
-        }
-
-        $transaction = $this->transactionService->setSavingsAccount($id, $dto->savingsAccountId);
-
-        $dto = $this->transactionMapper->toDTO($transaction);
-        return new JsonResponse($dto, 200);
     }
 
     #[OA\Get(

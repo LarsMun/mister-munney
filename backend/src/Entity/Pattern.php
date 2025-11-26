@@ -61,10 +61,6 @@ class Pattern
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Category $category = null;
 
-    #[ORM\ManyToOne(targetEntity: SavingsAccount::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?SavingsAccount $savingsAccount = null;
-
     // --- Getters & Setters ---
 
     public function getId(): ?int
@@ -225,14 +221,4 @@ class Pattern
         return $this;
     }
 
-    public function getSavingsAccount(): ?SavingsAccount
-    {
-        return $this->savingsAccount;
-    }
-
-    public function setSavingsAccount(?SavingsAccount $savingsAccount): static
-    {
-        $this->savingsAccount = $savingsAccount;
-        return $this;
-    }
 }

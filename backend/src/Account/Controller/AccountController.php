@@ -103,14 +103,15 @@ class AccountController extends AbstractController
 
     #[OA\Put(
         path: '/api/accounts/{id}',
-        summary: 'Wijzig een accountnaam',
+        summary: 'Wijzig een account',
         requestBody: new OA\RequestBody(
-            description: 'Nieuwe naam van het account',
+            description: 'Accountgegevens',
             required: true,
             content: new OA\JsonContent(
                 required: ['name'],
                 properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'Dhr. Piet Jansen')
+                    new OA\Property(property: 'name', type: 'string', example: 'Dhr. Piet Jansen'),
+                    new OA\Property(property: 'type', type: 'string', enum: ['CHECKING', 'SAVINGS'], example: 'CHECKING')
                 ]
             )
         ),

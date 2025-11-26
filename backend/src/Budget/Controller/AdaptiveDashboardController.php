@@ -18,6 +18,7 @@ use App\Enum\BudgetType;
 use App\Enum\ProjectStatus;
 use App\FeatureFlag\Service\FeatureFlagService;
 use App\Money\MoneyFactory;
+use App\Shared\Controller\AccountOwnershipTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -32,6 +33,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 #[Route('/api/budgets')]
 class AdaptiveDashboardController extends AbstractController
 {
+    use AccountOwnershipTrait;
+
     public function __construct(
         private readonly ActiveBudgetService $activeBudgetService,
         private readonly BudgetInsightsService $budgetInsightsService,
@@ -47,26 +50,9 @@ class AdaptiveDashboardController extends AbstractController
     ) {
     }
 
-    /**
-     * Verify that the authenticated user owns the specified account
-     */
-    private function verifyAccountOwnership(int $accountId): ?JsonResponse
+    protected function getAccountRepository(): AccountRepository
     {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $account = $this->accountRepository->find($accountId);
-        if (!$account) {
-            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        if (!$account->isOwnedBy($user)) {
-            return $this->json(['error' => 'Access denied'], Response::HTTP_FORBIDDEN);
-        }
-
-        return null;
+        return $this->accountRepository;
     }
 
     /**

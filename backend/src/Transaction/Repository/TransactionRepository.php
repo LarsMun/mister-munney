@@ -186,7 +186,6 @@ class TransactionRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('t')
             ->andWhere('t.account = :accountId')
             ->andWhere('t.category IS NULL')
-            ->andWhere('t.savingsAccount IS NULL')
             ->setParameter('accountId', $accountId);
 
         if ($startDate !== null) {
@@ -931,5 +930,60 @@ class TransactionRepository extends ServiceEntityRepository
             'total_amount' => (int) ($result['total_amount'] ?? 0),
             'count' => (int) ($result['count'] ?? 0)
         ];
+    }
+
+    /**
+     * Get monthly totals for multiple categories combined (for budget history)
+     *
+     * @param int $accountId
+     * @param array $categoryIds Array of category IDs
+     * @param int|null $monthLimit Optional month limit
+     * @return array Array with month, total, and transactionCount
+     */
+    public function getMonthlyTotalsByCategories(int $accountId, array $categoryIds, ?int $monthLimit = null): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        $sql = "
+            SELECT
+                SUBSTRING(t.date, 1, 7) AS month,
+                SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount ELSE -t.amount END) AS total,
+                COUNT(t.id) AS transactionCount
+            FROM transaction t
+            WHERE t.account_id = ?
+            AND t.category_id IN ($placeholders)
+        ";
+
+        $params = [$accountId, ...$categoryIds];
+
+        // Exclude split parents only if adjusted amount is zero
+        $sql .= "
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                OR
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+        ";
+
+        // Als monthLimit is ingesteld, filter op datum
+        if ($monthLimit !== null && $monthLimit > 0) {
+            $cutoffDate = (new \DateTime())->modify("-{$monthLimit} months")->format('Y-m-01');
+            $sql .= " AND t.date >= ?";
+            $params[] = $cutoffDate;
+        }
+
+        $sql .= "
+            GROUP BY month
+            ORDER BY month DESC
+        ";
+
+        $stmt = $this->getEntityManager()->getConnection()->prepare($sql);
+        $result = $stmt->executeQuery($params);
+
+        return $result->fetchAllAssociative();
     }
 }

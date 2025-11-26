@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActiveBudget } from '../../budgets/models/AdaptiveBudget';
 import { Sparklines, SparklinesLine } from 'react-sparklines';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from 'lucide-react';
-import { getCategoryBreakdown } from '../../budgets/services/BudgetsService';
+import { getCategoryBreakdown, fetchBudgetHistory, type BudgetHistory } from '../../budgets/services/BudgetsService';
 import { getTransactions } from '../../transactions/services/TransactionsService';
 import { fetchCategoryHistory, type CategoryHistory } from '../../categories/services/CategoryService';
 import type { CategoryBreakdown } from '../../budgets/models/CategoryBreakdown';
@@ -58,16 +58,30 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
     const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([]);
     const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
 
-    // Drawer state for transactions
+    // Drawer state for category transactions
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [drawerTransactions, setDrawerTransactions] = useState<Transaction[]>([]);
     const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<{ id: number; name: string; color: string } | null>(null);
 
-    // Drawer state for historical data
+    // Drawer state for historical data (both category and budget)
     const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
-    const [historicalData, setHistoricalData] = useState<CategoryHistory | null>(null);
+    const [historicalData, setHistoricalData] = useState<CategoryHistory | BudgetHistory | null>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [isBudgetHistory, setIsBudgetHistory] = useState(false);
+
+    // Check if this is an income budget to invert the sign display
+    const isIncomeBudget = budget.budgetType === 'INCOME';
+
+    // Helper function to format amount (positive for INCOME budgets)
+    const formatAmount = (amount: string | number | null): string => {
+        if (amount === null || amount === undefined) return '0.00';
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        if (isIncomeBudget) {
+            return Math.abs(numAmount).toFixed(2);
+        }
+        return numAmount.toFixed(2);
+    };
 
     // Calculate comparison status
     let comparisonStatus: 'good' | 'bad' | 'neutral' = 'neutral';
@@ -187,12 +201,36 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
         // Open drawer and fetch historical data
         setIsHistoryDrawerOpen(true);
         setIsLoadingHistory(true);
+        setIsBudgetHistory(false);
 
         try {
             const data = await fetchCategoryHistory(accountId, category.categoryId);
-            setHistoricalData(data);
+            setHistoricalData(data as any);
         } catch (error) {
             console.error('Error fetching category history:', error);
+            setHistoricalData(null);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
+
+    // Handler for clicking budget title to show budget historical data
+    const handleBudgetTitleClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!accountId) return;
+
+        // Open historical drawer and fetch budget history
+        setIsHistoryDrawerOpen(true);
+        setIsLoadingHistory(true);
+        setIsBudgetHistory(true);
+
+        try {
+            const data = await fetchBudgetHistory(accountId, budget.id);
+            setHistoricalData(data as any);
+        } catch (error) {
+            console.error('Error fetching budget history:', error);
             setHistoricalData(null);
         } finally {
             setIsLoadingHistory(false);
@@ -210,9 +248,16 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
             {/* Header */}
             <div className="mb-3 flex items-start justify-between">
                 <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-base truncate" title={budget.name}>
-                        {budget.name}
-                    </h4>
+                    <button
+                        type="button"
+                        onClick={handleBudgetTitleClick}
+                        className="text-left w-full group"
+                        title="Bekijk alle transacties in dit budget"
+                    >
+                        <h4 className="font-semibold text-gray-900 text-base truncate group-hover:text-blue-600 group-hover:underline transition-colors">
+                            {budget.name}
+                        </h4>
+                    </button>
                     <p className="text-xs text-gray-500 mt-1">
                         {budget.categoryCount} {budget.categoryCount === 1 ? 'categorie' : 'categorieën'}
                     </p>
@@ -240,14 +285,14 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                     {/* Main spending amount - prominent with status indicator */}
                     <div className={`mb-4 p-3 rounded-lg border ${statusColors[comparisonStatus]}`}>
                         <div className="flex items-center justify-between mb-1">
-                            <div className="text-xs text-gray-600">Uitgegeven</div>
+                            <div className="text-xs text-gray-600">{isIncomeBudget ? 'Ontvangen' : 'Uitgegeven'}</div>
                             {comparisonText && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBadgeColors[comparisonStatus]}`}>
                                     {statusIcons[comparisonStatus]} {comparisonText}
                                 </span>
                             )}
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">€{insight.current}</div>
+                        <div className="text-2xl font-bold text-gray-900">€{formatAmount(insight.current)}</div>
                     </div>
 
                     {/* Sparkline */}
@@ -268,18 +313,18 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                     <div className="space-y-1.5 text-sm">
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Normaal:</span>
-                            <span className="font-medium text-gray-700">€{insight.normal}</span>
+                            <span className="font-medium text-gray-700">€{formatAmount(insight.normal)}</span>
                         </div>
                         {insight.previousPeriod && (
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">{insight.previousPeriodLabel}:</span>
-                                <span className="font-medium text-gray-700">€{insight.previousPeriod}</span>
+                                <span className="font-medium text-gray-700">€{formatAmount(insight.previousPeriod)}</span>
                             </div>
                         )}
                         {insight.lastYear && (
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">Vorig jaar:</span>
-                                <span className="font-medium text-gray-700">€{insight.lastYear}</span>
+                                <span className="font-medium text-gray-700">€{formatAmount(insight.lastYear)}</span>
                             </div>
                         )}
                     </div>
@@ -346,11 +391,14 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                 </div>
             )}
 
-            {/* Transaction Drawer */}
+            {/* Transaction Drawer for Category transactions */}
             {selectedCategory && (
                 <TransactionDrawer
                     isOpen={isDrawerOpen}
-                    onClose={() => setIsDrawerOpen(false)}
+                    onClose={() => {
+                        setIsDrawerOpen(false);
+                        setSelectedCategory(null);
+                    }}
                     categoryName={selectedCategory.name}
                     categoryColor={selectedCategory.color}
                     monthYear={monthYear}
@@ -359,13 +407,17 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                 />
             )}
 
-            {/* Historical Data Drawer */}
+            {/* Historical Data Drawer for both Category and Budget history */}
             <HistoricalDataDrawer
                 isOpen={isHistoryDrawerOpen}
-                onClose={() => setIsHistoryDrawerOpen(false)}
+                onClose={() => {
+                    setIsHistoryDrawerOpen(false);
+                    setIsBudgetHistory(false);
+                }}
                 data={historicalData}
                 isLoading={isLoadingHistory}
                 accountId={accountId}
+                isBudgetView={isBudgetHistory}
             />
         </article>
     );

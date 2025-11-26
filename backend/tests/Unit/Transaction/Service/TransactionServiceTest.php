@@ -8,7 +8,6 @@ use App\Entity\Category;
 use App\Entity\Transaction;
 use App\Enum\TransactionType;
 use App\Money\MoneyFactory;
-use App\SavingsAccount\Repository\SavingsAccountRepository;
 use App\Transaction\Repository\TransactionRepository;
 use App\Transaction\Service\TransactionService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,7 +22,6 @@ class TransactionServiceTest extends TestCase
     private MockObject $entityManager;
     private MockObject $transactionRepository;
     private MockObject $categoryRepository;
-    private MockObject $savingsAccountRepository;
     private MockObject $accountRepository;
     private MoneyFactory $moneyFactory;
 
@@ -32,14 +30,12 @@ class TransactionServiceTest extends TestCase
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->transactionRepository = $this->createMock(TransactionRepository::class);
         $this->categoryRepository = $this->createMock(CategoryRepository::class);
-        $this->savingsAccountRepository = $this->createMock(SavingsAccountRepository::class);
         $this->accountRepository = $this->createMock(\App\Account\Repository\AccountRepository::class);
         $this->moneyFactory = new MoneyFactory();
 
         $this->transactionService = new TransactionService(
             $this->entityManager,
             $this->transactionRepository,
-            $this->savingsAccountRepository,
             $this->categoryRepository,
             $this->accountRepository,
             $this->moneyFactory

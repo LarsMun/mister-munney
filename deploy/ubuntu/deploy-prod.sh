@@ -34,7 +34,7 @@ fi
 
 # Confirmation prompt
 echo -e "${YELLOW}⚠️  This will deploy to PRODUCTION${NC}"
-echo -e "${YELLOW}⚠️  URL: https://munney.munne.me${NC}"
+echo -e "${YELLOW}⚠️  URL: https://munney.example.com${NC}"
 read -p "Continue? (y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -122,7 +122,7 @@ echo ""
 # Health check
 echo -e "${BLUE}🏥 Running health check...${NC}"
 sleep 5
-if curl -f -s https://munney.munne.me/ > /dev/null; then
+if curl -f -s https://munney.example.com/ > /dev/null; then
     echo -e "${GREEN}✅ Frontend is responding${NC}"
 else
     echo -e "${YELLOW}⚠️  Frontend health check failed (might need a minute)${NC}"
@@ -135,7 +135,7 @@ echo -e "${GREEN}✅ Production deployment complete!${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
 echo -e "${BLUE}🌐 Access the application:${NC}"
-echo "   https://munney.munne.me"
+echo "   https://munney.example.com"
 echo ""
 echo -e "${BLUE}📝 View logs:${NC}"
 echo "   docker logs munney-prod-backend -f"

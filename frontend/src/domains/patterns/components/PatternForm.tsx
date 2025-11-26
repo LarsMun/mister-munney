@@ -14,7 +14,6 @@ interface Props {
         description?: string;
         notes?: string;
         categoryId?: number | null;
-        savingsAccountId?: number | null;
         transactionType?: 'debit' | 'credit';
     };
     editPattern?: PatternDTO;
@@ -27,12 +26,10 @@ export default function PatternForm({ prefill, editPattern, onSuccess }: Props) 
     const initialPattern: PatternInput = editPattern ? {
         // Als we editen, gebruik de waarden van editPattern
         accountId,
-        patternType: "category",
         matchTypeDescription: editPattern.matchTypeDescription ?? "LIKE",
         matchTypeNotes: editPattern.matchTypeNotes ?? "LIKE",
         description: editPattern.description ?? "",
         categoryId: editPattern.category?.id ?? undefined,
-        savingsAccountId: editPattern.savingsAccount?.id ?? undefined,
         notes: editPattern.notes ?? "",
         tag: editPattern.tag ?? "",
         transactionType: editPattern.transactionType ?? "both",
@@ -44,12 +41,10 @@ export default function PatternForm({ prefill, editPattern, onSuccess }: Props) 
     } : {
         // Anders gebruik de normale initial values
         accountId,
-        patternType: "category",
         matchTypeDescription: "LIKE",
         matchTypeNotes: "LIKE",
         description: prefill?.description ?? "",
         categoryId: prefill?.categoryId ?? undefined,
-        savingsAccountId: prefill?.savingsAccountId ?? undefined,
         notes: "",
         tag: "",
         transactionType: prefill?.transactionType ?? "both",
@@ -68,12 +63,10 @@ export default function PatternForm({ prefill, editPattern, onSuccess }: Props) 
         if (editPattern) {
             setPattern({
                 accountId,
-                patternType: "category",
                 matchTypeDescription: editPattern.matchTypeDescription ?? "LIKE",
                 matchTypeNotes: editPattern.matchTypeNotes ?? "LIKE",
                 description: editPattern.description ?? "",
                 categoryId: editPattern.category?.id ?? undefined,
-                savingsAccountId: editPattern.savingsAccount?.id ?? undefined,
                 notes: editPattern.notes ?? "",
                 tag: editPattern.tag ?? "",
                 transactionType: editPattern.transactionType ?? "both",

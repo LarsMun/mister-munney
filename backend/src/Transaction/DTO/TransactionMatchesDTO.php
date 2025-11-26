@@ -3,7 +3,6 @@
 namespace App\Transaction\DTO;
 
 use App\Category\DTO\CategoryDTO;
-use App\SavingsAccount\DTO\SavingsAccountDTO;
 
 class TransactionMatchesDTO
 {
@@ -21,6 +20,5 @@ class TransactionMatchesDTO
     public float $balanceAfter;
     public ?string $tag;
     public ?CategoryDTO $category = null;
-    public ?SavingsAccountDTO $savingsAccount = null;
     public ?bool $matchConflict = null;
 }

@@ -13,8 +13,8 @@ export function getRandomPastelHex(): string {
 
 export function darkenColor(hex: string, percent: number): string {
     const num = parseInt(hex.replace('#', ''), 16);
-    let r = (num >> 16) - percent;
-    let g = ((num >> 8) & 0x00FF) - percent;
-    let b = (num & 0x0000FF) - percent;
+    const r = (num >> 16) - percent;
+    const g = ((num >> 8) & 0x00FF) - percent;
+    const b = (num & 0x0000FF) - percent;
     return `#${Math.max(0, r).toString(16).padStart(2, '0')}${Math.max(0, g).toString(16).padStart(2, '0')}${Math.max(0, b).toString(16).padStart(2, '0')}`;
 }

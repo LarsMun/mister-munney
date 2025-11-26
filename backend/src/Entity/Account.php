@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Account\Repository\AccountRepository;
+use App\Enum\AccountType;
 use App\Enum\AccountUserRole;
 use App\Enum\AccountUserStatus;
 use App\User\Entity\User;
@@ -26,6 +27,9 @@ class Account
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $isDefault = false;
+
+    #[ORM\Column(type: 'string', enumType: AccountType::class, options: ['default' => 'CHECKING'])]
+    private AccountType $type = AccountType::CHECKING;
 
     #[ORM\OneToMany(mappedBy: 'account', targetEntity: AccountUser::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $accountUsers;
@@ -74,6 +78,28 @@ class Account
         $this->isDefault = $isDefault;
 
         return $this;
+    }
+
+    public function getType(): AccountType
+    {
+        return $this->type;
+    }
+
+    public function setType(AccountType $type): static
+    {
+        $this->type = $type;
+
+        return $this;
+    }
+
+    public function isChecking(): bool
+    {
+        return $this->type === AccountType::CHECKING;
+    }
+
+    public function isSavings(): bool
+    {
+        return $this->type === AccountType::SAVINGS;
     }
 
     /**

@@ -1,6 +1,5 @@
 import type { PatternInput } from "../models/PatternInput";
 import SimpleCategoryCombobox from "../../categories/components/SimpleCategoryCombobox";
-import SimpleSavingsAccountCombobox from "../../savingsAccounts/components/SimpleSavingsAccountCombobox";
 
 interface Props {
     pattern: PatternInput;
@@ -10,7 +9,7 @@ interface Props {
 export default function PatternFormElements({ pattern, updateField }: Props) {
     return (
         <>
-            {/* Rij 1: Categorie en Spaarrekening */}
+            {/* Rij 1: Categorie */}
             <div className="flex gap-4 items-end">
                 <div className="w-56">
                     <label className="block text-xs font-medium text-gray-600">Categorie</label>
@@ -18,14 +17,7 @@ export default function PatternFormElements({ pattern, updateField }: Props) {
                         categoryId={pattern.categoryId ?? null}
                         onChange={(c) => updateField("categoryId", c?.id ?? null)}
                         refreshCategories={() => {}}
-                        transactionType={pattern.transactionType}  // <-- NIEUW
-                    />
-                </div>
-                <div className="w-56">
-                    <label className="block text-xs font-medium text-gray-600">Spaarrekening</label>
-                    <SimpleSavingsAccountCombobox
-                        savingsAccountId={pattern.savingsAccountId ?? null}
-                        onChange={(sa) => updateField("savingsAccountId", sa?.id ?? null)}
+                        transactionType={pattern.transactionType}
                     />
                 </div>
             </div>
@@ -166,7 +158,7 @@ export default function PatternFormElements({ pattern, updateField }: Props) {
                         />
                         Overschrijf bestaande
                         <span className="ml-1 text-gray-400 cursor-help group-hover:underline"
-                              title="Als dit aanstaat, worden ook transacties met een bestaande categorie of spaarrekening overschreven.">
+                              title="Als dit aanstaat, worden ook transacties met een bestaande categorie overschreven.">
                             ⓘ
                         </span>
                     </label>

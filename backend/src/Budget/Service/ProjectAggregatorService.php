@@ -76,10 +76,6 @@ class ProjectAggregatorService
                     'name' => $txn->getCategory()->getName(),
                     'color' => $txn->getCategory()->getColor(),
                 ] : null,
-                'savingsAccount' => $txn->getSavingsAccount() ? [
-                    'id' => $txn->getSavingsAccount()->getId(),
-                    'name' => $txn->getSavingsAccount()->getName(),
-                ] : null,
             ];
         }
 

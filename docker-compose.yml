@@ -12,7 +12,7 @@ services:
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD}@database:3306/money_db?serverVersion=8.0&charset=utf8mb4"
       CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$$'
       MAILER_DSN: "resend+api://${RESEND_API_KEY}@default"
-      MAIL_FROM_ADDRESS: "noreply@munney.munne.me"
+      MAIL_FROM_ADDRESS: "noreply@munney.example.com"
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       HCAPTCHA_SECRET_KEY: ${HCAPTCHA_SECRET_KEY}
     ports:

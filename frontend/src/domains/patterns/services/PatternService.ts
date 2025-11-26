@@ -7,7 +7,6 @@ import {PatternDTO} from "../models/PatternDTO.ts";
 
 export async function fetchPatternMatches(accountId: number, pattern: PatternInput): Promise<{ total: number, data: Transaction[] }> {
     const sanitized = sanitizePattern(pattern);
-    console.log(sanitized);
     const response = await api.post(
         `/account/${accountId}/patterns/match`,
         sanitized
@@ -49,7 +48,6 @@ export function sanitizePattern(p: PatternInput): Record<string, any> {
     if (p.startDate) clean.startDate = p.startDate;
     if (p.endDate) clean.endDate = p.endDate;
     if (p.categoryId) clean.categoryId = p.categoryId;
-    if (p.savingsAccountId) clean.savingsAccountId = p.savingsAccountId;
 
     // Always include strict flag (defaults to false if undefined)
     clean.strict = p.strict ?? false;

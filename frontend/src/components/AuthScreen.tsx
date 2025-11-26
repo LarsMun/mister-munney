@@ -16,8 +16,6 @@ export default function AuthScreen() {
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const captchaRef = useRef<HCaptcha>(null);
 
-    const isLogin = true; // Always login mode
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -40,16 +38,17 @@ export default function AuthScreen() {
             // Reset CAPTCHA state on successful login
             setRequiresCaptcha(false);
             setCaptchaToken(null);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as { requiresCaptcha?: boolean; failedAttempts?: number; message?: string };
             // Check if CAPTCHA is now required
-            if (error.requiresCaptcha) {
+            if (err.requiresCaptcha) {
                 setRequiresCaptcha(true);
-                toast.error(`CAPTCHA verificatie vereist (${error.failedAttempts || 3}+ pogingen)`);
+                toast.error(`CAPTCHA verificatie vereist (${err.failedAttempts || 3}+ pogingen)`);
                 // Reset captcha to allow user to solve it again
                 setCaptchaToken(null);
                 captchaRef.current?.resetCaptcha();
             } else {
-                toast.error(error.message || 'Er is iets misgegaan');
+                toast.error(err.message || 'Er is iets misgegaan');
             }
         } finally {
             setIsLoading(false);

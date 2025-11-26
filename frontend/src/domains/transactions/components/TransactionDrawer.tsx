@@ -14,7 +14,6 @@ type Props = {
 };
 
 export default function TransactionDrawer({ transaction, onClose, onFilterByDescription, onFilterByNotes }: Props) {
-    if (!transaction) return null;
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
     const [closing, setClosing] = useState(false);
@@ -27,6 +26,8 @@ export default function TransactionDrawer({ transaction, onClose, onFilterByDesc
             setClosing(false);
         }
     }, [transaction]);
+
+    if (!transaction) return null;
 
     const handleClose = () => {
         setClosing(true);
@@ -84,7 +85,6 @@ export default function TransactionDrawer({ transaction, onClose, onFilterByDesc
                         <Detail label="Code" value={transaction.transactionCode}/>
                         <Detail label="Tegenrekening" value={transaction.counterpartyAccount || null}/>
                         <Detail label="Categorie" value={transaction.category?.name || null}/>
-                        <Detail label="Spaarrekening" value={transaction.savingsAccount?.name || null}/>
                         <Detail label="Tag" value={transaction.tag || null}/>
                         <ClickableDetail
                             label="Notities"
