@@ -29,6 +29,10 @@ docker-compose.override.yml
 db_data/
 mysql_data/
 
+# CSV files (may contain personal banking data)
+*.csv
+!**/*example*.csv
+
 # Logs
 logs/
 *.log
