@@ -12,7 +12,7 @@ services:
       APP_ENV: prod
       APP_DEBUG: "false"
       DATABASE_URL: "mysql://money:${MYSQL_PASSWORD}@database:3306/money_db_prod?serverVersion=8.0&charset=utf8mb4"
-      CORS_ALLOW_ORIGIN: "https://munney.munne.me"
+      CORS_ALLOW_ORIGIN: "https://munney.example.com"
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
@@ -27,7 +27,7 @@ services:
       HCAPTCHA_SITE_KEY: ${HCAPTCHA_SITE_KEY}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.munne.me`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.munney-prod-backend.rule=Host(`munney.example.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.munney-prod-backend.entrypoints=websecure"
       - "traefik.http.routers.munney-prod-backend.tls.certresolver=le"
       - "traefik.http.services.munney-prod-backend.loadbalancer.server.port=80"
@@ -48,7 +48,7 @@ services:
       - "3001:80"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.munne.me`)"
+      - "traefik.http.routers.munney-prod-frontend.rule=Host(`munney.example.com`)"
       - "traefik.http.routers.munney-prod-frontend.entrypoints=websecure"
       - "traefik.http.routers.munney-prod-frontend.tls.certresolver=le"
       - "traefik.http.services.munney-prod-frontend.loadbalancer.server.port=80"
@@ -59,7 +59,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        VITE_API_URL: "https://munney.munne.me/api"
+        VITE_API_URL: "https://munney.example.com/api"
     depends_on:
       - backend
 
