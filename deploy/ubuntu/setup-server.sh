@@ -57,14 +57,14 @@ if [ -f ~/.ssh/id_ed25519 ]; then
     read -p "Generate new key? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        ssh-keygen -t ed25519 -C "apollowebserv-munney" -f ~/.ssh/id_ed25519_munney
+        ssh-keygen -t ed25519 -C "your-server-munney" -f ~/.ssh/id_ed25519_munney
         SSH_KEY_FILE=~/.ssh/id_ed25519_munney
     else
         SSH_KEY_FILE=~/.ssh/id_ed25519
     fi
 else
     echo -e "${YELLOW}Generating new SSH key...${NC}"
-    ssh-keygen -t ed25519 -C "apollowebserv-munney" -f ~/.ssh/id_ed25519
+    ssh-keygen -t ed25519 -C "your-server-munney" -f ~/.ssh/id_ed25519
     SSH_KEY_FILE=~/.ssh/id_ed25519
 fi
 
@@ -85,7 +85,7 @@ echo -e "${BLUE}Steps:${NC}"
 echo "1. Copy the SSH key above (including 'ssh-ed25519' at the start)"
 echo "2. Go to: https://github.com/settings/keys"
 echo "3. Click 'New SSH key'"
-echo "4. Title: apollowebserv-munney"
+echo "4. Title: your-server-munney"
 echo "5. Paste the key and save"
 echo ""
 read -p "Press ENTER after you've added the key to GitHub..."
