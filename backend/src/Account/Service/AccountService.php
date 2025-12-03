@@ -144,11 +144,18 @@ class AccountService
      *
      * @param string $accountNumber The account number
      * @param mixed $user The User entity
+     * @param bool $isSavingsAccount Whether this is a savings account
+     * @param Account|null $parentAccount The parent checking account for savings accounts
      * @return Account
      *
      * @throws AccountAccessDeniedException If account exists but user doesn't have access
      */
-    public function getOrCreateAccountByNumberForUser(string $accountNumber, $user): Account
+    public function getOrCreateAccountByNumberForUser(
+        string $accountNumber,
+        $user,
+        bool $isSavingsAccount = false,
+        ?Account $parentAccount = null
+    ): Account
     {
         $account = $this->accountRepository->findByAccountNumber($accountNumber);
 
@@ -158,13 +165,26 @@ class AccountService
             $account->setAccountNumber($accountNumber);
             $account->addOwner($user);
 
+            // Set type and parent for savings accounts
+            if ($isSavingsAccount) {
+                $account->setType(AccountType::SAVINGS);
+                if ($parentAccount) {
+                    $account->setParentAccount($parentAccount);
+                }
+                $this->logger->info("Nieuwe spaarrekening aangemaakt en gekoppeld: " . $accountNumber, [
+                    'accountNumber' => $accountNumber,
+                    'userId' => $user->getId(),
+                    'parentAccountId' => $parentAccount?->getId()
+                ]);
+            } else {
+                $this->logger->info("Nieuw rekeningnummer aangemaakt en gekoppeld aan gebruiker: " . $accountNumber, [
+                    'accountNumber' => $accountNumber,
+                    'userId' => $user->getId()
+                ]);
+            }
+
             $this->entityManager->persist($account);
             $this->entityManager->flush();
-
-            $this->logger->info("Nieuw rekeningnummer aangemaakt en gekoppeld aan gebruiker: " . $accountNumber, [
-                'accountNumber' => $accountNumber,
-                'userId' => $user->getId()
-            ]);
 
             return $account;
         }
@@ -181,7 +201,19 @@ class AccountService
             throw new AccountAccessDeniedException($accountNumber);
         }
 
-        // User has access - return account
+        // User has access - update type/parent if this is a savings import and not yet set
+        if ($isSavingsAccount && $account->getType() !== AccountType::SAVINGS) {
+            $account->setType(AccountType::SAVINGS);
+            if ($parentAccount && !$account->getParentAccount()) {
+                $account->setParentAccount($parentAccount);
+            }
+            $this->entityManager->flush();
+            $this->logger->info("Bestaand account bijgewerkt naar spaarrekening: " . $accountNumber, [
+                'accountNumber' => $accountNumber,
+                'parentAccountId' => $parentAccount?->getId()
+            ]);
+        }
+
         $this->logger->debug("User accessed existing account: " . $accountNumber, [
             'accountNumber' => $accountNumber,
             'userId' => $user->getId()

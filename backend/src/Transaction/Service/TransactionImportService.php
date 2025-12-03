@@ -4,6 +4,7 @@ namespace App\Transaction\Service;
 
 use App\Account\Exception\AccountAccessDeniedException;
 use App\Account\Service\AccountService;
+use App\Entity\Account;
 use App\Entity\Transaction;
 use App\Enum\TransactionType;
 use App\Money\MoneyFactory;
@@ -39,6 +40,8 @@ class TransactionImportService
 
     private array $existingTransactions = [];
     private $currentUser = null;
+    private ?Account $parentAccount = null;
+    private bool $isSavingsImport = false;
     private const string REQUIRED_EXTENSION = 'csv';
 
     // ING Betaalrekening CSV layout
@@ -178,9 +181,10 @@ class TransactionImportService
      * @throws RuntimeException Bij onverwachte fouten tijdens het lezen of verwerken van de CSV
      *
      */
-    public function import(UploadedFile $file): array
+    public function import(UploadedFile $file, ?Account $parentAccount = null): array
     {
         $this->logger->info("CSV import gestart: " . $file->getClientOriginalName());
+        $this->parentAccount = $parentAccount;
 
         if (!$this->isValidCsvFile($file)) {
             throw new BadRequestHttpException('Ongeldig bestand. Alleen CSV van ING toegestaan.');
@@ -189,6 +193,9 @@ class TransactionImportService
         try {
             $csv = $this->readCsvFile($file);
             $this->validateCsvHeader($csv->getHeader());
+
+            // Check if this is a savings account CSV
+            $this->isSavingsImport = ($this->fieldMap === self::FIELD_MAP_SAVINGS);
 
             // Check if CSV has any data rows (not just header)
             $records = iterator_to_array($csv->getRecords());
@@ -522,7 +529,9 @@ class TransactionImportService
         if ($this->currentUser) {
             $account = $this->accountService->getOrCreateAccountByNumberForUser(
                 $accountNumber,
-                $this->currentUser
+                $this->currentUser,
+                $this->isSavingsImport,
+                $this->parentAccount
             );
         } else {
             $account = $this->accountService->getOrCreateAccountByNumber($accountNumber);
