@@ -10,7 +10,8 @@ export default defineConfig({
     allowedHosts: [
       'dev.munney.example.com',
       'localhost',
-      '.example.com'
+      '.example.com',
+      '.home.munne.me'
     ],
     hmr: {
       clientPort: 443,
