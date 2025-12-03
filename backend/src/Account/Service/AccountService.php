@@ -96,6 +96,19 @@ class AccountService
             $account->setType($type);
         }
 
+        // Update parent account if provided
+        if (array_key_exists('parentAccountId', $data)) {
+            if ($data['parentAccountId'] === null) {
+                $account->setParentAccount(null);
+            } else {
+                $parentAccount = $this->getById($data['parentAccountId']);
+                if ($parentAccount->getId() === $account->getId()) {
+                    throw new BadRequestHttpException('Een account kan niet zijn eigen parent zijn.');
+                }
+                $account->setParentAccount($parentAccount);
+            }
+        }
+
         $this->accountRepository->save($account);
 
         return $account;

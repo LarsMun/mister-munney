@@ -1,6 +1,6 @@
 import toast from 'react-hot-toast';
 import AccountService from './AccountService';
-import { Account, AccountType } from '../models/Account';
+import { Account, AccountType, UpdateAccountRequest } from '../models/Account';
 
 interface ApiError {
     response?: {
@@ -8,6 +8,26 @@ interface ApiError {
             detail?: string;
         };
     };
+}
+
+/**
+ * Action om een account te updaten
+ */
+export async function updateAccount(
+    accountId: number,
+    data: UpdateAccountRequest,
+    onSuccess?: (account: Account) => void
+): Promise<void> {
+    try {
+        const updatedAccount = await AccountService.update(accountId, data);
+        toast.success('Account bijgewerkt');
+        onSuccess?.(updatedAccount);
+    } catch (error: unknown) {
+        const err = error as ApiError;
+        const message = err.response?.data?.detail || 'Fout bij bijwerken account';
+        toast.error(message);
+        throw error;
+    }
 }
 
 /**

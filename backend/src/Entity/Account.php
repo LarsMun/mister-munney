@@ -31,12 +31,20 @@ class Account
     #[ORM\Column(type: 'string', enumType: AccountType::class, options: ['default' => 'CHECKING'])]
     private AccountType $type = AccountType::CHECKING;
 
+    #[ORM\ManyToOne(targetEntity: Account::class, inversedBy: 'childAccounts')]
+    #[ORM\JoinColumn(name: 'parent_account_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Account $parentAccount = null;
+
+    #[ORM\OneToMany(mappedBy: 'parentAccount', targetEntity: Account::class)]
+    private Collection $childAccounts;
+
     #[ORM\OneToMany(mappedBy: 'account', targetEntity: AccountUser::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $accountUsers;
 
     public function __construct()
     {
         $this->accountUsers = new ArrayCollection();
+        $this->childAccounts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -100,6 +108,26 @@ class Account
     public function isSavings(): bool
     {
         return $this->type === AccountType::SAVINGS;
+    }
+
+    public function getParentAccount(): ?Account
+    {
+        return $this->parentAccount;
+    }
+
+    public function setParentAccount(?Account $parentAccount): static
+    {
+        $this->parentAccount = $parentAccount;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Account>
+     */
+    public function getChildAccounts(): Collection
+    {
+        return $this->childAccounts;
     }
 
     /**

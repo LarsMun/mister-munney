@@ -38,7 +38,7 @@ class Transaction
     #[ORM\Column(length: 34, nullable: true)]
     private ?string $counterparty_account = null;
 
-    #[ORM\Column(length: 10)]
+    #[ORM\Column(length: 10, nullable: true)]
     private ?string $transaction_code = null;
 
     #[ORM\Column(type: "string", enumType: TransactionType::class)]
@@ -148,7 +148,7 @@ class Transaction
         return $this->transaction_code;
     }
 
-    public function setTransactionCode(string $transaction_code): static
+    public function setTransactionCode(?string $transaction_code): static
     {
         $this->transaction_code = $transaction_code;
 

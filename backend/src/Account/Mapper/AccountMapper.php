@@ -15,6 +15,7 @@ class AccountMapper
         $dto->accountNumber = $entity->getAccountNumber();
         $dto->isDefault = $entity->isDefault();
         $dto->type = $entity->getType()->value;
+        $dto->parentAccountId = $entity->getParentAccount()?->getId();
 
         return $dto;
     }

@@ -3,6 +3,7 @@ import SimpleCategoryCombobox from "../../categories/components/SimpleCategoryCo
 import { createPattern } from "../../patterns/services/PatternService";
 import { toast } from "react-hot-toast";
 import type { Transaction } from "../models/Transaction";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface FilterState {
     description?: string;
@@ -51,27 +52,27 @@ export default function TransactionFilterForm({
     filteredTransactions,
     onOpenAiSuggestions
 }: Props) {
+    const [patternMode, setPatternMode] = useState(false);
+    const [patternCategory, setPatternCategory] = useState<number | null>(null);
+    const [patternStrict, setPatternStrict] = useState(false);
 
-    // Check if user is doing pattern matching (has other filters besides categoryId/dates)
-    const isPatternMatching = useMemo(() => {
+    // Check if user is actively filtering
+    const hasActiveFilters = useMemo(() => {
         return !!(filters.description || filters.notes || filters.tag ||
-                  filters.minAmount || filters.maxAmount || filters.withoutCategory);
+                  filters.minAmount || filters.maxAmount ||
+                  filters.categoryId || filters.withoutCategory);
     }, [filters]);
 
-    // Calculate pattern match statistics
-    const conflictingCategory = useMemo(() => {
-        if (!filters.categoryId || filters.strict) return [];
-        return filteredTransactions.filter(t => t.category?.id && t.category.id !== filters.categoryId);
-    }, [filteredTransactions, filters.categoryId, filters.strict]);
+    // Calculate pattern match statistics (only when in pattern mode)
+    const patternStats = useMemo(() => {
+        if (!patternMode || !patternCategory) return null;
 
-    const matchingCategory = useMemo(() => {
-        if (!filters.categoryId) return [];
-        return filteredTransactions.filter(t => t.category?.id === filters.categoryId);
-    }, [filteredTransactions, filters.categoryId]);
+        const conflicting = filteredTransactions.filter(t => t.category?.id && t.category.id !== patternCategory);
+        const matching = filteredTransactions.filter(t => t.category?.id === patternCategory);
+        const without = filteredTransactions.length - matching.length - conflicting.length;
 
-    const withoutCategory = filters.categoryId != null
-        ? filteredTransactions.length - matchingCategory.length - conflictingCategory.length
-        : 0;
+        return { conflicting, matching, without };
+    }, [patternMode, patternCategory, filteredTransactions]);
 
     const updateFilter = (key: keyof FilterState, value: any) => {
         const newFilters = { ...filters, [key]: value };
@@ -90,7 +91,7 @@ export default function TransactionFilterForm({
     };
 
     const handleCreatePattern = async () => {
-        if (!filters.categoryId) {
+        if (!patternCategory) {
             toast.error("Selecteer een categorie");
             return;
         }
@@ -99,19 +100,16 @@ export default function TransactionFilterForm({
             const payload = {
                 accountId,
                 ...filters,
+                categoryId: patternCategory,
+                strict: patternStrict,
             };
             await createPattern(accountId, payload);
             toast.success("Patroon aangemaakt!");
 
-            // Clear filter form but keep toggles
-            const clearedFilters: FilterState = {
-                matchTypeDescription: "LIKE",
-                matchTypeNotes: "LIKE",
-                transactionType: "both",
-                strict: false,
-                withoutCategory: filters.withoutCategory,
-            };
-            onFilterChange(clearedFilters);
+            // Reset pattern mode
+            setPatternMode(false);
+            setPatternCategory(null);
+            setPatternStrict(false);
 
             onRefresh();
         } catch (error) {
@@ -121,240 +119,253 @@ export default function TransactionFilterForm({
     };
 
     return (
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Filters</h2>
-                <div className="flex gap-2">
-                    <label className="inline-flex items-center text-sm">
+        <div className="bg-white rounded-lg shadow mb-4">
+            {/* Filter Section */}
+            <div className="p-4 border-b">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold">Filters</h2>
+                    <div className="flex gap-2 items-center">
+                        {onOpenAiSuggestions && (
+                            <button
+                                onClick={onOpenAiSuggestions}
+                                className="px-3 py-1.5 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 flex items-center gap-1.5"
+                            >
+                                <span>✨</span>
+                                AI Suggesties
+                            </button>
+                        )}
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearAllFilters}
+                                className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                            >
+                                Wis filters
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                    {/* Text filters */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Omschrijving</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={filters.description ?? ""}
+                                onChange={(e) => updateFilter("description", e.target.value)}
+                                className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm"
+                                placeholder="Zoek in omschrijving..."
+                            />
+                            <select
+                                value={filters.matchTypeDescription ?? "LIKE"}
+                                onChange={(e) => updateFilter("matchTypeDescription", e.target.value)}
+                                className="w-24 border border-gray-300 rounded px-2 py-1.5 text-sm"
+                            >
+                                <option value="LIKE">LIKE</option>
+                                <option value="EXACT">EXACT</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Notities</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={filters.notes ?? ""}
+                                onChange={(e) => updateFilter("notes", e.target.value)}
+                                className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm"
+                                placeholder="Zoek in notities..."
+                            />
+                            <select
+                                value={filters.matchTypeNotes ?? "LIKE"}
+                                onChange={(e) => updateFilter("matchTypeNotes", e.target.value)}
+                                className="w-24 border border-gray-300 rounded px-2 py-1.5 text-sm"
+                            >
+                                <option value="LIKE">LIKE</option>
+                                <option value="EXACT">EXACT</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 mb-3">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tag</label>
                         <input
-                            type="checkbox"
-                            checked={filters.withoutCategory ?? false}
-                            onChange={(e) => updateFilter("withoutCategory", e.target.checked)}
-                            className="mr-2"
+                            type="text"
+                            value={filters.tag ?? ""}
+                            onChange={(e) => updateFilter("tag", e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            placeholder="Tag..."
                         />
-                        Alleen zonder categorie
-                    </label>
-                    <label className="inline-flex items-center text-sm">
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Min bedrag (€)</label>
                         <input
-                            type="checkbox"
-                            checked={filterByPeriod}
-                            onChange={(e) => onFilterByPeriodChange(e.target.checked)}
-                            className="mr-2"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={filters.minAmount ?? ""}
+                            onChange={(e) => {
+                                const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
+                                updateFilter("minAmount", value);
+                            }}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
                         />
-                        Filter binnen geselecteerde periode
-                    </label>
-                    {onOpenAiSuggestions && (
-                        <button
-                            onClick={onOpenAiSuggestions}
-                            className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 flex items-center gap-1"
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Max bedrag (€)</label>
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={filters.maxAmount ?? ""}
+                            onChange={(e) => {
+                                const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
+                                updateFilter("maxAmount", value);
+                            }}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                        <select
+                            value={filters.transactionType ?? "both"}
+                            onChange={(e) => updateFilter("transactionType", e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
                         >
-                            <span>✨</span>
-                            AI Suggesties
-                        </button>
-                    )}
-                    <button
-                        onClick={clearAllFilters}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
-                    >
-                        Wis filters
-                    </button>
-                </div>
-            </div>
-
-            {/* Rij 1: Omschrijving + matchtype + notities + matchtype */}
-            <div className="flex gap-4 items-start mb-3">
-                <div className="flex-1">
-                    <label className="block text-xs font-medium text-gray-600">Omschrijving</label>
-                    <input
-                        type="text"
-                        value={filters.description ?? ""}
-                        onChange={(e) => updateFilter("description", e.target.value)}
-                        className="w-full border rounded p-1 h-8 text-xs"
-                        placeholder="Zoek in omschrijving..."
-                    />
+                            <option value="both">Beiden</option>
+                            <option value="debit">Uitgaven</option>
+                            <option value="credit">Inkomsten</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div className="w-28">
-                    <label className="block text-xs font-medium text-gray-600">Type</label>
-                    <select
-                        value={filters.matchTypeDescription ?? "LIKE"}
-                        onChange={(e) => updateFilter("matchTypeDescription", e.target.value)}
-                        className="w-full border rounded p-1 h-8 text-xs"
-                    >
-                        <option value="LIKE">LIKE</option>
-                        <option value="EXACT">EXACT</option>
-                    </select>
-                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Startdatum</label>
+                        <input
+                            type="date"
+                            value={filters.startDate ?? ""}
+                            onChange={(e) => updateFilter("startDate", e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                        />
+                    </div>
 
-                <div className="flex-1">
-                    <label className="block text-xs font-medium text-gray-600">Notities</label>
-                    <textarea
-                        value={filters.notes ?? ""}
-                        onChange={(e) => updateFilter("notes", e.target.value)}
-                        className="w-full border rounded p-1 resize-none text-xs"
-                        placeholder="Zoek in notities..."
-                        rows={2}
-                    />
-                </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Einddatum</label>
+                        <input
+                            type="date"
+                            value={filters.endDate ?? ""}
+                            onChange={(e) => updateFilter("endDate", e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                        />
+                    </div>
 
-                <div className="w-28">
-                    <label className="block text-xs font-medium text-gray-600">Type</label>
-                    <select
-                        value={filters.matchTypeNotes ?? "LIKE"}
-                        onChange={(e) => updateFilter("matchTypeNotes", e.target.value)}
-                        className="w-full border rounded p-1 h-8 text-xs"
-                    >
-                        <option value="LIKE">LIKE</option>
-                        <option value="EXACT">EXACT</option>
-                    </select>
-                </div>
-            </div>
-
-            {/* Rij 2: Tag + Datums + Bedragen + Type */}
-            <div className="flex gap-4 items-end mb-3">
-                <div className="w-40">
-                    <label className="block text-xs font-medium text-gray-600">Tag</label>
-                    <input
-                        type="text"
-                        value={filters.tag ?? ""}
-                        onChange={(e) => updateFilter("tag", e.target.value)}
-                        className="w-full border rounded p-1 h-8"
-                        placeholder="Tag..."
-                    />
-                </div>
-
-                <div className="w-40">
-                    <label className="block text-xs font-medium text-gray-600">Startdatum</label>
-                    <input
-                        type="date"
-                        value={filters.startDate ?? ""}
-                        onChange={(e) => updateFilter("startDate", e.target.value)}
-                        className="w-full border rounded p-1 h-8"
-                    />
-                </div>
-
-                <div className="w-40">
-                    <label className="block text-xs font-medium text-gray-600">Einddatum</label>
-                    <input
-                        type="date"
-                        value={filters.endDate ?? ""}
-                        onChange={(e) => updateFilter("endDate", e.target.value)}
-                        className="w-full border rounded p-1 h-8"
-                    />
-                </div>
-
-                <div className="w-28">
-                    <label className="block text-xs font-medium text-gray-600">Min bedrag</label>
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={filters.minAmount ?? ""}
-                        onChange={(e) => {
-                            const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
-                            updateFilter("minAmount", value);
-                        }}
-                        className="w-full border rounded p-1 h-8"
-                    />
-                </div>
-
-                <div className="w-28">
-                    <label className="block text-xs font-medium text-gray-600">Max bedrag</label>
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={filters.maxAmount ?? ""}
-                        onChange={(e) => {
-                            const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
-                            updateFilter("maxAmount", value);
-                        }}
-                        className="w-full border rounded p-1 h-8"
-                    />
-                </div>
-
-                <div className="w-32">
-                    <label className="block text-xs font-medium text-gray-600">Transactie type</label>
-                    <select
-                        value={filters.transactionType ?? "both"}
-                        onChange={(e) => updateFilter("transactionType", e.target.value)}
-                        className="w-full border rounded p-1 h-8 text-xs"
-                    >
-                        <option value="both">Beiden</option>
-                        <option value="debit">Af</option>
-                        <option value="credit">Bij</option>
-                    </select>
+                    <div className="flex items-end gap-3">
+                        <label className="inline-flex items-center text-sm cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={filterByPeriod}
+                                onChange={(e) => onFilterByPeriodChange(e.target.checked)}
+                                className="mr-2"
+                            />
+                            <span>Filter binnen periode</span>
+                        </label>
+                        <label className="inline-flex items-center text-sm cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={filters.withoutCategory ?? false}
+                                onChange={(e) => updateFilter("withoutCategory", e.target.checked)}
+                                className="mr-2"
+                            />
+                            <span>Zonder categorie</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
             {/* Pattern Creation Section */}
-            <div className="border-t pt-4 mt-4">
-                <h3 className="text-sm font-semibold mb-3">Maak patroon van filter</h3>
+            <div className="border-t">
+                <button
+                    onClick={() => setPatternMode(!patternMode)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                    <span className="font-semibold text-gray-700">Maak patroon van filter</span>
+                    {patternMode ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </button>
 
-                {/* Pattern Match Preview - only show when actively pattern matching */}
-                {isPatternMatching && filteredTransactions.length > 0 && (
-                    <div className="border border-gray-200 rounded mb-3 text-sm">
-                        <div className="p-2 border-b font-semibold bg-gray-50 text-gray-800">
-                            🎯 {filteredTransactions.length} transacties gevonden
-                        </div>
+                {patternMode && (
+                    <div className="p-4 bg-gray-50">
+                        <p className="text-sm text-gray-600 mb-4">
+                            Maak een patroon dat automatisch toekomstige transacties categoriseert op basis van de huidige filters.
+                        </p>
 
-                        {filters.categoryId != null && (
-                            <>
-                                {conflictingCategory.length > 0 && (
+                        {/* Pattern Match Preview */}
+                        {patternStats && filteredTransactions.length > 0 && (
+                            <div className="border border-gray-200 rounded mb-4 text-sm bg-white">
+                                <div className="p-3 border-b font-semibold bg-gray-50 text-gray-800">
+                                    🎯 {filteredTransactions.length} transacties gevonden
+                                </div>
+
+                                {patternStats.conflicting.length > 0 && (
                                     <FeedbackBox type="error">
-                                        ⚠️ {conflictingCategory.length} transacties hebben al een <b>andere categorie</b>.
+                                        ⚠️ {patternStats.conflicting.length} transacties hebben al een <b>andere categorie</b>.
                                     </FeedbackBox>
                                 )}
-                                {matchingCategory.length > 0 && (
+                                {patternStats.matching.length > 0 && (
                                     <FeedbackBox type="success">
-                                        ✅ {matchingCategory.length} transacties hebben deze <b>categorie</b> al.
+                                        ✅ {patternStats.matching.length} transacties hebben deze <b>categorie</b> al.
                                     </FeedbackBox>
                                 )}
-                                {withoutCategory > 0 && (
+                                {patternStats.without > 0 && (
                                     <FeedbackBox type="new">
-                                        🆕 {withoutCategory} nieuwe toewijzingen aan deze <b>categorie</b>.
+                                        🆕 {patternStats.without} nieuwe toewijzingen aan deze <b>categorie</b>.
                                     </FeedbackBox>
                                 )}
-                            </>
+                            </div>
                         )}
 
+                        <div className="flex gap-4 items-end">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
+                                <SimpleCategoryCombobox
+                                    categoryId={patternCategory}
+                                    onChange={(c) => setPatternCategory(c?.id ?? null)}
+                                    refreshCategories={() => {}}
+                                    transactionType={filters.transactionType}
+                                />
+                            </div>
+
+                            <label className="inline-flex items-center text-sm cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={patternStrict}
+                                    onChange={(e) => setPatternStrict(e.target.checked)}
+                                    className="mr-2"
+                                />
+                                <span>Overschrijf bestaande</span>
+                                <span className="ml-1 text-gray-400 cursor-help group-hover:underline"
+                                      title="Als dit aanstaat, worden ook transacties met een bestaande categorie overschreven.">
+                                    ⓘ
+                                </span>
+                            </label>
+
+                            <button
+                                onClick={handleCreatePattern}
+                                disabled={!patternCategory}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            >
+                                Maak patroon
+                            </button>
+                        </div>
                     </div>
                 )}
-
-                <div className="flex gap-4 items-end">
-                    <div className="w-64">
-                        <label className="block text-xs font-medium text-gray-600">Categorie</label>
-                        <SimpleCategoryCombobox
-                            categoryId={filters.categoryId ?? null}
-                            onChange={(c) => updateFilter("categoryId", c?.id ?? null)}
-                            refreshCategories={() => {}}
-                            transactionType={filters.transactionType}
-                        />
-                    </div>
-
-                    <div className="flex items-center h-8">
-                        <label className="inline-flex items-center text-xs text-gray-700 group">
-                            <input
-                                type="checkbox"
-                                checked={filters.strict ?? false}
-                                onChange={(e) => updateFilter("strict", e.target.checked)}
-                                className="mr-2"
-                            />
-                            Overschrijf bestaande
-                            <span className="ml-1 text-gray-400 cursor-help group-hover:underline"
-                                  title="Als dit aanstaat, worden ook transacties met een bestaande categorie overschreven.">
-                                ⓘ
-                            </span>
-                        </label>
-                    </div>
-
-                    <button
-                        onClick={handleCreatePattern}
-                        className="px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 h-8"
-                    >
-                        Maak patroon
-                    </button>
-                </div>
             </div>
         </div>
     );
