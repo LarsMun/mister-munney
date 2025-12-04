@@ -10,4 +10,6 @@ class AccountDTO
     public bool $isDefault;
     public string $type;
     public ?int $parentAccountId = null;
+    /** @var AccountDTO[] */
+    public array $linkedSavingsAccounts = [];
 }
