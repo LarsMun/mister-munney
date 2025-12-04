@@ -7,6 +7,7 @@ export type Account = {
     isDefault: boolean;
     type: AccountType;
     parentAccountId: number | null;
+    linkedSavingsAccounts: Account[];
 };
 
 export type UpdateAccountRequest = {
