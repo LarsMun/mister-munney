@@ -1,6 +1,6 @@
 services:
   backend:
-    container_name: munney-backend-prod
+    container_name: munney-prod-backend
     restart: unless-stopped
     ports:
       - "8687:80"
@@ -42,7 +42,7 @@ services:
         condition: service_healthy
 
   frontend:
-    container_name: munney-frontend-prod
+    container_name: munney-prod-frontend
     restart: unless-stopped
     ports:
       - "3001:80"
@@ -64,7 +64,7 @@ services:
       - backend
 
   database:
-    container_name: munney-mysql-prod
+    container_name: munney-prod-mysql
     image: mysql:8.0
     restart: unless-stopped
     environment:
