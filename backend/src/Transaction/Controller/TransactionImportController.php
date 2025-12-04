@@ -95,7 +95,8 @@ class TransactionImportController extends AbstractController
         }
 
         $parentAccount = $this->accountRepository->getById($accountId);
-        $result = $this->transactionImportService->import($file, $parentAccount);
+        $user = $this->getUser();
+        $result = $this->transactionImportService->importForUserWithParent($file, $user, $parentAccount);
 
         return $this->json($result, 201);
     }

@@ -241,6 +241,25 @@ class TransactionImportService
     }
 
     /**
+     * Importeert een CSV-bestand met parent account voor savings account linking
+     *
+     * @param UploadedFile $file Het CSV-bestand
+     * @param mixed $user De user entity
+     * @param Account|null $parentAccount De parent account voor spaarrekeningen
+     * @return array Resultaat met status en importdetails
+     */
+    public function importForUserWithParent(UploadedFile $file, $user, ?Account $parentAccount = null): array
+    {
+        $this->currentUser = $user;
+
+        try {
+            return $this->import($file, $parentAccount);
+        } finally {
+            $this->currentUser = null;
+        }
+    }
+
+    /**
      * Controleert of het geüploade bestand een geldig CSV-bestand is.
      *
      * Deze methode valideert het bestandstype op basis van de extensie.
