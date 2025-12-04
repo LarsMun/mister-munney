@@ -80,5 +80,5 @@ jobs:
       - name: ✅ Deployment complete
         run: |
           echo "✅ Dev deployment successful!"
-          echo "🌐 URL: https://devmunney.home.example.com"
+          echo "🌐 URL: https://devmunney.home.munne.me"
           docker ps --filter 'label=project=munney' --filter 'label=environment=development'
