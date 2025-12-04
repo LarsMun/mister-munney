@@ -43,7 +43,22 @@ export default function AccountManagement() {
             setEditingId(null);
             setEditValue('');
             setLocalAccounts(prev =>
-                prev.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)
+                prev.map(acc => {
+                    // Update top-level account
+                    if (acc.id === updatedAccount.id) {
+                        return updatedAccount;
+                    }
+                    // Update nested savings account
+                    if (acc.linkedSavingsAccounts?.length > 0) {
+                        return {
+                            ...acc,
+                            linkedSavingsAccounts: acc.linkedSavingsAccounts.map(child =>
+                                child.id === updatedAccount.id ? updatedAccount : child
+                            )
+                        };
+                    }
+                    return acc;
+                })
             );
         });
     };
