@@ -804,8 +804,7 @@ class TransactionRepository extends ServiceEntityRepository
         ";
 
         if ($monthLimit !== null && $monthLimit > 0) {
-            $sql .= " LIMIT ?";
-            $params[] = $monthLimit;
+            $sql .= " LIMIT " . (int)$monthLimit;
         }
 
         return $this->getEntityManager()->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
@@ -985,5 +984,32 @@ class TransactionRepository extends ServiceEntityRepository
         $result = $stmt->executeQuery($params);
 
         return $result->fetchAllAssociative();
+    }
+
+    /**
+     * Get the latest balance for an account by summing all transactions
+     * Returns balance in cents
+     *
+     * @param int $accountId
+     * @return int|null Balance in cents, or null if no transactions
+     */
+    public function getLatestBalanceForAccount(int $accountId): ?int
+    {
+        $sql = "
+            SELECT
+                SUM(CASE
+                    WHEN t.transaction_type = 'CREDIT' THEN t.amount
+                    ELSE -t.amount
+                END) AS balance
+            FROM transaction t
+            WHERE t.account_id = ?
+        ";
+
+        $result = $this->getEntityManager()
+            ->getConnection()
+            ->executeQuery($sql, [$accountId])
+            ->fetchAssociative();
+
+        return $result['balance'] !== null ? (int)$result['balance'] : null;
     }
 }

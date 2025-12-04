@@ -1,6 +1,6 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TransactionsModule from './domains/transactions';
 import PatternModule from './domains/patterns';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -10,13 +10,14 @@ import BudgetsModule from './domains/budgets';
 import AccountManagement from './domains/accounts';
 import DashboardModule from './domains/dashboard';
 import CategoriesModule from './domains/categories';
+import ForecastModule from './domains/forecast';
 import { useAccount } from './app/context/AccountContext';
 import { useAuth } from './shared/contexts/AuthContext';
-import AccountSelector from './shared/components/AccountSelector';
 import logo from './assets/mister-munney-logo.png';
 import { Toaster } from "react-hot-toast";
 import toast from 'react-hot-toast';
 import { importTransactions } from './lib/api';
+import { Download, ChevronDown, LogOut, Settings } from 'lucide-react';
 
 function AppContent() {
     const location = useLocation();
@@ -24,9 +25,27 @@ function AppContent() {
     const { accounts, accountId, setAccountId, hasAccounts, isLoading: accountsLoading, refreshAccounts, resetAccountState } = useAccount();
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
 
     // Check if we're on the unlock page
     const isUnlockPage = location.pathname === '/unlock';
+
+    // Close user menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setShowUserMenu(false);
+            }
+        };
+
+        if (showUserMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showUserMenu]);
 
     // Fetch accounts when user is authenticated
     useEffect(() => {
@@ -123,41 +142,44 @@ function AppContent() {
                 {/* Header */}
                 <header className="bg-blue-600 text-white p-4 shadow-lg">
                     <div className="container mx-auto flex justify-between items-center">
+                        {/* Left: Logo */}
                         <Link to="/" className="flex items-center hover:opacity-90 transition-opacity">
                             <img src={logo} alt="Mister Munney" className="h-24 w-auto" />
                         </Link>
+
+                        {/* Right: Navigation & User Menu */}
                         <nav className="flex items-center gap-3">
-                            <NavLink 
-                                to="/" 
+                            <NavLink
+                                to="/"
                                 end
-                                className={({ isActive }) => 
+                                className={({ isActive }) =>
                                     `px-4 py-2 rounded-lg transition-colors font-medium ${
-                                        isActive 
-                                            ? 'bg-white/20 text-white' 
+                                        isActive
+                                            ? 'bg-white/20 text-white'
                                             : 'hover:bg-white/10'
                                     }`
                                 }
                             >
                                 Dashboard
                             </NavLink>
-                            <NavLink 
+                            <NavLink
                                 to="/transactions"
-                                className={({ isActive }) => 
+                                className={({ isActive }) =>
                                     `px-4 py-2 rounded-lg transition-colors font-medium ${
-                                        isActive 
-                                            ? 'bg-white/20 text-white' 
+                                        isActive
+                                            ? 'bg-white/20 text-white'
                                             : 'hover:bg-white/10'
                                     }`
                                 }
                             >
                                 Transacties
                             </NavLink>
-                            <NavLink 
+                            <NavLink
                                 to="/patterns"
-                                className={({ isActive }) => 
+                                className={({ isActive }) =>
                                     `px-4 py-2 rounded-lg transition-colors font-medium ${
-                                        isActive 
-                                            ? 'bg-white/20 text-white' 
+                                        isActive
+                                            ? 'bg-white/20 text-white'
                                             : 'hover:bg-white/10'
                                     }`
                                 }
@@ -177,6 +199,18 @@ function AppContent() {
                                 Budgetten
                             </NavLink>
                             <NavLink
+                                to="/forecast"
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-lg transition-colors font-medium ${
+                                        isActive
+                                            ? 'bg-white/20 text-white'
+                                            : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Forecast
+                            </NavLink>
+                            <NavLink
                                 to="/categories"
                                 className={({ isActive }) =>
                                     `px-4 py-2 rounded-lg transition-colors font-medium ${
@@ -188,54 +222,104 @@ function AppContent() {
                             >
                                 Categorieën
                             </NavLink>
-                            <NavLink
-                                to="/accounts"
-                                className={({ isActive }) =>
-                                    `px-4 py-2 rounded-lg transition-colors font-medium ${
-                                        isActive
-                                            ? 'bg-white/20 text-white'
-                                            : 'hover:bg-white/10'
-                                    }`
-                                }
-                            >
-                                Accounts
-                            </NavLink>
 
-                            {/* Import Button */}
+                            {/* Import Icon Button */}
                             <button
                                 onClick={() => setShowUploadModal(true)}
                                 disabled={!accountId}
-                                className={`px-4 py-2 rounded-lg transition-colors font-medium border ${
+                                className={`p-2 rounded-lg transition-colors ${
                                     accountId
-                                        ? 'bg-white text-blue-600 border-blue-600 hover:bg-blue-50'
-                                        : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                        ? 'hover:bg-white/10 text-white'
+                                        : 'text-white/30 cursor-not-allowed'
                                 }`}
+                                title="Transacties importeren"
                             >
-                                📤 Transacties Importeren
+                                <Download className="w-5 h-5" />
                             </button>
 
-                            {accounts.length > 0 && (
-                                <>
-                                    <div className="w-px h-8 bg-white/20 mx-1"></div>
-                                    <AccountSelector
-                                        accounts={accounts}
-                                        selectedAccountId={accountId}
-                                        onAccountChange={setAccountId}
-                                    />
-                                </>
-                            )}
-
-                            {/* User Menu */}
+{/* User Menu Dropdown */}
                             <div className="w-px h-8 bg-white/20 mx-1"></div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-white/80">{user?.email}</span>
+                            <div className="relative" ref={userMenuRef}>
                                 <button
-                                    onClick={logout}
-                                    className="px-3 py-2 rounded-lg transition-colors font-medium hover:bg-white/10 text-white text-sm"
-                                    title="Uitloggen"
+                                    onClick={() => setShowUserMenu(!showUserMenu)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-white/10"
                                 >
-                                    Uitloggen
+                                    <span className="text-sm font-medium">{user?.email}</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                                 </button>
+
+                                {showUserMenu && (
+                                    <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg py-2 z-50">
+                                        {/* Account List in Dropdown */}
+                                        {accounts.length > 0 && (
+                                            <>
+                                                <div className="px-4 py-2">
+                                                    <label className="block text-xs font-medium text-gray-500 mb-2">Account</label>
+                                                </div>
+                                                <div className="max-h-64 overflow-y-auto">
+                                                    {[...accounts].filter(a => a.type !== 'SAVINGS').sort((a, b) => {
+                                                        if (a.isDefault) return -1;
+                                                        if (b.isDefault) return 1;
+                                                        const nameA = a.name || a.accountNumber;
+                                                        const nameB = b.name || b.accountNumber;
+                                                        return nameA.localeCompare(nameB);
+                                                    }).map((account) => {
+                                                        const isSelected = account.id === accountId;
+                                                        const displayName = account.name || account.accountNumber;
+
+                                                        return (
+                                                            <button
+                                                                key={account.id}
+                                                                onClick={() => {
+                                                                    setAccountId(account.id);
+                                                                    setShowUserMenu(false);
+                                                                }}
+                                                                className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
+                                                                    isSelected
+                                                                        ? 'bg-blue-50 text-blue-700 font-medium'
+                                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                <span className="truncate">{displayName}</span>
+                                                                {isSelected && (
+                                                                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <div className="border-t border-gray-200 my-1"></div>
+                                            </>
+                                        )}
+
+                                        {/* Account Management Link */}
+                                        <Link
+                                            to="/accounts"
+                                            onClick={() => setShowUserMenu(false)}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                            Accounts beheren
+                                        </Link>
+
+                                        {/* Divider */}
+                                        <div className="border-t border-gray-200 my-1"></div>
+
+                                        {/* Logout Button */}
+                                        <button
+                                            onClick={() => {
+                                                logout();
+                                                setShowUserMenu(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            Uitloggen
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </nav>
                     </div>
@@ -249,6 +333,7 @@ function AppContent() {
                         <Route path="/patterns/*" element={<PatternModule />} />
                         <Route path="/budgets/*" element={<BudgetsModule />} />
                         <Route path="/categories/*" element={<CategoriesModule />} />
+                        <Route path="/forecast/*" element={<ForecastModule />} />
                         <Route path="/accounts" element={<AccountManagement />} />
                     </Routes>
                 </main>

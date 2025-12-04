@@ -9,4 +9,5 @@ class AccountDTO
     public string $accountNumber;
     public bool $isDefault;
     public string $type;
+    public ?int $parentAccountId = null;
 }

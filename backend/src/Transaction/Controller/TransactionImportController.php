@@ -94,7 +94,8 @@ class TransactionImportController extends AbstractController
             throw new BadRequestHttpException('No file uploaded');
         }
 
-        $result = $this->transactionImportService->import($file);
+        $parentAccount = $this->accountRepository->getById($accountId);
+        $result = $this->transactionImportService->import($file, $parentAccount);
 
         return $this->json($result, 201);
     }
