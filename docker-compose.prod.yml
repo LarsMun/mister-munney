@@ -1,3 +1,7 @@
+# WARNING: This file is for LOCAL testing only!
+# For server deployment, use: deploy/ubuntu/docker-compose.prod.yml
+# The GitHub Actions workflow already uses the correct file.
+
 services:
   backend:
     container_name: munney-prod-backend
