@@ -16,7 +16,7 @@ export default function AccountManagement() {
 
     // Get the selected checking account and its savings accounts
     const selectedAccount = localAccounts.find(a => a.id === accountId);
-    const childSavingsAccounts = localAccounts.filter(a => a.parentAccountId === accountId);
+    const childSavingsAccounts = selectedAccount?.linkedSavingsAccounts || [];
     const unlinkedSavingsAccounts = localAccounts.filter(a => a.type === 'SAVINGS' && a.parentAccountId === null);
 
     // Display: selected account + its children
