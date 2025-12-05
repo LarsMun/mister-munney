@@ -62,5 +62,15 @@ services:
         arguments:
             $hcaptchaSecretKey: '%env(HCAPTCHA_SECRET_KEY)%'
 
+    # Request logger subscriber with dedicated channel
+    App\EventListener\RequestLoggerSubscriber:
+        arguments:
+            $requestLogger: '@monolog.logger.request'
+
+    # Business logger service with dedicated channel
+    App\Service\BusinessLogger:
+        arguments:
+            $businessLogger: '@monolog.logger.business'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

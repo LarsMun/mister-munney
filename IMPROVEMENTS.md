@@ -69,11 +69,13 @@
     - `vendor-charts`: recharts (only loaded on chart pages)
     - `vendor-utils`: axios, zod, date-fns
 
-- [ ] **Add structured logging** (4-6h)
-  - Configure JSON log format
-  - Add request/response logging
-  - Log critical business events
-  - Add correlation IDs
+- [x] **Add structured logging** (4-6h)
+  - Configured JSON log format for all environments
+  - Created `RequestLoggerSubscriber` for request/response logging
+  - Created `BusinessLogger` service for critical business events
+  - Added correlation ID support (X-Correlation-ID header)
+  - Separate log channels: `request`, `business`, `main`
+  - Log files: `request.log`, `business.log`, `dev.log`/`prod.log`
 
 - [ ] **API versioning + pagination** (1 day)
   - Add `/api/v1/` prefix
@@ -142,7 +144,7 @@
 | Category | Total | Completed | Progress |
 |----------|-------|-----------|----------|
 | Quick Wins | 6 | 6 | 100% |
-| Bigger Improvements | 5 | 2 | 40% |
+| Bigger Improvements | 5 | 3 | 60% |
 | Security | 3 | 0 | 0% |
 | Performance | 3 | 0 | 0% |
 | Observability | 3 | 0 | 0% |

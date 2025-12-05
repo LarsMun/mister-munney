@@ -1,3 +1,8 @@
+monolog:
+  channels:
+    - request
+    - business
+
 when@dev:
   monolog:
     handlers:
@@ -6,11 +11,30 @@ when@dev:
         path: "%kernel.logs_dir%/dev.log"
         level: debug
         max_files: 10
+        formatter: monolog.formatter.json
+
+      # Separate file for request logs
+      request:
+        type: rotating_file
+        path: "%kernel.logs_dir%/request.log"
+        level: info
+        max_files: 7
+        channels: [request]
+        formatter: monolog.formatter.json
+
+      # Separate file for business events
+      business:
+        type: rotating_file
+        path: "%kernel.logs_dir%/business.log"
+        level: info
+        max_files: 30
+        channels: [business]
+        formatter: monolog.formatter.json
 
       console:
         type: console
         process_psr_3_messages: false
-        channels: ["!event", "!doctrine"]
+        channels: ["!event", "!doctrine", "!request"]
 
 when@prod:
   monolog:
@@ -19,7 +43,25 @@ when@prod:
         type: rotating_file
         path: "%kernel.logs_dir%/prod.log"
         level: error
-        max_files: 3
+        max_files: 10
+        formatter: monolog.formatter.json
+
+      # Request logs in production
+      request:
+        type: rotating_file
+        path: "%kernel.logs_dir%/request.log"
+        level: info
+        max_files: 14
+        channels: [request]
+        formatter: monolog.formatter.json
+
+      # Business events in production
+      business:
+        type: rotating_file
+        path: "%kernel.logs_dir%/business.log"
+        level: info
+        max_files: 90
+        channels: [business]
         formatter: monolog.formatter.json
 
 when@test:
