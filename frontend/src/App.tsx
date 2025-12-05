@@ -125,6 +125,21 @@ function AppContent() {
         );
     }
 
+    // Check if token still exists (axios interceptor may have cleared it on 401)
+    const tokenStillExists = !!localStorage.getItem('munney_jwt_token');
+
+    // If token was cleared (expired session), show loading while page reloads
+    if (!tokenStillExists) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Sessie verlopen, opnieuw laden...</p>
+                </div>
+            </div>
+        );
+    }
+
     // Show welcome screen if no accounts exist
     if (!hasAccounts) {
         return (
