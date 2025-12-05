@@ -218,35 +218,59 @@ export default function HistoricalDataDrawer({
                     ) : (
                         <div className="p-6">
                             {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-blue-600 mb-1">
-                                        <TrendingUp className="w-4 h-4" />
-                                        <span className="text-xs font-medium uppercase">Totaal</span>
+                            {(() => {
+                                // Calculate 6-month average from the most recent 6 months
+                                const sortedHistory = [...data.history].sort((a, b) => b.month.localeCompare(a.month));
+                                const last6Months = sortedHistory.slice(0, 6);
+                                const last6MonthsTotal = last6Months.reduce((sum, m) => sum + Math.abs(m.total), 0);
+                                const last6MonthsAverage = last6Months.length > 0 ? last6MonthsTotal / last6Months.length : 0;
+
+                                return (
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-blue-600 mb-1">
+                                                <TrendingUp className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Totaal</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {formatMoney(Math.abs(data.totalAmount))}
+                                            </p>
+                                        </div>
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-green-600 mb-1">
+                                                <Calendar className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Gem./maand</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {formatMoney(Math.abs(data.averagePerMonth))}
+                                            </p>
+                                        </div>
+                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-orange-600 mb-1">
+                                                <TrendingUp className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Gem. 6 mnd</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {formatMoney(last6MonthsAverage)}
+                                            </p>
+                                            {last6Months.length < 6 && (
+                                                <p className="text-xs text-orange-600 mt-1">
+                                                    ({last6Months.length} {last6Months.length === 1 ? 'maand' : 'maanden'})
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-purple-600 mb-1">
+                                                <Calendar className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Periode</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {data.monthCount} {data.monthCount === 1 ? 'maand' : 'maanden'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {formatMoney(Math.abs(data.totalAmount))}
-                                    </p>
-                                </div>
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-green-600 mb-1">
-                                        <Calendar className="w-4 h-4" />
-                                        <span className="text-xs font-medium uppercase">Gemiddeld/maand</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {formatMoney(Math.abs(data.averagePerMonth))}
-                                    </p>
-                                </div>
-                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-purple-600 mb-1">
-                                        <Calendar className="w-4 h-4" />
-                                        <span className="text-xs font-medium uppercase">Periode</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {data.monthCount} {data.monthCount === 1 ? 'maand' : 'maanden'}
-                                    </p>
-                                </div>
-                            </div>
+                                );
+                            })()}
 
                             {/* Chart */}
                             {data.history.length > 0 && (
