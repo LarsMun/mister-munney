@@ -219,8 +219,11 @@ export default function HistoricalDataDrawer({
                         <div className="p-6">
                             {/* Summary Cards */}
                             {(() => {
-                                // Calculate 6-month average from the most recent 6 months
-                                const sortedHistory = [...data.history].sort((a, b) => b.month.localeCompare(a.month));
+                                // Calculate 6-month average from the 6 months BEFORE the current month
+                                const currentMonth = new Date().toISOString().substring(0, 7);
+                                const sortedHistory = [...data.history]
+                                    .filter(m => m.month < currentMonth) // Exclude current month
+                                    .sort((a, b) => b.month.localeCompare(a.month));
                                 const last6Months = sortedHistory.slice(0, 6);
                                 const last6MonthsTotal = last6Months.reduce((sum, m) => sum + Math.abs(m.total), 0);
                                 const last6MonthsAverage = last6Months.length > 0 ? last6MonthsTotal / last6Months.length : 0;
