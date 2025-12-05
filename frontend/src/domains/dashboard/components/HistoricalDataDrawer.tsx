@@ -219,14 +219,22 @@ export default function HistoricalDataDrawer({
                         <div className="p-6">
                             {/* Summary Cards */}
                             {(() => {
-                                // Calculate 6-month average from the 6 months BEFORE the current month
+                                // Calculate median over 12 months BEFORE the current month
                                 const currentMonth = new Date().toISOString().substring(0, 7);
-                                const sortedHistory = [...data.history]
+                                const previousMonths = [...data.history]
                                     .filter(m => m.month < currentMonth) // Exclude current month
-                                    .sort((a, b) => b.month.localeCompare(a.month));
-                                const last6Months = sortedHistory.slice(0, 6);
-                                const last6MonthsTotal = last6Months.reduce((sum, m) => sum + Math.abs(m.total), 0);
-                                const last6MonthsAverage = last6Months.length > 0 ? last6MonthsTotal / last6Months.length : 0;
+                                    .sort((a, b) => b.month.localeCompare(a.month))
+                                    .slice(0, 12); // Last 12 months
+
+                                // Calculate median
+                                const amounts = previousMonths.map(m => Math.abs(m.total)).sort((a, b) => a - b);
+                                let median12Months = 0;
+                                if (amounts.length > 0) {
+                                    const mid = Math.floor(amounts.length / 2);
+                                    median12Months = amounts.length % 2 === 0
+                                        ? (amounts[mid - 1] + amounts[mid]) / 2
+                                        : amounts[mid];
+                                }
 
                                 return (
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -251,14 +259,14 @@ export default function HistoricalDataDrawer({
                                         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                                             <div className="flex items-center gap-2 text-orange-600 mb-1">
                                                 <TrendingUp className="w-4 h-4" />
-                                                <span className="text-xs font-medium uppercase">Gem. 6 mnd</span>
+                                                <span className="text-xs font-medium uppercase">Mediaan 12 mnd</span>
                                             </div>
                                             <p className="text-2xl font-bold text-gray-900">
-                                                {formatMoney(last6MonthsAverage)}
+                                                {formatMoney(median12Months)}
                                             </p>
-                                            {last6Months.length < 6 && (
+                                            {previousMonths.length < 12 && previousMonths.length > 0 && (
                                                 <p className="text-xs text-orange-600 mt-1">
-                                                    ({last6Months.length} {last6Months.length === 1 ? 'maand' : 'maanden'})
+                                                    ({previousMonths.length} {previousMonths.length === 1 ? 'maand' : 'maanden'})
                                                 </p>
                                             )}
                                         </div>
