@@ -1,16 +1,10 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
-import TransactionsModule from './domains/transactions';
-import PatternModule from './domains/patterns';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import WelcomeScreen from './components/WelcomeScreen';
 import AuthScreen from './components/AuthScreen';
 import UnlockScreen from './components/UnlockScreen';
-import BudgetsModule from './domains/budgets';
-import AccountManagement from './domains/accounts';
-import DashboardModule from './domains/dashboard';
-import CategoriesModule from './domains/categories';
-import ForecastModule from './domains/forecast';
+import PageLoader from './shared/components/PageLoader';
 import { useAccount } from './app/context/AccountContext';
 import { useAuth } from './shared/contexts/AuthContext';
 import logo from './assets/mister-munney-logo.png';
@@ -18,6 +12,15 @@ import { Toaster } from "react-hot-toast";
 import toast from 'react-hot-toast';
 import { importTransactions } from './lib/api';
 import { Download, ChevronDown, LogOut, Settings } from 'lucide-react';
+
+// Lazy load route components for code splitting
+const DashboardModule = lazy(() => import('./domains/dashboard'));
+const TransactionsModule = lazy(() => import('./domains/transactions'));
+const PatternModule = lazy(() => import('./domains/patterns'));
+const BudgetsModule = lazy(() => import('./domains/budgets'));
+const CategoriesModule = lazy(() => import('./domains/categories'));
+const ForecastModule = lazy(() => import('./domains/forecast'));
+const AccountManagement = lazy(() => import('./domains/accounts'));
 
 function AppContent() {
     const location = useLocation();
@@ -342,15 +345,17 @@ function AppContent() {
 
                 {/* Main Content */}
                 <main className="flex-grow container mx-auto p-6">
-                    <Routes>
-                        <Route path="/" element={<DashboardModule />} />
-                        <Route path="/transactions/*" element={<TransactionsModule />} />
-                        <Route path="/patterns/*" element={<PatternModule />} />
-                        <Route path="/budgets/*" element={<BudgetsModule />} />
-                        <Route path="/categories/*" element={<CategoriesModule />} />
-                        <Route path="/forecast/*" element={<ForecastModule />} />
-                        <Route path="/accounts" element={<AccountManagement />} />
-                    </Routes>
+                    <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                            <Route path="/" element={<DashboardModule />} />
+                            <Route path="/transactions/*" element={<TransactionsModule />} />
+                            <Route path="/patterns/*" element={<PatternModule />} />
+                            <Route path="/budgets/*" element={<BudgetsModule />} />
+                            <Route path="/categories/*" element={<CategoriesModule />} />
+                            <Route path="/forecast/*" element={<ForecastModule />} />
+                            <Route path="/accounts" element={<AccountManagement />} />
+                        </Routes>
+                    </Suspense>
                 </main>
 
                 {/* Footer */}

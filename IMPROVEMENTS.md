@@ -60,10 +60,14 @@
   - Add more E2E Playwright tests
   - Enable integration tests in CI
 
-- [ ] **Implement code splitting** (3-4h)
-  - Lazy load route components
-  - Split vendor chunks
-  - Add loading states for lazy components
+- [x] **Implement code splitting** (3-4h)
+  - Lazy load all route components using React.lazy()
+  - Created PageLoader component for Suspense fallback
+  - Configured Vite manual chunks for vendor splitting:
+    - `vendor-react`: react, react-dom, react-router-dom
+    - `vendor-ui`: lucide-react, react-hot-toast
+    - `vendor-charts`: recharts (only loaded on chart pages)
+    - `vendor-utils`: axios, zod, date-fns
 
 - [ ] **Add structured logging** (4-6h)
   - Configure JSON log format
@@ -138,7 +142,7 @@
 | Category | Total | Completed | Progress |
 |----------|-------|-----------|----------|
 | Quick Wins | 6 | 6 | 100% |
-| Bigger Improvements | 5 | 1 | 20% |
+| Bigger Improvements | 5 | 2 | 40% |
 | Security | 3 | 0 | 0% |
 | Performance | 3 | 0 | 0% |
 | Observability | 3 | 0 | 0% |
