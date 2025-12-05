@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { CreateBudget } from '../models/Budget';
 import { IconPicker } from '../../../shared/components/IconPicker';
+import { useFormValidation, createBudgetSchema } from '../../../shared/validation';
 
 interface CreateBudgetModalProps {
     isOpen: boolean;
@@ -18,23 +19,12 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
         categoryIds: []
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-
-    const validate = () => {
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.name.trim()) {
-            newErrors.name = 'Naam is verplicht';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+    const { errors, validate, clearFieldError } = useFormValidation(createBudgetSchema);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validate()) return;
+        if (!validate(formData)) return;
 
         setIsSubmitting(true);
         try {
@@ -55,7 +45,6 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
             icon: null,
             categoryIds: []
         });
-        setErrors({});
         onClose();
     };
 
@@ -77,8 +66,13 @@ export function CreateBudgetModal({ isOpen, onClose, onCreate, accountId }: Crea
                         <input
                             type="text"
                             value={formData.name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onChange={(e) => {
+                                setFormData(prev => ({ ...prev, name: e.target.value }));
+                                clearFieldError('name');
+                            }}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                errors.name ? 'border-red-500' : 'border-gray-300'
+                            }`}
                             placeholder="Bijv. Boodschappen"
                             disabled={isSubmitting}
                         />

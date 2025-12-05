@@ -14,9 +14,26 @@ export async function fetchPatternMatches(accountId: number, pattern: PatternInp
     return response.data;
 }
 
-export function sanitizePattern(p: PatternInput): Record<string, any> {
-    const clean: Record<string, any> = {
+interface SanitizedPattern {
+    accountId: number;
+    description?: string;
+    matchTypeDescription?: 'LIKE' | 'EXACT';
+    notes?: string;
+    matchTypeNotes?: 'LIKE' | 'EXACT';
+    tag?: string;
+    transactionType?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    startDate?: string;
+    endDate?: string;
+    categoryId?: number;
+    strict: boolean;
+}
+
+export function sanitizePattern(p: PatternInput): SanitizedPattern {
+    const clean: SanitizedPattern = {
         accountId: p.accountId,
+        strict: p.strict ?? false,
     };
 
     if (p.description?.trim()) {
@@ -49,9 +66,6 @@ export function sanitizePattern(p: PatternInput): Record<string, any> {
     if (p.endDate) clean.endDate = p.endDate;
     if (p.categoryId) clean.categoryId = p.categoryId;
 
-    // Always include strict flag (defaults to false if undefined)
-    clean.strict = p.strict ?? false;
-
     return clean;
 }
 
@@ -60,13 +74,13 @@ export async function getPatternsForAccount(accountId: number): Promise<PatternD
     return response.data;
 }
 
-export async function createPattern(accountId: number, payload: any) {
+export async function createPattern(accountId: number, payload: PatternInput): Promise<PatternDTO> {
     const sanitized = sanitizePattern(payload);
     const response = await api.post(`/account/${accountId}/patterns`, sanitized);
     return response.data;
 }
 
-export async function updatePattern(accountId: number, patternId: number, payload: any): Promise<PatternDTO> {
+export async function updatePattern(accountId: number, patternId: number, payload: PatternInput): Promise<PatternDTO> {
     const sanitized = sanitizePattern(payload);
     const response = await api.patch(`/account/${accountId}/patterns/${patternId}`, sanitized);
     return response.data;

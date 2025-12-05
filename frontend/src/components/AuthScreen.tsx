@@ -3,11 +3,13 @@ import { useAuth } from '../shared/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import logo from '../assets/mister-munney-logo.png';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
+import { useFormValidation, loginSchema } from '../shared/validation';
 
 const HCAPTCHA_SITE_KEY = '89d8116c-c1de-4818-b25c-1abe39bed464';
 
 export default function AuthScreen() {
     const { login } = useAuth();
+    const { errors, validate, validateField, clearFieldError } = useFormValidation(loginSchema);
     // Registration disabled - always in login mode
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -19,9 +21,8 @@ export default function AuthScreen() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validation
-        if (!email || !password) {
-            toast.error('Vul alle velden in');
+        // Validate with Zod
+        if (!validate({ email, password })) {
             return;
         }
 
@@ -88,12 +89,21 @@ export default function AuthScreen() {
                             id="email"
                             type="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                clearFieldError('email');
+                            }}
+                            onBlur={() => validateField('email', email)}
                             disabled={isLoading}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed ${
+                                errors.email ? 'border-red-500' : 'border-gray-300'
+                            }`}
                             placeholder="jouw@email.nl"
                             autoComplete="email"
                         />
+                        {errors.email && (
+                            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                        )}
                     </div>
 
                     {/* Password */}
@@ -105,12 +115,21 @@ export default function AuthScreen() {
                             id="password"
                             type="password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                clearFieldError('password');
+                            }}
+                            onBlur={() => validateField('password', password)}
                             disabled={isLoading}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed ${
+                                errors.password ? 'border-red-500' : 'border-gray-300'
+                            }`}
                             placeholder="Wachtwoord"
                             autoComplete="current-password"
                         />
+                        {errors.password && (
+                            <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                        )}
                     </div>
 
                     {/* hCaptcha (shown after 3 failed attempts) */}

@@ -1,9 +1,16 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import axios from 'axios';
 import api from '../../lib/axios';
+import type { ApiError } from '../utils/errorUtils';
 
 interface User {
     id: number;
     email: string;
+}
+
+interface CaptchaError extends Error {
+    requiresCaptcha: boolean;
+    failedAttempts?: number;
 }
 
 interface AuthContextType {
@@ -46,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = useCallback(async (email: string, password: string, captchaToken?: string) => {
         try {
-            const requestBody: any = { email, password };
+            const requestBody: { email: string; password: string; captchaToken?: string } = { email, password };
             if (captchaToken) {
                 requestBody.captchaToken = captchaToken;
             }
@@ -67,20 +74,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             setToken(jwtToken);
             setUser(userData);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login failed:', error);
-            if (error.response?.status === 401) {
-                throw new Error('Ongeldige inloggegevens');
-            }
-            if (error.response?.status === 403 && error.response?.data?.locked) {
-                throw new Error('Je account is vergrendeld. Controleer je e-mail voor een ontgrendelingslink.');
-            }
-            if (error.response?.status === 400 && error.response?.data?.requiresCaptcha) {
-                // Re-throw with requiresCaptcha flag so AuthScreen can show CAPTCHA
-                const captchaError: any = new Error('CAPTCHA verificatie vereist');
-                captchaError.requiresCaptcha = true;
-                captchaError.failedAttempts = error.response?.data?.failedAttempts;
-                throw captchaError;
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 401) {
+                    throw new Error('Ongeldige inloggegevens');
+                }
+                if (error.response?.status === 403 && error.response?.data?.locked) {
+                    throw new Error('Je account is vergrendeld. Controleer je e-mail voor een ontgrendelingslink.');
+                }
+                if (error.response?.status === 400 && error.response?.data?.requiresCaptcha) {
+                    // Re-throw with requiresCaptcha flag so AuthScreen can show CAPTCHA
+                    const captchaError = new Error('CAPTCHA verificatie vereist') as CaptchaError;
+                    captchaError.requiresCaptcha = true;
+                    captchaError.failedAttempts = error.response?.data?.failedAttempts;
+                    throw captchaError;
+                }
             }
             throw new Error('Inloggen mislukt. Probeer het opnieuw.');
         }
@@ -88,17 +97,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const register = useCallback(async (email: string, password: string) => {
         try {
-            const response = await api.post('/register', { email, password });
+            await api.post('/register', { email, password });
 
             // After successful registration, automatically log in
             await login(email, password);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Registration failed:', error);
-            if (error.response?.status === 409) {
-                throw new Error('Dit e-mailadres is al geregistreerd');
-            }
-            if (error.response?.data?.error) {
-                throw new Error(error.response.data.error);
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 409) {
+                    throw new Error('Dit e-mailadres is al geregistreerd');
+                }
+                if (error.response?.data?.error) {
+                    throw new Error(error.response.data.error);
+                }
             }
             throw new Error('Registreren mislukt. Probeer het opnieuw.');
         }
