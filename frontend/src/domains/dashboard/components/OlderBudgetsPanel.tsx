@@ -19,12 +19,14 @@ export default function OlderBudgetsPanel({ budgets, accountId }: OlderBudgetsPa
     }
 
     const handleBudgetClick = async (budget: OlderBudget) => {
+        if (!accountId) return;
+
         setSelectedBudget(budget);
         setIsDrawerOpen(true);
         setIsLoadingHistory(true);
 
         try {
-            const history = await fetchBudgetHistory(budget.id);
+            const history = await fetchBudgetHistory(accountId, budget.id);
             setHistoricalData(history);
         } catch (error) {
             console.error('Error fetching budget history:', error);
