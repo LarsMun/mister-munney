@@ -1,5 +1,6 @@
 import { Treemap, Tooltip, ResponsiveContainer } from "recharts";
 import type { TooltipProps } from "recharts";
+import { formatMoney } from "../../../shared/utils/MoneyFormat";
 
 interface Props {
     treeMapData: {
@@ -45,7 +46,7 @@ export default function TreeMapChartExpenses({ treeMapData, onSelectCategory }: 
         return (
             <div className="bg-white p-2 rounded shadow text-xs text-gray-700">
                 <div className="font-semibold mb-1">{data.name}</div>
-                <div>Bedrag: <span className="font-medium">€ {data.value.toFixed(2)}</span></div>
+                <div>Bedrag: <span className="font-medium">{formatMoney(data.value)}</span></div>
                 <div>Aantal transacties: <span className="font-medium">{data.transactionCount}</span></div>
             </div>
         );

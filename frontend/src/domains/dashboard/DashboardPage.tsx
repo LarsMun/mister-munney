@@ -14,6 +14,7 @@ import ActiveBudgetsGrid from './components/ActiveBudgetsGrid';
 import OlderBudgetsPanel from './components/OlderBudgetsPanel';
 import ProjectsSection from '../budgets/components/ProjectsSection';
 import ProjectCreateForm from '../budgets/components/ProjectCreateForm';
+import { formatMoney } from '../../shared/utils/MoneyFormat';
 
 const formatPeriod = (startDate: string, endDate: string): string => {
     const start = new Date(startDate);
@@ -123,7 +124,7 @@ export default function DashboardPage() {
         if (netTotal > 0) {
             newInsights.push({
                 type: 'success' as const,
-                message: `Je hebt deze periode ${Math.abs(netTotal).toFixed(2)} euro gespaard!`,
+                message: `Je hebt deze periode ${formatMoney(Math.abs(netTotal))} gespaard!`,
                 icon: '💰'
             });
         }
@@ -220,8 +221,7 @@ export default function DashboardPage() {
             return sum + current;
         }, 0);
 
-        const formatAmount = (amount: number) =>
-            `€ ${amount.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const formatAmount = (amount: number) => formatMoney(amount);
 
         return (
             <div className="min-h-screen bg-gray-50 p-6">
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
                             <span className="text-sm text-gray-600">Saldo:</span>
                             <span className="text-lg font-bold text-blue-600">
-                                € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatMoney(Number(summary.end_balance))}
                             </span>
                         </div>
                     )}
@@ -398,7 +398,7 @@ export default function DashboardPage() {
                     <h1 className="text-2xl font-bold">Dashboard</h1>
                     {summary?.end_balance && (
                         <span className="text-lg font-semibold text-blue-600">
-                            Saldo: € {Number(summary.end_balance).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Saldo: {formatMoney(Number(summary.end_balance))}
                         </span>
                     )}
                 </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatMoney } from '../../../shared/utils/MoneyFormat';
+import { formatMoney, formatNumber } from '../../../shared/utils/MoneyFormat';
 import { getTransactions } from '../../transactions/services/TransactionsService';
 import type { Transaction } from '../../transactions/models/Transaction';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -314,11 +314,11 @@ export default function HistoricalDataDrawer({
                                                 tick={{ fontSize: 12 }}
                                             />
                                             <YAxis
-                                                tickFormatter={(value) => `€${value.toLocaleString('nl-NL')}`}
+                                                tickFormatter={(value) => `€ ${formatNumber(value, 0)}`}
                                                 tick={{ fontSize: 12 }}
                                             />
                                             <Tooltip
-                                                formatter={(value: any) => [`€${Number(value).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Bedrag']}
+                                                formatter={(value: any) => [formatMoney(Number(value)), 'Bedrag']}
                                                 labelStyle={{ color: '#374151' }}
                                                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.375rem' }}
                                             />

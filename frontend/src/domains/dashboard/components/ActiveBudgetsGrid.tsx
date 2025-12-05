@@ -74,13 +74,13 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
     const isIncomeBudget = budget.budgetType === 'INCOME';
 
     // Helper function to format amount (positive for INCOME budgets)
-    const formatAmount = (amount: string | number | null): string => {
-        if (amount === null || amount === undefined) return '0.00';
+    const formatBudgetAmount = (amount: string | number | null): string => {
+        if (amount === null || amount === undefined) return formatMoney(0);
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
         if (isIncomeBudget) {
-            return Math.abs(numAmount).toFixed(2);
+            return formatMoney(Math.abs(numAmount));
         }
-        return numAmount.toFixed(2);
+        return formatMoney(numAmount);
     };
 
     // Calculate comparison status
@@ -292,7 +292,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                                 </span>
                             )}
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">€{formatAmount(insight.current)}</div>
+                        <div className="text-2xl font-bold text-gray-900">{formatBudgetAmount(insight.current)}</div>
                     </div>
 
                     {/* Sparkline */}
@@ -313,18 +313,18 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                     <div className="space-y-1.5 text-sm">
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Normaal:</span>
-                            <span className="font-medium text-gray-700">€{formatAmount(insight.normal)}</span>
+                            <span className="font-medium text-gray-700">{formatBudgetAmount(insight.normal)}</span>
                         </div>
                         {insight.previousPeriod && (
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">{insight.previousPeriodLabel}:</span>
-                                <span className="font-medium text-gray-700">€{formatAmount(insight.previousPeriod)}</span>
+                                <span className="font-medium text-gray-700">{formatBudgetAmount(insight.previousPeriod)}</span>
                             </div>
                         )}
                         {insight.lastYear && (
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">Vorig jaar:</span>
-                                <span className="font-medium text-gray-700">€{formatAmount(insight.lastYear)}</span>
+                                <span className="font-medium text-gray-700">{formatBudgetAmount(insight.lastYear)}</span>
                             </div>
                         )}
                     </div>
