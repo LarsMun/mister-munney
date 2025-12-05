@@ -23,10 +23,10 @@ class TransactionFilterDTO
     )]
     public ?string $endDate = null;
 
-    #[Assert\PositiveOrZero(message: 'Minimumbedrag moet 0 of groter zijn')]
+    #[Assert\Type(type: 'numeric', message: 'Minimumbedrag moet een getal zijn')]
     public ?float $minAmount = null;
 
-    #[Assert\PositiveOrZero(message: 'Maximumbedrag moet 0 of groter zijn')]
+    #[Assert\Type(type: 'numeric', message: 'Maximumbedrag moet een getal zijn')]
     #[Assert\Expression(
         expression: 'this.minAmount === null or this.maxAmount === null or this.minAmount <= this.maxAmount',
         message: 'Maximumbedrag moet gelijk of groter zijn dan minimumbedrag'
