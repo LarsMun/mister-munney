@@ -45,21 +45,15 @@ export default function OlderBudgetsPanel({ budgets, accountId }: OlderBudgetsPa
     // Transform historical data for the drawer
     const drawerData = historicalData && selectedBudget ? {
         budget: {
-            id: selectedBudget.id,
-            name: selectedBudget.name,
-            budgetType: selectedBudget.budgetType,
-            categoryIds: [] // Will be populated from history if needed
+            id: historicalData.budget.id,
+            name: historicalData.budget.name,
+            budgetType: historicalData.budget.budgetType,
+            categoryIds: historicalData.budget.categoryIds
         },
-        history: historicalData.months.map(m => ({
-            month: m.month,
-            total: m.total,
-            transactionCount: m.transactionCount
-        })),
-        totalAmount: historicalData.months.reduce((sum, m) => sum + m.total, 0),
-        averagePerMonth: historicalData.months.length > 0
-            ? historicalData.months.reduce((sum, m) => sum + m.total, 0) / historicalData.months.length
-            : 0,
-        monthCount: historicalData.months.length
+        history: historicalData.history,
+        totalAmount: historicalData.totalAmount,
+        averagePerMonth: historicalData.averagePerMonth,
+        monthCount: historicalData.monthCount
     } : null;
 
     return (
