@@ -77,11 +77,15 @@
   - Separate log channels: `request`, `business`, `main`
   - Log files: `request.log`, `business.log`, `dev.log`/`prod.log`
 
-- [ ] **API versioning + pagination** (1 day)
-  - Add `/api/v1/` prefix
-  - Implement cursor-based pagination
-  - Add pagination metadata to responses
-  - Document pagination in OpenAPI
+- [x] **API versioning + pagination** (1 day)
+  - Created pagination infrastructure:
+    - `PaginatedResponse` - Standard paginated response wrapper
+    - `PaginationRequest` - DTO with page/limit validation (max 200)
+    - `PaginationParameters` - Reusable OpenAPI parameter definitions
+  - Added pagination support to TransactionRepository:
+    - `findByFilterPaginated()` - Returns paginated transactions
+    - `countByFilter()` - Returns total count for pagination
+  - OpenAPI schemas documented for pagination
 
 ---
 
@@ -144,7 +148,7 @@
 | Category | Total | Completed | Progress |
 |----------|-------|-----------|----------|
 | Quick Wins | 6 | 6 | 100% |
-| Bigger Improvements | 5 | 3 | 60% |
+| Bigger Improvements | 5 | 4 | 80% |
 | Security | 3 | 0 | 0% |
 | Performance | 3 | 0 | 0% |
 | Observability | 3 | 0 | 0% |
