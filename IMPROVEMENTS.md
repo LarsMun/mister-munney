@@ -38,10 +38,21 @@
 
 ## Bigger Improvements
 
-- [ ] **Add comprehensive DTO validation** (3-4h)
-  - Add Symfony validation constraints to all DTOs
-  - Create custom validators for business rules
-  - Add validation error messages (Dutch)
+- [x] **Add comprehensive DTO validation** (3-4h)
+  - Added Symfony validation constraints to all input DTOs
+  - All error messages translated to Dutch
+  - DTOs updated:
+    - `CreatePatternDTO` - Added length limits, choice constraints, Dutch messages
+    - `UpdatePatternDTO` - Added length limits, choice constraints, Dutch messages
+    - `CreateProjectDTO` - Added name length, description max, duration range (1-120 months)
+    - `UpdateProjectDTO` - Added validation for all optional fields
+    - `CreateExternalPaymentDTO` - Added amount max (10M), direction choices
+    - `TransactionFilterDTO` - Added cross-field validation (date/amount ranges)
+    - `SetCategoryDTO` - Added positive constraint with Dutch message
+    - `AcceptPatternSuggestionDTO` - Added length limits, hex color regex
+    - `AssignPatternDateRangeDTO` - Added Dutch messages for NotBlank/Date
+    - `CreateBudgetDTO` - Added categoryIds array validation, icon length
+    - `UpdateBudgetDTO` - Added Dutch messages for length constraints
 
 - [ ] **Increase test coverage to 80%** (1-2 days)
   - Add unit tests for services
@@ -127,7 +138,7 @@
 | Category | Total | Completed | Progress |
 |----------|-------|-----------|----------|
 | Quick Wins | 6 | 6 | 100% |
-| Bigger Improvements | 5 | 0 | 0% |
+| Bigger Improvements | 5 | 1 | 20% |
 | Security | 3 | 0 | 0% |
 | Performance | 3 | 0 | 0% |
 | Observability | 3 | 0 | 0% |
