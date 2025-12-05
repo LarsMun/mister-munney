@@ -14,6 +14,9 @@ import ActiveBudgetsGrid from './components/ActiveBudgetsGrid';
 import OlderBudgetsPanel from './components/OlderBudgetsPanel';
 import ProjectsSection from '../budgets/components/ProjectsSection';
 import ProjectCreateForm from '../budgets/components/ProjectCreateForm';
+import SavingsAccountsPanel from './components/SavingsAccountsPanel';
+import AccountService from '../accounts/services/AccountService';
+import type { Account } from '../accounts/models/Account';
 import { formatMoney } from '../../shared/utils/MoneyFormat';
 
 const formatPeriod = (startDate: string, endDate: string): string => {
@@ -59,6 +62,7 @@ export default function DashboardPage() {
     const [activeBudgets, setActiveBudgets] = useState<ActiveBudget[]>([]);
     const [olderBudgets, setOlderBudgets] = useState<OlderBudget[]>([]);
     const [projects, setProjects] = useState<ProjectDetails[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoadingAdaptive, setIsLoadingAdaptive] = useState(false);
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
 
@@ -159,6 +163,10 @@ export default function DashboardPage() {
                 const projectsData = await fetchProjects(undefined, accountId); // Fetch all projects (ACTIVE + COMPLETED)
                 setProjects(projectsData);
             }
+
+            // Fetch accounts (including savings accounts)
+            const accountsData = await AccountService.getAll();
+            setAccounts(accountsData);
         } catch (error) {
             console.error('[Dashboard] Error loading adaptive dashboard:', error);
         } finally {
@@ -371,6 +379,14 @@ export default function DashboardPage() {
                         onSuccess={() => loadAdaptiveDashboard()}
                     />
                 )}
+
+                {/* Savings Accounts Section */}
+                <div className="mb-8">
+                    <SavingsAccountsPanel
+                        accounts={accounts}
+                        checkingAccountId={accountId}
+                    />
+                </div>
 
                 {/* Older Budgets Panel (collapsible) */}
                 <div className="mb-8">
