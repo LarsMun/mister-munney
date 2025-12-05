@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { parseCreditCardPdf, ParseResult } from '../services/TransactionSplitService';
+import { formatMoney } from '../../../shared/utils/MoneyFormat';
 
 interface CreditCardUploadModalProps {
     isOpen: boolean;
@@ -42,7 +43,7 @@ export default function CreditCardUploadModal({
                 toast.success(`${result.count} transacties gevonden`);
             } else {
                 toast.error(
-                    `Totaalbedrag (€${result.total.toFixed(2)}) komt niet overeen met incasso (€${result.parentAmount.toFixed(2)})`
+                    `Totaalbedrag (${formatMoney(result.total)}) komt niet overeen met incasso (${formatMoney(result.parentAmount)})`
                 );
             }
         } catch (error) {
@@ -76,7 +77,7 @@ export default function CreditCardUploadModal({
                             Creditcard Afschrift Importeren
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">
-                            Incasso bedrag: €{Math.abs(transactionAmount).toFixed(2)}
+                            Incasso bedrag: {formatMoney(Math.abs(transactionAmount))}
                         </p>
                     </div>
                     <button
@@ -144,10 +145,10 @@ export default function CreditCardUploadModal({
                                             <span className="font-medium">Gevonden transacties:</span> {parseResult.count}
                                         </p>
                                         <p className={parseResult.valid ? 'text-green-800' : 'text-red-800'}>
-                                            <span className="font-medium">Totaal:</span> €{parseResult.total.toFixed(2)}
+                                            <span className="font-medium">Totaal:</span> {formatMoney(parseResult.total)}
                                         </p>
                                         <p className={parseResult.valid ? 'text-green-800' : 'text-red-800'}>
-                                            <span className="font-medium">Incasso bedrag:</span> €{parseResult.parentAmount.toFixed(2)}
+                                            <span className="font-medium">Incasso bedrag:</span> {formatMoney(parseResult.parentAmount)}
                                         </p>
                                         {!parseResult.valid && (
                                             <p className="text-red-800 mt-2">
@@ -169,7 +170,7 @@ export default function CreditCardUploadModal({
                                                                 <p className="text-gray-500">{tx.date}</p>
                                                             </div>
                                                             <p className={`font-medium ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                                €{tx.amount.toFixed(2)}
+                                                                {formatMoney(tx.amount)}
                                                             </p>
                                                         </div>
                                                     </div>

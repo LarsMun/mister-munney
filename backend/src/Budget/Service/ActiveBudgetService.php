@@ -25,7 +25,8 @@ class ActiveBudgetService
     }
 
     /**
-     * Get all active budgets (EXPENSE/INCOME with recent transactions, or ACTIVE projects)
+     * Get all active budgets (EXPENSE/INCOME with recent transactions)
+     * Excludes PROJECT type - those are shown in Projects section
      */
     public function getActiveBudgets(?int $months = null, ?BudgetType $type = null, ?int $accountId = null): array
     {
@@ -37,6 +38,11 @@ class ActiveBudgetService
         $active = [];
 
         foreach ($allBudgets as $budget) {
+            // Skip PROJECT type budgets - they have their own section
+            if ($budget->getBudgetType() === BudgetType::PROJECT) {
+                continue;
+            }
+
             // Filter by type if specified
             if ($type !== null && $budget->getBudgetType() !== $type) {
                 continue;
@@ -51,7 +57,7 @@ class ActiveBudgetService
     }
 
     /**
-     * Get all older/inactive budgets
+     * Get all older/inactive budgets (excludes PROJECT type - those are shown in Projects section)
      */
     public function getOlderBudgets(?int $months = null, ?BudgetType $type = null, ?int $accountId = null): array
     {
@@ -63,6 +69,11 @@ class ActiveBudgetService
         $older = [];
 
         foreach ($allBudgets as $budget) {
+            // Skip PROJECT type budgets - they have their own section
+            if ($budget->getBudgetType() === BudgetType::PROJECT) {
+                continue;
+            }
+
             // Filter by type if specified
             if ($type !== null && $budget->getBudgetType() !== $type) {
                 continue;

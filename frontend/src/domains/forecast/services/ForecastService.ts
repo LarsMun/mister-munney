@@ -69,12 +69,16 @@ export function formatMonthDisplay(month: string): string {
 
 export function getPreviousMonth(month: string): string {
     const [year, monthNum] = month.split('-').map(Number);
-    const date = new Date(year, monthNum - 2, 1); // -2 because months are 0-indexed
-    return date.toISOString().substring(0, 7);
+    if (monthNum === 1) {
+        return `${year - 1}-12`;
+    }
+    return `${year}-${String(monthNum - 1).padStart(2, '0')}`;
 }
 
 export function getNextMonth(month: string): string {
     const [year, monthNum] = month.split('-').map(Number);
-    const date = new Date(year, monthNum, 1); // monthNum is already the next month (0-indexed)
-    return date.toISOString().substring(0, 7);
+    if (monthNum === 12) {
+        return `${year + 1}-01`;
+    }
+    return `${year}-${String(monthNum + 1).padStart(2, '0')}`;
 }

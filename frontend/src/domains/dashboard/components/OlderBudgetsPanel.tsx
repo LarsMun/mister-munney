@@ -1,45 +1,112 @@
+import { useState } from 'react';
 import { OlderBudget } from '../../budgets/models/AdaptiveBudget';
+import { fetchBudgetHistory, type BudgetHistory } from '../../budgets/services/BudgetsService';
+import HistoricalDataDrawer from './HistoricalDataDrawer';
 
 interface OlderBudgetsPanelProps {
     budgets: OlderBudget[];
+    accountId?: number;
 }
 
-export default function OlderBudgetsPanel({ budgets }: OlderBudgetsPanelProps) {
+export default function OlderBudgetsPanel({ budgets, accountId }: OlderBudgetsPanelProps) {
+    const [selectedBudget, setSelectedBudget] = useState<OlderBudget | null>(null);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [historicalData, setHistoricalData] = useState<BudgetHistory | null>(null);
+
     if (budgets.length === 0) {
         return null;
     }
 
+    const handleBudgetClick = async (budget: OlderBudget) => {
+        if (!accountId) return;
+
+        setSelectedBudget(budget);
+        setIsDrawerOpen(true);
+        setIsLoadingHistory(true);
+
+        try {
+            const history = await fetchBudgetHistory(accountId, budget.id);
+            setHistoricalData(history);
+        } catch (error) {
+            console.error('Error fetching budget history:', error);
+            setHistoricalData(null);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
+
+    const handleCloseDrawer = () => {
+        setIsDrawerOpen(false);
+        setSelectedBudget(null);
+        setHistoricalData(null);
+    };
+
+    // Transform historical data for the drawer
+    const drawerData = historicalData && selectedBudget ? {
+        budget: {
+            id: historicalData.budget.id,
+            name: historicalData.budget.name,
+            budgetType: historicalData.budget.budgetType,
+            categoryIds: historicalData.budget.categoryIds
+        },
+        history: historicalData.history,
+        totalAmount: historicalData.totalAmount,
+        averagePerMonth: historicalData.averagePerMonth,
+        monthCount: historicalData.monthCount
+    } : null;
+
     return (
-        <details className="bg-white rounded-lg shadow">
-            <summary className="cursor-pointer p-6 font-semibold text-gray-800 hover:bg-gray-50 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
-                <div className="flex items-center gap-2">
-                    <span className="text-gray-400" aria-hidden="true">▶</span>
-                    <span>Oudere Budgetten ({budgets.length})</span>
+        <>
+            <details className="bg-white rounded-lg shadow">
+                <summary className="cursor-pointer p-6 font-semibold text-gray-800 hover:bg-gray-50 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-400" aria-hidden="true">▶</span>
+                        <span>Oudere Budgetten ({budgets.length})</span>
+                    </div>
+                </summary>
+                <div className="p-6 pt-0 border-t border-gray-200">
+                    <p className="text-sm text-gray-700 mb-4">
+                        Deze budgetten hebben geen recente transacties (laatste 2 maanden) maar zijn nog actief.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {budgets.map(budget => (
+                            <OlderBudgetCard
+                                key={budget.id}
+                                budget={budget}
+                                onClick={() => handleBudgetClick(budget)}
+                            />
+                        ))}
+                    </div>
                 </div>
-            </summary>
-            <div className="p-6 pt-0 border-t border-gray-200">
-                <p className="text-sm text-gray-700 mb-4">
-                    Deze budgetten hebben geen recente transacties (laatste 2 maanden) maar zijn nog actief.
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {budgets.map(budget => (
-                        <OlderBudgetCard key={budget.id} budget={budget} />
-                    ))}
-                </div>
-            </div>
-        </details>
+            </details>
+
+            <HistoricalDataDrawer
+                isOpen={isDrawerOpen}
+                onClose={handleCloseDrawer}
+                data={drawerData}
+                isLoading={isLoadingHistory}
+                accountId={accountId}
+                isBudgetView={true}
+            />
+        </>
     );
 }
 
 interface OlderBudgetCardProps {
     budget: OlderBudget;
+    onClick: () => void;
 }
 
-function OlderBudgetCard({ budget }: OlderBudgetCardProps) {
+function OlderBudgetCard({ budget, onClick }: OlderBudgetCardProps) {
     const typeLabel = budget.budgetType === 'EXPENSE' ? 'Uitgaven' : budget.budgetType === 'INCOME' ? 'Inkomsten' : 'Project';
 
     return (
-        <article className="border border-gray-200 rounded-lg p-3 text-sm hover:border-gray-300 hover:shadow-sm transition-all">
+        <button
+            type="button"
+            onClick={onClick}
+            className="border border-gray-200 rounded-lg p-3 text-sm hover:border-blue-300 hover:shadow-md hover:bg-blue-50 transition-all text-left w-full cursor-pointer"
+        >
             <p className="font-medium text-gray-900 truncate mb-1" title={budget.name}>
                 {budget.name}
             </p>
@@ -53,6 +120,6 @@ function OlderBudgetCard({ budget }: OlderBudgetCardProps) {
                     </span>
                 </span>
             </div>
-        </article>
+        </button>
     );
 }

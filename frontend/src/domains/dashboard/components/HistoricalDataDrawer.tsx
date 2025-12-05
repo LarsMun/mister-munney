@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatMoney } from '../../../shared/utils/MoneyFormat';
+import { formatMoney, formatNumber } from '../../../shared/utils/MoneyFormat';
 import { getTransactions } from '../../transactions/services/TransactionsService';
 import type { Transaction } from '../../transactions/models/Transaction';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -218,35 +218,70 @@ export default function HistoricalDataDrawer({
                     ) : (
                         <div className="p-6">
                             {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-blue-600 mb-1">
-                                        <TrendingUp className="w-4 h-4" />
-                                        <span className="text-xs font-medium uppercase">Totaal</span>
+                            {(() => {
+                                // Calculate median over 12 months BEFORE the current month
+                                const currentMonth = new Date().toISOString().substring(0, 7);
+                                const previousMonths = [...data.history]
+                                    .filter(m => m.month < currentMonth) // Exclude current month
+                                    .sort((a, b) => b.month.localeCompare(a.month))
+                                    .slice(0, 12); // Last 12 months
+
+                                // Calculate median
+                                const amounts = previousMonths.map(m => Math.abs(m.total)).sort((a, b) => a - b);
+                                let median12Months = 0;
+                                if (amounts.length > 0) {
+                                    const mid = Math.floor(amounts.length / 2);
+                                    median12Months = amounts.length % 2 === 0
+                                        ? (amounts[mid - 1] + amounts[mid]) / 2
+                                        : amounts[mid];
+                                }
+
+                                return (
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-blue-600 mb-1">
+                                                <TrendingUp className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Totaal</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {formatMoney(Math.abs(data.totalAmount))}
+                                            </p>
+                                        </div>
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-green-600 mb-1">
+                                                <Calendar className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Gem./maand</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {formatMoney(Math.abs(data.averagePerMonth))}
+                                            </p>
+                                        </div>
+                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-orange-600 mb-1">
+                                                <TrendingUp className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Mediaan 12 mnd</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {formatMoney(median12Months)}
+                                            </p>
+                                            {previousMonths.length < 12 && previousMonths.length > 0 && (
+                                                <p className="text-xs text-orange-600 mt-1">
+                                                    ({previousMonths.length} {previousMonths.length === 1 ? 'maand' : 'maanden'})
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-purple-600 mb-1">
+                                                <Calendar className="w-4 h-4" />
+                                                <span className="text-xs font-medium uppercase">Periode</span>
+                                            </div>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {data.monthCount} {data.monthCount === 1 ? 'maand' : 'maanden'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {formatMoney(Math.abs(data.totalAmount))}
-                                    </p>
-                                </div>
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-green-600 mb-1">
-                                        <Calendar className="w-4 h-4" />
-                                        <span className="text-xs font-medium uppercase">Gemiddeld/maand</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {formatMoney(Math.abs(data.averagePerMonth))}
-                                    </p>
-                                </div>
-                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-purple-600 mb-1">
-                                        <Calendar className="w-4 h-4" />
-                                        <span className="text-xs font-medium uppercase">Periode</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {data.monthCount} {data.monthCount === 1 ? 'maand' : 'maanden'}
-                                    </p>
-                                </div>
-                            </div>
+                                );
+                            })()}
 
                             {/* Chart */}
                             {data.history.length > 0 && (
@@ -279,11 +314,11 @@ export default function HistoricalDataDrawer({
                                                 tick={{ fontSize: 12 }}
                                             />
                                             <YAxis
-                                                tickFormatter={(value) => `€${value.toLocaleString('nl-NL')}`}
+                                                tickFormatter={(value) => `€ ${formatNumber(value, 0)}`}
                                                 tick={{ fontSize: 12 }}
                                             />
                                             <Tooltip
-                                                formatter={(value: any) => [`€${Number(value).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Bedrag']}
+                                                formatter={(value: any) => [formatMoney(Number(value)), 'Bedrag']}
                                                 labelStyle={{ color: '#374151' }}
                                                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.375rem' }}
                                             />

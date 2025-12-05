@@ -5,7 +5,7 @@ import { ForecastSection } from './components/ForecastSection';
 import { AvailableItemsList } from './components/AvailableItemsList';
 import { useAccount } from '../../app/context/AccountContext';
 import { formatMoney } from '../../shared/utils/MoneyFormat';
-import { formatMonthDisplay } from './services/ForecastService';
+import { formatMonthDisplay, getCurrentMonth } from './services/ForecastService';
 import type { ForecastItem, PositionUpdate } from './models/Forecast';
 
 export default function ForecastPage() {
@@ -74,7 +74,10 @@ export default function ForecastPage() {
         );
     }
 
-    const isCurrentMonth = month === new Date().toISOString().substring(0, 7);
+    const currentMonth = getCurrentMonth();
+    const isCurrentMonth = month === currentMonth;
+    // Disable next button if we're at current month or in the future
+    const canGoToNextMonth = month < currentMonth;
 
     return (
         <div className="space-y-6">
@@ -107,13 +110,15 @@ export default function ForecastPage() {
                         {formatMonthDisplay(month)}
                     </button>
 
-                    <button
-                        onClick={goToNextMonth}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        title="Volgende maand"
-                    >
-                        →
-                    </button>
+                    {canGoToNextMonth && (
+                        <button
+                            onClick={goToNextMonth}
+                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            title="Volgende maand"
+                        >
+                            →
+                        </button>
+                    )}
                 </div>
             </div>
 
