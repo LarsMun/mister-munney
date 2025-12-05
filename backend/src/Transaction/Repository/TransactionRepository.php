@@ -1012,4 +1012,59 @@ class TransactionRepository extends ServiceEntityRepository
 
         return $result['balance'] !== null ? (int)$result['balance'] : null;
     }
+
+    /**
+     * Get monthly transaction history for a savings account
+     * Returns monthly totals with deposit/withdrawal breakdown
+     *
+     * @param int $accountId
+     * @return array Array with monthly data
+     */
+    public function getMonthlySavingsHistory(int $accountId): array
+    {
+        $sql = "
+            SELECT
+                SUBSTRING(t.date, 1, 7) AS month,
+                SUM(CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount ELSE 0 END) AS deposits,
+                SUM(CASE WHEN t.transaction_type = 'DEBIT' THEN t.amount ELSE 0 END) AS withdrawals,
+                SUM(CASE
+                    WHEN t.transaction_type = 'CREDIT' THEN t.amount
+                    ELSE -t.amount
+                END) AS net_change,
+                COUNT(t.id) AS transaction_count
+            FROM transaction t
+            WHERE t.account_id = ?
+            GROUP BY SUBSTRING(t.date, 1, 7)
+            ORDER BY month DESC
+        ";
+
+        return $this->getEntityManager()
+            ->getConnection()
+            ->executeQuery($sql, [$accountId])
+            ->fetchAllAssociative();
+    }
+
+    /**
+     * Get all transactions for a savings account in a specific month
+     *
+     * @param int $accountId
+     * @param string $month Format: 'YYYY-MM'
+     * @return array
+     */
+    public function getSavingsTransactionsForMonth(int $accountId, string $month): array
+    {
+        $startDate = $month . '-01';
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        return $this->createQueryBuilder('t')
+            ->where('t.account = :accountId')
+            ->andWhere('t.date >= :startDate')
+            ->andWhere('t.date <= :endDate')
+            ->setParameter('accountId', $accountId)
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->orderBy('t.date', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }
