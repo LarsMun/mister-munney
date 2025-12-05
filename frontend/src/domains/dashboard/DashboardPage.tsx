@@ -374,7 +374,7 @@ export default function DashboardPage() {
 
                 {/* Older Budgets Panel (collapsible) */}
                 <div className="mb-8">
-                    <OlderBudgetsPanel budgets={olderBudgets} />
+                    <OlderBudgetsPanel budgets={olderBudgets} accountId={accountId} />
                 </div>
 
                 <div className="mb-8 flex justify-end">
