@@ -4,6 +4,13 @@ import type { SummaryType } from "../models/SummaryType";
 import type { TreeMapDataType } from "../models/TreeMapDataType";
 import type { MonthlyStatistics } from "../models/MonthlyStatistics";
 
+export interface ImportTransactionsResponse {
+    message: string;
+    imported: number;
+    skipped: number;
+    errors?: string[];
+}
+
 export function getAvailableMonths(accountId: number): Promise<string[]> {
     return api.get(`/account/${accountId}/transactions/months`)
         .then(res => res.data);
@@ -27,7 +34,7 @@ export function getAllTransactions(accountId: number): Promise<Transaction[]> {
         .then(res => res.data.data);
 }
 
-export function importTransactions(_accountId: number, file: File): Promise<any> {
+export function importTransactions(_accountId: number, file: File): Promise<ImportTransactionsResponse> {
     const formData = new FormData();
     formData.append("file", file);
 

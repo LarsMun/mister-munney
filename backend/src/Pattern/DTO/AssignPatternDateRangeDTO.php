@@ -12,8 +12,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 class AssignPatternDateRangeDTO
 {
-    #[Assert\NotBlank]
-    #[Assert\Date]
+    #[Assert\NotBlank(message: 'Startdatum is verplicht')]
+    #[Assert\Date(message: 'Startdatum moet een geldige datum zijn (YYYY-MM-DD)')]
     #[OA\Property(
         description: 'Startdatum van de periode waarin transacties opnieuw worden geëvalueerd',
         type: 'string',
@@ -22,8 +22,8 @@ class AssignPatternDateRangeDTO
     )]
     public string $startDate;
 
-    #[Assert\NotBlank]
-    #[Assert\Date]
+    #[Assert\NotBlank(message: 'Einddatum is verplicht')]
+    #[Assert\Date(message: 'Einddatum moet een geldige datum zijn (YYYY-MM-DD)')]
     #[OA\Property(
         description: 'Einddatum van de periode waarin transacties opnieuw worden geëvalueerd',
         type: 'string',

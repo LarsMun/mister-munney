@@ -39,6 +39,45 @@ class TransactionRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * Find transactions by filter with pagination support.
+     *
+     * @param TransactionFilterDTO $filter
+     * @param int $offset
+     * @param int $limit
+     * @return array
+     */
+    public function findByFilterPaginated(TransactionFilterDTO $filter, int $offset, int $limit): array
+    {
+        $qb = $this->createQueryBuilder('t');
+        $this->applyFilter($qb, $filter);
+
+        if ($filter->sortBy) {
+            $qb->orderBy('t.' . $filter->sortBy, $filter->sortDirection ?? 'ASC');
+        }
+
+        return $qb
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Count transactions matching the filter.
+     *
+     * @param TransactionFilterDTO $filter
+     * @return int
+     */
+    public function countByFilter(TransactionFilterDTO $filter): int
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->select('COUNT(t.id)');
+        $this->applyFilter($qb, $filter);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
     public function summaryByFilter(TransactionFilterDTO $filter): array
     {
         $qb = $this->createQueryBuilder('t')

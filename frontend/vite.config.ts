@@ -18,5 +18,22 @@ export default defineConfig({
       clientPort: 443,
       protocol: 'wss'
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks - split large dependencies for better caching
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react', 'react-hot-toast'],
+          'vendor-charts': ['recharts'],
+          'vendor-utils': ['axios', 'zod', 'date-fns']
+        }
+      }
+    },
+    // Generate source maps for production debugging
+    sourcemap: true,
+    // Chunk size warning limit (in kB)
+    chunkSizeWarningLimit: 500
   }
 })

@@ -360,6 +360,14 @@ export default function DashboardPage() {
                     </>
                 )}
 
+                {/* Savings Accounts Section */}
+                <div className="mb-8">
+                    <SavingsAccountsPanel
+                        accounts={accounts}
+                        checkingAccountId={accountId}
+                    />
+                </div>
+
                 {/* Projects Section (if enabled) */}
                 {projectsEnabled && (
                     <div className="mb-8">
@@ -379,14 +387,6 @@ export default function DashboardPage() {
                         onSuccess={() => loadAdaptiveDashboard()}
                     />
                 )}
-
-                {/* Savings Accounts Section */}
-                <div className="mb-8">
-                    <SavingsAccountsPanel
-                        accounts={accounts}
-                        checkingAccountId={accountId}
-                    />
-                </div>
 
                 {/* Older Budgets Panel (collapsible) */}
                 <div className="mb-8">
