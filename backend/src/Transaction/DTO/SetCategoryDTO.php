@@ -9,7 +9,7 @@ use OpenApi\Attributes as OA;
 class SetCategoryDTO
 {
     #[Assert\NotNull(message: 'Categorie ID is verplicht')]
-    #[Assert\Positive(message: 'Categorie ID moet een positief getal zijn')]
-    #[OA\Property(type: 'integer', maximum: 2147483647, minimum: 1, example: 42)]
+    #[Assert\PositiveOrZero(message: 'Categorie ID moet een positief getal of 0 zijn')]
+    #[OA\Property(type: 'integer', maximum: 2147483647, minimum: 0, example: 42, description: 'Categorie ID, of 0 om categorie te verwijderen')]
     public int $categoryId;
 }
