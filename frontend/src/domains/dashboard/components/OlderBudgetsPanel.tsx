@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { OlderBudget } from '../../budgets/models/AdaptiveBudget';
 import { fetchBudgetHistory, type BudgetHistory } from '../../budgets/services/BudgetsService';
 import HistoricalDataDrawer from './HistoricalDataDrawer';
@@ -98,7 +98,7 @@ interface OlderBudgetCardProps {
     onClick: () => void;
 }
 
-function OlderBudgetCard({ budget, onClick }: OlderBudgetCardProps) {
+const OlderBudgetCard = memo(function OlderBudgetCard({ budget, onClick }: OlderBudgetCardProps) {
     const typeLabel = budget.budgetType === 'EXPENSE' ? 'Uitgaven' : budget.budgetType === 'INCOME' ? 'Inkomsten' : 'Project';
 
     return (
@@ -122,4 +122,4 @@ function OlderBudgetCard({ budget, onClick }: OlderBudgetCardProps) {
             </div>
         </button>
     );
-}
+});

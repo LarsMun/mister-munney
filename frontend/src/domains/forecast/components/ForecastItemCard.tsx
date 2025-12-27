@@ -1,6 +1,6 @@
 // frontend/src/domains/forecast/components/ForecastItemCard.tsx
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import { API_URL } from '../../../lib/api';
 import type { ForecastItem, UpdateForecastItem } from '../models/Forecast';
@@ -14,7 +14,7 @@ interface ForecastItemCardProps {
     isDragging: boolean;
 }
 
-export function ForecastItemCard({
+export const ForecastItemCard = memo(function ForecastItemCard({
     item,
     onUpdate,
     onRemove,
@@ -171,4 +171,4 @@ export function ForecastItemCard({
             </button>
         </div>
     );
-}
+});

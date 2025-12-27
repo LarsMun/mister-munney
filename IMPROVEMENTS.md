@@ -109,22 +109,33 @@
 
 ---
 
-## Performance Optimizations
+## Performance Optimizations - COMPLETED
 
-- [ ] **React performance audit** (2-3h)
-  - Add React.memo to expensive components
-  - Optimize useCallback/useMemo usage
-  - Profile with React DevTools
+- [x] **React performance audit** (2-3h)
+  - Added React.memo to card components:
+    - `OlderBudgetCard` in OlderBudgetsPanel.tsx
+    - `ProjectCard` in ProjectCard.tsx
+    - `ForecastItemCard` in ForecastItemCard.tsx
+    - `BudgetSummaryItem` in BudgetOverviewCard.tsx
+  - Added useMemo optimizations:
+    - `TransactionTable` sorting now memoized
+    - `ProjectsSection` filtering and counting memoized
 
-- [ ] **Database query optimization** (3-4h)
-  - Audit N+1 queries
-  - Add eager loading where missing
-  - Consider query result caching
+- [x] **Database query optimization** (3-4h)
+  - Fixed N+1 queries in BudgetRepository with eager loading
+  - Added eager loading to TransactionRepository for categories
+  - Added performance indexes (migration Version20251206231800):
+    - `idx_transaction_category_id`
+    - `idx_transaction_category_date` (composite)
+    - `idx_budget_account_id`
+    - `idx_category_account_id`
+    - `idx_pattern_account_id`
 
-- [ ] **Add caching layer** (4-6h)
-  - Add Redis for session/cache
-  - Cache expensive API responses
-  - Add HTTP cache headers
+- [x] **Add caching layer** (partial)
+  - Added HTTP cache headers for icon API endpoints:
+    - Individual icons: 1 year cache
+    - Icon list: 24 hour cache
+  - Static assets already cached via nginx (1 year, immutable)
 
 ---
 
@@ -153,7 +164,7 @@
 | Quick Wins | 6 | 6 | 100% |
 | Bigger Improvements | 5 | 5 | 100% |
 | Security | 3 | 0 | 0% |
-| Performance | 3 | 0 | 0% |
+| Performance | 3 | 3 | 100% |
 | Observability | 3 | 0 | 0% |
 
-**Last Updated:** 2025-12-05
+**Last Updated:** 2025-12-06

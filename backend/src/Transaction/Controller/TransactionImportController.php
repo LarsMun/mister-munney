@@ -171,4 +171,78 @@ class TransactionImportController extends AbstractController
 
         return $this->json($result, 201);
     }
+
+    #[OA\Post(
+        path: '/api/account/{accountId}/transactions/import-paypal-csv',
+        summary: 'Importeer PayPal transacties via CSV-bestand',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['file'],
+                    properties: [
+                        new OA\Property(
+                            property: 'file',
+                            type: 'string',
+                            format: 'binary'
+                        )
+                    ],
+                    type: 'object'
+                )
+            )
+        ),
+        tags: ['Transactions import'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                description: 'ID van het account waarvoor transacties worden geïmporteerd',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 1)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'PayPal transacties geïmporteerd',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'parsed', type: 'integer'),
+                        new OA\Property(property: 'matched', type: 'integer'),
+                        new OA\Property(property: 'imported', type: 'integer'),
+                        new OA\Property(property: 'skipped', type: 'integer')
+                    ],
+                    type: 'object'
+                )
+            ),
+            new OA\Response(response: 400, description: 'Geen bestand ontvangen'),
+            new OA\Response(response: 401, description: 'Niet geauthenticeerd'),
+            new OA\Response(response: 403, description: 'Toegang geweigerd')
+        ]
+    )]
+    #[Route('/import-paypal-csv', name: 'import_paypal_csv', methods: ['POST'])]
+    public function importPayPalCsv(int $accountId, Request $request): JsonResponse
+    {
+        // Verify account ownership
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $file = $request->files->get('file');
+
+        if (!$file) {
+            throw new BadRequestHttpException('No file uploaded');
+        }
+
+        $csvContent = file_get_contents($file->getPathname());
+
+        if (empty($csvContent)) {
+            throw new BadRequestHttpException('CSV file is empty');
+        }
+
+        $result = $this->payPalImportService->importFromCsv($csvContent, $accountId);
+
+        return $this->json($result, 201);
+    }
 }

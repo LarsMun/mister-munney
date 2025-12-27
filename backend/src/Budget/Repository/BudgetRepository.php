@@ -46,12 +46,21 @@ class BudgetRepository extends ServiceEntityRepository
 
     public function findByAccount(Account $account): array
     {
-        return $this->findBy(['account' => $account], ['createdAt' => 'DESC']);
+        return $this->createQueryBuilder('b')
+            ->leftJoin('b.categories', 'c')
+            ->addSelect('c')
+            ->where('b.account = :account')
+            ->setParameter('account', $account)
+            ->orderBy('b.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
     }
 
     public function findByIdAndAccount(int $id, Account $account): ?Budget
     {
         return $this->createQueryBuilder('b')
+            ->leftJoin('b.categories', 'c')
+            ->addSelect('c')
             ->where('b.id = :id')
             ->andWhere('b.account = :account')
             ->setParameter('id', $id)

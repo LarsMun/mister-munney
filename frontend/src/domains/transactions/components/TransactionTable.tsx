@@ -1,6 +1,6 @@
 // src/domains/transactions/components/TransactionTable.tsx
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Split as SplitIcon, CreditCard } from "lucide-react";
 import { formatMoney } from "../../../shared/utils/MoneyFormat.tsx";
 import { formatDate } from "../../../shared/utils/DateFormat.tsx";
@@ -40,40 +40,42 @@ export default function TransactionTable({ accountId, transactions, refresh, onF
         }
     };
 
-    const sortedTransactions = [...transactions].sort((a, b) => {
-        let aValue = a[sortBy];
-        let bValue = b[sortBy];
+    const sortedTransactions = useMemo(() => {
+        return [...transactions].sort((a, b) => {
+            let aValue = a[sortBy];
+            let bValue = b[sortBy];
 
-        // Speciale velden
-        if (sortBy === "amount") {
-            aValue = Number(a.amount);
-            bValue = Number(b.amount);
-        }
-        if (sortBy === "date") {
-            aValue = a.date;
-            bValue = b.date;
-        }
-        if (sortBy === "category") {
-            aValue = a.category?.name || "";
-            bValue = b.category?.name || "";
-        }
+            // Speciale velden
+            if (sortBy === "amount") {
+                aValue = Number(a.amount);
+                bValue = Number(b.amount);
+            }
+            if (sortBy === "date") {
+                aValue = a.date;
+                bValue = b.date;
+            }
+            if (sortBy === "category") {
+                aValue = a.category?.name || "";
+                bValue = b.category?.name || "";
+            }
 
-        if (aValue === undefined || bValue === undefined) {
+            if (aValue === undefined || bValue === undefined) {
+                return 0;
+            }
+
+            if (typeof aValue === "number" && typeof bValue === "number") {
+                return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+            }
+
+            if (typeof aValue === "string" && typeof bValue === "string") {
+                return sortDirection === "asc"
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            }
+
             return 0;
-        }
-
-        if (typeof aValue === "number" && typeof bValue === "number") {
-            return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
-        }
-
-        if (typeof aValue === "string" && typeof bValue === "string") {
-            return sortDirection === "asc"
-                ? aValue.localeCompare(bValue)
-                : bValue.localeCompare(aValue);
-        }
-
-        return 0;
-    });
+        });
+    }, [transactions, sortBy, sortDirection]);
 
     const getSortIcon = (field: keyof Transaction) => {
         if (sortBy !== field) return null;
