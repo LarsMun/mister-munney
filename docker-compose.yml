@@ -16,7 +16,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       HCAPTCHA_SECRET_KEY: ${HCAPTCHA_SECRET_KEY}
     ports:
-      - "8787:80"
+      - "18787:80"  # Using port > 10000 to avoid Windows Hyper-V reserved port conflicts
     volumes:
       - ./backend:/var/www/html
       - ./backend/bin/php.ini:/usr/local/etc/php/conf.d/custom.ini
@@ -31,7 +31,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:5173"
+      - "13000:5173"  # Using port > 10000 to avoid Windows Hyper-V reserved port conflicts
     volumes:
       - ./frontend:/app
       - /app/node_modules  # Prevent overwriting node_modules from host
@@ -49,7 +49,7 @@ services:
       MYSQL_USER: money
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3333:3306"
+      - "13306:3306"  # Using port > 10000 to avoid Windows Hyper-V reserved port conflicts
     volumes:
       - db_data:/var/lib/mysql
       - ./backend/mysql-custom.cnf:/etc/mysql/conf.d/mysql-custom.cnf

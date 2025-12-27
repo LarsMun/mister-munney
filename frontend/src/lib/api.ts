@@ -1,6 +1,6 @@
 import api from './axios';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:18787';
 
 // Base URL without /api for static files (uploads, etc.)
 // Remove /api suffix from API_URL to get the base URL
