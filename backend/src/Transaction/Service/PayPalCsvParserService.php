@@ -17,6 +17,16 @@ class PayPalCsvParserService
     ];
 
     /**
+     * Valid status values (completed transactions)
+     */
+    private const VALID_STATUSES = [
+        'Voltooid',      // Dutch
+        'Completed',     // English
+        'Terminé',       // French
+        'Abgeschlossen', // German
+    ];
+
+    /**
      * Parse PayPal CSV export and extract relevant transactions
      *
      * CSV columns:
@@ -88,8 +98,8 @@ class PayPalCsvParserService
         $amount = trim($row[7] ?? '');
         $reference = trim($row[13] ?? '');
 
-        // Skip if not completed
-        if ($status !== 'Voltooid') {
+        // Skip if not completed (support multiple languages)
+        if (!in_array($status, self::VALID_STATUSES, true)) {
             return null;
         }
 
