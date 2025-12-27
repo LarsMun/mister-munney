@@ -37,7 +37,4 @@
         </exclude>
     </source>
 
-    <extensions>
-        <bootstrap class="Symfony\Bridge\PhpUnit\SymfonyTestsListener" />
-    </extensions>
 </phpunit>
