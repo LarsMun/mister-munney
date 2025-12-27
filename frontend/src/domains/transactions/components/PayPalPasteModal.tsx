@@ -79,7 +79,7 @@ export default function PayPalPasteModal({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (!file.name.endsWith('.csv')) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
                 toast.error('Selecteer een CSV bestand');
                 return;
             }
@@ -92,7 +92,7 @@ export default function PayPalPasteModal({
         e.preventDefault();
         const file = e.dataTransfer.files[0];
         if (file) {
-            if (!file.name.endsWith('.csv')) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
                 toast.error('Selecteer een CSV bestand');
                 return;
             }
@@ -184,7 +184,7 @@ export default function PayPalPasteModal({
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept=".csv"
+                                    accept=".csv,.CSV,text/csv"
                                     onChange={handleFileChange}
                                     className="hidden"
                                 />
