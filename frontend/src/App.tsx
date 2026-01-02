@@ -173,11 +173,14 @@ function AppContent() {
 
                         {/* Mobile: Hamburger Menu Button */}
                         <button
+                            type="button"
                             onClick={() => setShowMobileMenu(!showMobileMenu)}
-                            className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+                            className="md:hidden p-3 -mr-2 rounded-lg active:bg-white/20 transition-colors"
+                            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                             aria-label="Menu"
+                            aria-expanded={showMobileMenu}
                         >
-                            {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                            {showMobileMenu ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
                         </button>
 
                         {/* Desktop: Navigation & User Menu */}
@@ -360,7 +363,7 @@ function AppContent() {
 
                 {/* Mobile Menu Overlay */}
                 {showMobileMenu && (
-                    <div className="md:hidden bg-blue-700 text-white shadow-lg">
+                    <div className="md:hidden bg-blue-700 text-white shadow-lg relative z-40">
                         <nav className="container mx-auto py-4 px-4 flex flex-col gap-2">
                             <NavLink
                                 to="/"
