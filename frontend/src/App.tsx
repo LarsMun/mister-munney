@@ -11,7 +11,7 @@ import logo from './assets/mister-munney-logo.png';
 import { Toaster } from "react-hot-toast";
 import toast from 'react-hot-toast';
 import { importTransactions } from './lib/api';
-import { Download, ChevronDown, LogOut, Settings } from 'lucide-react';
+import { Download, ChevronDown, LogOut, Settings, Menu, X } from 'lucide-react';
 
 // Lazy load route components for code splitting
 const DashboardModule = lazy(() => import('./domains/dashboard'));
@@ -29,10 +29,16 @@ function AppContent() {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
 
     // Check if we're on the unlock page
     const isUnlockPage = location.pathname === '/unlock';
+
+    // Close mobile menu on route change
+    useEffect(() => {
+        setShowMobileMenu(false);
+    }, [location.pathname]);
 
     // Close user menu when clicking outside
     useEffect(() => {
@@ -162,11 +168,20 @@ function AppContent() {
                     <div className="container mx-auto flex justify-between items-center">
                         {/* Left: Logo */}
                         <Link to="/" className="flex items-center hover:opacity-90 transition-opacity">
-                            <img src={logo} alt="Mister Munney" className="h-24 w-auto" />
+                            <img src={logo} alt="Mister Munney" className="h-12 md:h-24 w-auto" />
                         </Link>
 
-                        {/* Right: Navigation & User Menu */}
-                        <nav className="flex items-center gap-3">
+                        {/* Mobile: Hamburger Menu Button */}
+                        <button
+                            onClick={() => setShowMobileMenu(!showMobileMenu)}
+                            className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+                            aria-label="Menu"
+                        >
+                            {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        </button>
+
+                        {/* Desktop: Navigation & User Menu */}
+                        <nav className="hidden md:flex items-center gap-3">
                             <NavLink
                                 to="/"
                                 end
@@ -342,6 +357,156 @@ function AppContent() {
                         </nav>
                     </div>
                 </header>
+
+                {/* Mobile Menu Overlay */}
+                {showMobileMenu && (
+                    <div className="md:hidden bg-blue-700 text-white shadow-lg">
+                        <nav className="container mx-auto py-4 px-4 flex flex-col gap-2">
+                            <NavLink
+                                to="/"
+                                end
+                                onClick={() => setShowMobileMenu(false)}
+                                className={({ isActive }) =>
+                                    `px-4 py-3 rounded-lg transition-colors font-medium ${
+                                        isActive ? 'bg-white/20' : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Dashboard
+                            </NavLink>
+                            <NavLink
+                                to="/transactions"
+                                onClick={() => setShowMobileMenu(false)}
+                                className={({ isActive }) =>
+                                    `px-4 py-3 rounded-lg transition-colors font-medium ${
+                                        isActive ? 'bg-white/20' : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Transacties
+                            </NavLink>
+                            <NavLink
+                                to="/patterns"
+                                onClick={() => setShowMobileMenu(false)}
+                                className={({ isActive }) =>
+                                    `px-4 py-3 rounded-lg transition-colors font-medium ${
+                                        isActive ? 'bg-white/20' : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Patronen
+                            </NavLink>
+                            <NavLink
+                                to="/budgets"
+                                onClick={() => setShowMobileMenu(false)}
+                                className={({ isActive }) =>
+                                    `px-4 py-3 rounded-lg transition-colors font-medium ${
+                                        isActive ? 'bg-white/20' : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Budgetten
+                            </NavLink>
+                            <NavLink
+                                to="/forecast"
+                                onClick={() => setShowMobileMenu(false)}
+                                className={({ isActive }) =>
+                                    `px-4 py-3 rounded-lg transition-colors font-medium ${
+                                        isActive ? 'bg-white/20' : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Forecast
+                            </NavLink>
+                            <NavLink
+                                to="/categories"
+                                onClick={() => setShowMobileMenu(false)}
+                                className={({ isActive }) =>
+                                    `px-4 py-3 rounded-lg transition-colors font-medium ${
+                                        isActive ? 'bg-white/20' : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Categorieën
+                            </NavLink>
+
+                            <div className="border-t border-white/20 my-2"></div>
+
+                            {/* Import Button */}
+                            <button
+                                onClick={() => {
+                                    setShowMobileMenu(false);
+                                    setShowUploadModal(true);
+                                }}
+                                disabled={!accountId}
+                                className={`px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center gap-2 ${
+                                    accountId ? 'hover:bg-white/10' : 'opacity-50 cursor-not-allowed'
+                                }`}
+                            >
+                                <Download className="w-5 h-5" />
+                                Importeren
+                            </button>
+
+                            <div className="border-t border-white/20 my-2"></div>
+
+                            {/* Account Selection */}
+                            {accounts.length > 0 && (
+                                <div className="px-4 py-2">
+                                    <label className="block text-xs font-medium text-white/70 mb-2">Account</label>
+                                    <div className="space-y-1">
+                                        {[...accounts].filter(a => a.type !== 'SAVINGS').sort((a, b) => {
+                                            if (a.isDefault) return -1;
+                                            if (b.isDefault) return 1;
+                                            return (a.name || a.accountNumber).localeCompare(b.name || b.accountNumber);
+                                        }).map((account) => (
+                                            <button
+                                                key={account.id}
+                                                onClick={() => {
+                                                    setAccountId(account.id);
+                                                    setShowMobileMenu(false);
+                                                }}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
+                                                    account.id === accountId
+                                                        ? 'bg-white/20 font-medium'
+                                                        : 'hover:bg-white/10'
+                                                }`}
+                                            >
+                                                {account.name || account.accountNumber}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="border-t border-white/20 my-2"></div>
+
+                            {/* Settings & Logout */}
+                            <Link
+                                to="/accounts"
+                                onClick={() => setShowMobileMenu(false)}
+                                className="px-4 py-3 rounded-lg transition-colors font-medium hover:bg-white/10 flex items-center gap-2"
+                            >
+                                <Settings className="w-5 h-5" />
+                                Accounts beheren
+                            </Link>
+                            <button
+                                onClick={() => {
+                                    logout();
+                                    setShowMobileMenu(false);
+                                }}
+                                className="px-4 py-3 rounded-lg transition-colors font-medium hover:bg-white/10 flex items-center gap-2 text-left"
+                            >
+                                <LogOut className="w-5 h-5" />
+                                Uitloggen
+                            </button>
+
+                            {/* User Email */}
+                            <div className="px-4 py-2 text-xs text-white/60">
+                                Ingelogd als {user?.email}
+                            </div>
+                        </nav>
+                    </div>
+                )}
 
                 {/* Main Content */}
                 <main className="flex-grow container mx-auto p-6">
