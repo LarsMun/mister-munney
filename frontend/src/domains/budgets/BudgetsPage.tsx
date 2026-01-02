@@ -162,18 +162,18 @@ export default function BudgetsPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Budgetbeheer</h1>
-                    <p className="text-gray-600 mt-1">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900">Budgetbeheer</h1>
+                    <p className="text-sm md:text-base text-gray-600 mt-1">
                         Beheer je budgetten en wijs categorieën toe
                     </p>
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                     + Nieuw Budget
                 </button>
@@ -187,9 +187,9 @@ export default function BudgetsPage() {
             />
 
             {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Available Categories - Sticky */}
-                <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                {/* Available Categories - moved to bottom on mobile */}
+                <div className="lg:col-span-1 order-2 lg:order-1">
                     <div className="lg:sticky lg:top-4">
                         <AvailableCategories
                             categories={availableCategories}
@@ -199,8 +199,8 @@ export default function BudgetsPage() {
                     </div>
                 </div>
 
-                {/* Right Column: Budgets */}
-                <div className="lg:col-span-2">
+                {/* Budgets - shown first on mobile */}
+                <div className="lg:col-span-2 order-1 lg:order-2">
                     {budgets.length === 0 ? (
                         <div className="text-center py-12 bg-white rounded-lg shadow-md">
                             <div className="text-6xl mb-4">💰</div>

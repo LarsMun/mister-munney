@@ -82,12 +82,12 @@ export default function ForecastPage() {
     const canGoToNextMonth = month < currentMonth;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             {/* Header with Month Navigation */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Cashflow Forecast</h1>
-                    <p className="text-gray-600 mt-1">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900">Cashflow Forecast</h1>
+                    <p className="text-sm md:text-base text-gray-600 mt-1">
                         Beheer je verwachte inkomsten en uitgaven
                     </p>
                 </div>
@@ -103,7 +103,7 @@ export default function ForecastPage() {
 
                     <button
                         onClick={goToCurrentMonth}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
                             isCurrentMonth
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -126,11 +126,11 @@ export default function ForecastPage() {
 
             {/* Summary Cards */}
             {forecast && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     {/* Current Balance */}
-                    <div className="bg-white rounded-lg shadow-md p-4">
-                        <div className="text-sm text-gray-500 mb-1">Huidig Saldo</div>
-                        <div className={`text-2xl font-bold ${
+                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
+                        <div className="text-xs md:text-sm text-gray-500 mb-1">Huidig Saldo</div>
+                        <div className={`text-lg md:text-2xl font-bold ${
                             forecast.currentBalance >= 0 ? 'text-gray-900' : 'text-red-600'
                         }`}>
                             {formatMoney(forecast.currentBalance)}
@@ -138,40 +138,40 @@ export default function ForecastPage() {
                     </div>
 
                     {/* Expected Result */}
-                    <div className="bg-white rounded-lg shadow-md p-4">
-                        <div className="text-sm text-gray-500 mb-1">Verwacht Resultaat</div>
-                        <div className={`text-2xl font-bold ${
+                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
+                        <div className="text-xs md:text-sm text-gray-500 mb-1">Verwacht Resultaat</div>
+                        <div className={`text-lg md:text-2xl font-bold ${
                             forecast.expectedResult >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
                             {forecast.expectedResult >= 0 ? '+' : ''}{formatMoney(forecast.expectedResult)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-1 hidden sm:block">
                             {formatMoney(forecast.totalExpectedIncome)} - {formatMoney(forecast.totalExpectedExpenses)}
                         </div>
                     </div>
 
                     {/* Actual Result */}
-                    <div className="bg-white rounded-lg shadow-md p-4">
-                        <div className="text-sm text-gray-500 mb-1">Actueel Resultaat</div>
-                        <div className={`text-2xl font-bold ${
+                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
+                        <div className="text-xs md:text-sm text-gray-500 mb-1">Actueel Resultaat</div>
+                        <div className={`text-lg md:text-2xl font-bold ${
                             forecast.actualResult >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
                             {forecast.actualResult >= 0 ? '+' : ''}{formatMoney(forecast.actualResult)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-1 hidden sm:block">
                             {formatMoney(forecast.totalActualIncome)} - {formatMoney(forecast.totalActualExpenses)}
                         </div>
                     </div>
 
                     {/* Projected Balance */}
-                    <div className="bg-white rounded-lg shadow-md p-4">
-                        <div className="text-sm text-gray-500 mb-1">Verwacht Eindsaldo</div>
-                        <div className={`text-2xl font-bold ${
+                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
+                        <div className="text-xs md:text-sm text-gray-500 mb-1">Verwacht Eindsaldo</div>
+                        <div className={`text-lg md:text-2xl font-bold ${
                             forecast.projectedBalance >= 0 ? 'text-blue-600' : 'text-red-600'
                         }`}>
                             {formatMoney(forecast.projectedBalance)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-1 hidden sm:block">
                             na verwachte transacties
                         </div>
                     </div>
@@ -179,9 +179,9 @@ export default function ForecastPage() {
             )}
 
             {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Available Items */}
-                <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                {/* Available Items - moved to bottom on mobile */}
+                <div className="lg:col-span-1 order-2 lg:order-1">
                     <div className="lg:sticky lg:top-4">
                         <AvailableItemsList
                             budgets={availableItems.budgets}
@@ -191,8 +191,8 @@ export default function ForecastPage() {
                     </div>
                 </div>
 
-                {/* Right Column: Forecast Sections */}
-                <div className="lg:col-span-2 space-y-6">
+                {/* Forecast Sections - shown first on mobile */}
+                <div className="lg:col-span-2 space-y-4 md:space-y-6 order-1 lg:order-2">
                     {/* Income Section */}
                     <ForecastSection
                         title="Inkomsten"

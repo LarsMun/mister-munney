@@ -175,17 +175,17 @@ export default function CategoriesPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Categorieën</h1>
-                    <p className="text-gray-600 mt-1">
+                    <h1 className="text-xl md:text-3xl font-bold text-gray-900">Categorieën</h1>
+                    <p className="text-sm md:text-base text-gray-600 mt-1">
                         Beheer je categorieën, bewerk, verwijder of voeg samen
                     </p>
                 </div>
                 <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                     onClick={() => {
                         // TODO: Implement create category modal
                         alert('Nieuwe categorie functionaliteit komt in Fase 4');
@@ -196,8 +196,8 @@ export default function CategoriesPage() {
             </div>
 
             {/* Search and Filter Bar */}
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex gap-4 items-center">
+            <div className="bg-white rounded-lg shadow p-3 md:p-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
                     <div className="flex-1">
                         <div className="relative">
                             <input
@@ -224,10 +224,10 @@ export default function CategoriesPage() {
                     </div>
 
                     {/* Sort Controls */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
                         <button
                             onClick={() => handleSortChange('name')}
-                            className={`px-3 py-2 rounded-lg border transition-colors ${
+                            className={`px-3 py-2 rounded-lg border transition-colors whitespace-nowrap text-sm ${
                                 sortField === 'name'
                                     ? 'bg-blue-100 border-blue-300 text-blue-700'
                                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -237,7 +237,7 @@ export default function CategoriesPage() {
                         </button>
                         <button
                             onClick={() => handleSortChange('transactionCount')}
-                            className={`px-3 py-2 rounded-lg border transition-colors ${
+                            className={`px-3 py-2 rounded-lg border transition-colors whitespace-nowrap text-sm ${
                                 sortField === 'transactionCount'
                                     ? 'bg-blue-100 border-blue-300 text-blue-700'
                                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -247,7 +247,7 @@ export default function CategoriesPage() {
                         </button>
                         <button
                             onClick={() => handleSortChange('totalAmount')}
-                            className={`px-3 py-2 rounded-lg border transition-colors ${
+                            className={`px-3 py-2 rounded-lg border transition-colors whitespace-nowrap text-sm ${
                                 sortField === 'totalAmount'
                                     ? 'bg-blue-100 border-blue-300 text-blue-700'
                                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'

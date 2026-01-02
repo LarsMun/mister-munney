@@ -145,7 +145,7 @@ export default function TransactionFilterForm({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3">
                     {/* Text filters */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Omschrijving</label>
@@ -154,13 +154,13 @@ export default function TransactionFilterForm({
                                 type="text"
                                 value={filters.description ?? ""}
                                 onChange={(e) => updateFilter("description", e.target.value)}
-                                className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm"
+                                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
                                 placeholder="Zoek in omschrijving..."
                             />
                             <select
                                 value={filters.matchTypeDescription ?? "LIKE"}
                                 onChange={(e) => updateFilter("matchTypeDescription", e.target.value)}
-                                className="w-24 border border-gray-300 rounded px-2 py-1.5 text-sm"
+                                className="w-20 md:w-24 border border-gray-300 rounded px-2 py-2 text-sm"
                             >
                                 <option value="LIKE">LIKE</option>
                                 <option value="EXACT">EXACT</option>
@@ -175,13 +175,13 @@ export default function TransactionFilterForm({
                                 type="text"
                                 value={filters.notes ?? ""}
                                 onChange={(e) => updateFilter("notes", e.target.value)}
-                                className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm"
+                                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
                                 placeholder="Zoek in notities..."
                             />
                             <select
                                 value={filters.matchTypeNotes ?? "LIKE"}
                                 onChange={(e) => updateFilter("matchTypeNotes", e.target.value)}
-                                className="w-24 border border-gray-300 rounded px-2 py-1.5 text-sm"
+                                className="w-20 md:w-24 border border-gray-300 rounded px-2 py-2 text-sm"
                             >
                                 <option value="LIKE">LIKE</option>
                                 <option value="EXACT">EXACT</option>
@@ -190,14 +190,14 @@ export default function TransactionFilterForm({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4 mb-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-3">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Tag</label>
                         <input
                             type="text"
                             value={filters.tag ?? ""}
                             onChange={(e) => updateFilter("tag", e.target.value)}
-                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                             placeholder="Tag..."
                         />
                     </div>
@@ -213,7 +213,7 @@ export default function TransactionFilterForm({
                                 const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
                                 updateFilter("minAmount", value);
                             }}
-                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                         />
                     </div>
 
@@ -228,7 +228,7 @@ export default function TransactionFilterForm({
                                 const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
                                 updateFilter("maxAmount", value);
                             }}
-                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                         />
                     </div>
 
@@ -237,7 +237,7 @@ export default function TransactionFilterForm({
                         <select
                             value={filters.transactionType ?? "both"}
                             onChange={(e) => updateFilter("transactionType", e.target.value)}
-                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                         >
                             <option value="both">Beiden</option>
                             <option value="debit">Uitgaven</option>
@@ -246,14 +246,14 @@ export default function TransactionFilterForm({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Startdatum</label>
                         <input
                             type="date"
                             value={filters.startDate ?? ""}
                             onChange={(e) => updateFilter("startDate", e.target.value)}
-                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                         />
                     </div>
 
@@ -263,17 +263,17 @@ export default function TransactionFilterForm({
                             type="date"
                             value={filters.endDate ?? ""}
                             onChange={(e) => updateFilter("endDate", e.target.value)}
-                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                         />
                     </div>
 
-                    <div className="flex items-end gap-3">
+                    <div className="col-span-2 md:col-span-1 flex flex-wrap items-end gap-x-4 gap-y-2">
                         <label className="inline-flex items-center text-sm cursor-pointer">
                             <input
                                 type="checkbox"
                                 checked={filterByPeriod}
                                 onChange={(e) => onFilterByPeriodChange(e.target.checked)}
-                                className="mr-2"
+                                className="mr-2 w-4 h-4"
                             />
                             <span>Filter binnen periode</span>
                         </label>
@@ -282,7 +282,7 @@ export default function TransactionFilterForm({
                                 type="checkbox"
                                 checked={filters.withoutCategory ?? false}
                                 onChange={(e) => updateFilter("withoutCategory", e.target.checked)}
-                                className="mr-2"
+                                className="mr-2 w-4 h-4"
                             />
                             <span>Zonder categorie</span>
                         </label>
@@ -331,7 +331,7 @@ export default function TransactionFilterForm({
                             </div>
                         )}
 
-                        <div className="flex gap-4 items-end">
+                        <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:items-end">
                             <div className="flex-1">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
                                 <SimpleCategoryCombobox
@@ -342,27 +342,29 @@ export default function TransactionFilterForm({
                                 />
                             </div>
 
-                            <label className="inline-flex items-center text-sm cursor-pointer group">
-                                <input
-                                    type="checkbox"
-                                    checked={patternStrict}
-                                    onChange={(e) => setPatternStrict(e.target.checked)}
-                                    className="mr-2"
-                                />
-                                <span>Overschrijf bestaande</span>
-                                <span className="ml-1 text-gray-400 cursor-help group-hover:underline"
-                                      title="Als dit aanstaat, worden ook transacties met een bestaande categorie overschreven.">
-                                    ⓘ
-                                </span>
-                            </label>
+                            <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                                <label className="inline-flex items-center text-sm cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={patternStrict}
+                                        onChange={(e) => setPatternStrict(e.target.checked)}
+                                        className="mr-2 w-4 h-4"
+                                    />
+                                    <span>Overschrijf bestaande</span>
+                                    <span className="ml-1 text-gray-400 cursor-help group-hover:underline"
+                                          title="Als dit aanstaat, worden ook transacties met een bestaande categorie overschreven.">
+                                        ⓘ
+                                    </span>
+                                </label>
 
-                            <button
-                                onClick={handleCreatePattern}
-                                disabled={!patternCategory}
-                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                            >
-                                Maak patroon
-                            </button>
+                                <button
+                                    onClick={handleCreatePattern}
+                                    disabled={!patternCategory}
+                                    className="w-full md:w-auto px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                >
+                                    Maak patroon
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
