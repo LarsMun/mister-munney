@@ -128,121 +128,198 @@ export default function TransactionTable({ accountId, transactions, refresh, onF
     };
 
     return (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow">
-            <table className="min-w-full table-fixed text-left text-sm">
-                <thead className="bg-gray-50">
-                <tr>
-                    <th className="w-16 px-2 py-3 font-semibold text-center">
-                        #
-                    </th>
-                    <th
-                        className="w-32 px-4 py-3 font-semibold cursor-pointer"
-                        onClick={() => handleSort("date")}
-                    >
-                        Datum {getSortIcon("date")}
-                    </th>
-
-                    <th
-                        className="w-96 px-4 py-3 font-semibold cursor-pointer"
-                        onClick={() => handleSort("description")}
-                    >
-                        Omschrijving {getSortIcon("description")}
-                    </th>
-
-                    <th
-                        className="w-32 px-4 py-3 font-semibold text-right cursor-pointer"
-                        onClick={() => handleSort("amount")}
-                    >
-                        Bedrag {getSortIcon("amount")}
-                    </th>
-                    <th
-                        className="w-32 px-4 py-3 font-semibold cursor-pointer"
-                        onClick={() => handleSort("category")}
-                    >
-                        Categorie {getSortIcon("category")}
-                    </th>
-                    <th className="w-24 px-4 py-3 font-semibold text-center">Splits</th>
-                </tr>
-                </thead>
-                <tbody>
-
-                {sortedTransactions.map((t, index) => {
+        <>
+            {/* Mobile: Card Layout */}
+            <div className="md:hidden space-y-2">
+                {sortedTransactions.map((t) => {
                     const hasSplits = t.hasSplits || false;
                     const canSplit = isCreditCardIncasso(t) && !hasSplits;
                     const isExpanded = expandedSplits.has(t.id);
 
                     return (
-                        <React.Fragment key={t.id}>
-                            <tr
+                        <div key={t.id} className={`rounded-lg border shadow-sm ${hasSplits ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+                            <div
                                 onClick={() => setSelectedTx(t)}
-                                className={`border-t hover:bg-gray-50 cursor-pointer ${hasSplits ? 'bg-blue-50' : ''}`}
+                                className="p-3 cursor-pointer active:bg-gray-50"
                             >
-                                <td className="w-16 px-2 py-2 text-center text-gray-500 text-xs">
-                                    {index + 1}
-                                </td>
-                                <td className="w-32 px-4 py-2">{formatDate(t.date)}</td>
-                                <td className="w-96 px-4 py-2">
-                                    <div className="flex items-center gap-2">
-                                        {hasSplits && <SplitIcon className="w-4 h-4 text-blue-600" />}
-                                        {canSplit && <CreditCard className="w-4 h-4 text-orange-500" />}
-                                        <span>{t.description}</span>
+                                {/* Top row: Date + Amount */}
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-sm text-gray-500">{formatDate(t.date)}</span>
+                                    <span className={`font-mono font-semibold ${t.transactionType === "debit" ? 'text-red-500' : 'text-green-700'}`}>
+                                        {t.transactionType === "debit" ? '−' : '+'} {formatMoney(t.amount)}
+                                    </span>
+                                </div>
+
+                                {/* Description */}
+                                <div className="flex items-center gap-2 mb-2">
+                                    {hasSplits && <SplitIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />}
+                                    {canSplit && <CreditCard className="w-4 h-4 text-orange-500 flex-shrink-0" />}
+                                    <span className="text-sm font-medium text-gray-900 line-clamp-2">{t.description}</span>
+                                </div>
+
+                                {/* Bottom row: Category + Actions */}
+                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex-1 min-w-0">
+                                        <CategoryCombobox
+                                            transactionId={t.id}
+                                            categoryId={t.category?.id ?? null}
+                                            refresh={refresh}
+                                            categories={categories}
+                                            setCategories={setCategories}
+                                            transactionType={t.transactionType}
+                                        />
                                     </div>
-                                </td>
-                                <td className="w-32 px-4 py-2 text-right font-mono">
-                                    {t.transactionType === "debit" ? (
-                                        <span className="text-red-500">- {formatMoney(t.amount)} ▼</span>
-                                    ) : (
-                                        <span className="text-green-700">+ {formatMoney(t.amount)} ▲</span>
-                                    )}
-                                </td>
-                                <td className="w-32 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                                    <CategoryCombobox
-                                        transactionId={t.id}
-                                        categoryId={t.category?.id ?? null}
-                                        refresh={refresh}
-                                        categories={categories}
-                                        setCategories={setCategories}
-                                        transactionType={t.transactionType}
-                                    />
-                                </td>
-                                <td className="w-24 px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
-                                    {hasSplits ? (
+                                    {hasSplits && (
                                         <button
                                             onClick={() => toggleSplits(t.id)}
-                                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                                             title="Toon splits"
                                         >
-                                            <SplitIcon className="w-4 h-4" />
+                                            <SplitIcon className="w-5 h-5" />
                                         </button>
-                                    ) : canSplit ? (
+                                    )}
+                                    {canSplit && (
                                         <button
                                             onClick={() => setUploadModalTransaction(t)}
-                                            className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded transition-colors"
-                                            title="Splits creditcard incasso"
+                                            className="p-2 text-orange-500 hover:bg-orange-100 rounded-lg transition-colors"
+                                            title="Splits creditcard"
                                         >
-                                            <CreditCard className="w-4 h-4" />
+                                            <CreditCard className="w-5 h-5" />
                                         </button>
-                                    ) : null}
-                                </td>
-                            </tr>
+                                    )}
+                                </div>
+                            </div>
                             {hasSplits && (
-                                <tr>
-                                    <td colSpan={6} className="p-0">
-                                        <TransactionSplitsList
-                                            accountId={accountId}
-                                            transactionId={t.id}
-                                            isExpanded={isExpanded}
-                                            onToggle={() => toggleSplits(t.id)}
-                                            onSplitsDeleted={handleSplitsDeleted}
-                                        />
-                                    </td>
-                                </tr>
+                                <TransactionSplitsList
+                                    accountId={accountId}
+                                    transactionId={t.id}
+                                    isExpanded={isExpanded}
+                                    onToggle={() => toggleSplits(t.id)}
+                                    onSplitsDeleted={handleSplitsDeleted}
+                                />
                             )}
-                        </React.Fragment>
+                        </div>
                     );
                 })}
-                </tbody>
-            </table>
+            </div>
+
+            {/* Desktop: Table Layout */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200 shadow">
+                <table className="min-w-full table-fixed text-left text-sm">
+                    <thead className="bg-gray-50">
+                    <tr>
+                        <th className="w-16 px-2 py-3 font-semibold text-center">
+                            #
+                        </th>
+                        <th
+                            className="w-32 px-4 py-3 font-semibold cursor-pointer"
+                            onClick={() => handleSort("date")}
+                        >
+                            Datum {getSortIcon("date")}
+                        </th>
+
+                        <th
+                            className="w-96 px-4 py-3 font-semibold cursor-pointer"
+                            onClick={() => handleSort("description")}
+                        >
+                            Omschrijving {getSortIcon("description")}
+                        </th>
+
+                        <th
+                            className="w-32 px-4 py-3 font-semibold text-right cursor-pointer"
+                            onClick={() => handleSort("amount")}
+                        >
+                            Bedrag {getSortIcon("amount")}
+                        </th>
+                        <th
+                            className="w-32 px-4 py-3 font-semibold cursor-pointer"
+                            onClick={() => handleSort("category")}
+                        >
+                            Categorie {getSortIcon("category")}
+                        </th>
+                        <th className="w-24 px-4 py-3 font-semibold text-center">Splits</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    {sortedTransactions.map((t, index) => {
+                        const hasSplits = t.hasSplits || false;
+                        const canSplit = isCreditCardIncasso(t) && !hasSplits;
+                        const isExpanded = expandedSplits.has(t.id);
+
+                        return (
+                            <React.Fragment key={t.id}>
+                                <tr
+                                    onClick={() => setSelectedTx(t)}
+                                    className={`border-t hover:bg-gray-50 cursor-pointer ${hasSplits ? 'bg-blue-50' : ''}`}
+                                >
+                                    <td className="w-16 px-2 py-2 text-center text-gray-500 text-xs">
+                                        {index + 1}
+                                    </td>
+                                    <td className="w-32 px-4 py-2">{formatDate(t.date)}</td>
+                                    <td className="w-96 px-4 py-2">
+                                        <div className="flex items-center gap-2">
+                                            {hasSplits && <SplitIcon className="w-4 h-4 text-blue-600" />}
+                                            {canSplit && <CreditCard className="w-4 h-4 text-orange-500" />}
+                                            <span>{t.description}</span>
+                                        </div>
+                                    </td>
+                                    <td className="w-32 px-4 py-2 text-right font-mono">
+                                        {t.transactionType === "debit" ? (
+                                            <span className="text-red-500">- {formatMoney(t.amount)} ▼</span>
+                                        ) : (
+                                            <span className="text-green-700">+ {formatMoney(t.amount)} ▲</span>
+                                        )}
+                                    </td>
+                                    <td className="w-32 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                        <CategoryCombobox
+                                            transactionId={t.id}
+                                            categoryId={t.category?.id ?? null}
+                                            refresh={refresh}
+                                            categories={categories}
+                                            setCategories={setCategories}
+                                            transactionType={t.transactionType}
+                                        />
+                                    </td>
+                                    <td className="w-24 px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                        {hasSplits ? (
+                                            <button
+                                                onClick={() => toggleSplits(t.id)}
+                                                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                                                title="Toon splits"
+                                            >
+                                                <SplitIcon className="w-4 h-4" />
+                                            </button>
+                                        ) : canSplit ? (
+                                            <button
+                                                onClick={() => setUploadModalTransaction(t)}
+                                                className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded transition-colors"
+                                                title="Splits creditcard incasso"
+                                            >
+                                                <CreditCard className="w-4 h-4" />
+                                            </button>
+                                        ) : null}
+                                    </td>
+                                </tr>
+                                {hasSplits && (
+                                    <tr>
+                                        <td colSpan={6} className="p-0">
+                                            <TransactionSplitsList
+                                                accountId={accountId}
+                                                transactionId={t.id}
+                                                isExpanded={isExpanded}
+                                                onToggle={() => toggleSplits(t.id)}
+                                                onSplitsDeleted={handleSplitsDeleted}
+                                            />
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                    </tbody>
+                </table>
+            </div>
             {selectedTx && (
                 <TransactionDrawer
                     transaction={selectedTx}
@@ -261,6 +338,6 @@ export default function TransactionTable({ accountId, transactions, refresh, onF
                     onParsed={handleParsedPdf}
                 />
             )}
-        </div>
+        </>
     );
 }

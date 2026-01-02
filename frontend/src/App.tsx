@@ -512,7 +512,7 @@ function AppContent() {
                 )}
 
                 {/* Main Content */}
-                <main className="flex-grow container mx-auto p-6">
+                <main className="flex-grow container mx-auto p-4 md:p-6">
                     <Suspense fallback={<PageLoader />}>
                         <Routes>
                             <Route path="/" element={<DashboardModule />} />

@@ -232,10 +232,10 @@ export default function DashboardPage() {
         const formatAmount = (amount: number) => formatMoney(amount);
 
         return (
-            <div className="min-h-screen bg-gray-50 p-6">
+            <div className="min-h-screen bg-gray-50 p-4 md:p-6">
                 <Toaster position="top-center" />
-                <header className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                    <h1 className="text-2xl font-bold">Dashboard</h1>
+                <header className="flex flex-wrap justify-between items-center gap-2 md:gap-4 mb-4">
+                    <h1 className="text-xl md:text-2xl font-bold">Dashboard</h1>
                 </header>
 
                 {/* Full Width Chart - Collapsible */}
@@ -259,11 +259,11 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                <div className="mb-8 flex justify-between items-center">
+                <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     {summary?.end_balance && (
-                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200">
                             <span className="text-sm text-gray-600">Saldo:</span>
-                            <span className="text-lg font-bold text-blue-600">
+                            <span className="text-base md:text-lg font-bold text-blue-600">
                                 {formatMoney(Number(summary.end_balance))}
                             </span>
                         </div>
@@ -290,25 +290,25 @@ export default function DashboardPage() {
                     <>
                         {/* Income Budgets Section */}
                         {incomeBudgets.length > 0 && (
-                            <div className="mb-8">
-                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-md border-2 border-green-200 p-6">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <div className="flex items-baseline gap-4">
+                            <div className="mb-6 md:mb-8">
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-md border-2 border-green-200 p-4 md:p-6">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                                        <div className="flex flex-wrap items-baseline gap-2 md:gap-4">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-2xl">💰</span>
-                                                <h2 className="text-2xl font-bold text-green-900">
+                                                <span className="text-xl md:text-2xl">💰</span>
+                                                <h2 className="text-xl md:text-2xl font-bold text-green-900">
                                                     Inkomsten
                                                 </h2>
                                             </div>
-                                            <span className="text-sm text-green-700 font-medium">
+                                            <span className="text-sm text-green-700 font-medium hidden sm:inline">
                                                 {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
                                             </span>
-                                            <span className="text-lg font-bold text-green-800">
+                                            <span className="text-base md:text-lg font-bold text-green-800">
                                                 {formatAmount(totalIncome)}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm text-green-700 font-medium">
+                                            <span className="text-xs sm:text-sm text-green-700 font-medium">
                                                 {incomeBudgets.length} {incomeBudgets.length === 1 ? 'budget' : 'budgetten'}
                                             </span>
                                         </div>
@@ -325,25 +325,25 @@ export default function DashboardPage() {
 
                         {/* Expense Budgets Section */}
                         {expenseBudgets.length > 0 && (
-                            <div className="mb-8">
-                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md border-2 border-blue-200 p-6">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <div className="flex items-baseline gap-4">
+                            <div className="mb-6 md:mb-8">
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md border-2 border-blue-200 p-4 md:p-6">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                                        <div className="flex flex-wrap items-baseline gap-2 md:gap-4">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-2xl">💸</span>
-                                                <h2 className="text-2xl font-bold text-blue-900">
+                                                <span className="text-xl md:text-2xl">💸</span>
+                                                <h2 className="text-xl md:text-2xl font-bold text-blue-900">
                                                     Uitgaven
                                                 </h2>
                                             </div>
-                                            <span className="text-sm text-blue-700 font-medium">
+                                            <span className="text-sm text-blue-700 font-medium hidden sm:inline">
                                                 {startDate && endDate ? formatPeriod(startDate, endDate) : ''}
                                             </span>
-                                            <span className="text-lg font-bold text-blue-800">
+                                            <span className="text-base md:text-lg font-bold text-blue-800">
                                                 {formatAmount(totalExpense)}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm text-blue-700 font-medium">
+                                            <span className="text-xs sm:text-sm text-blue-700 font-medium">
                                                 {expenseBudgets.length} {expenseBudgets.length === 1 ? 'budget' : 'budgetten'}
                                             </span>
                                         </div>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* Savings Accounts Section */}
-                <div className="mb-8">
+                <div className="mb-6 md:mb-8">
                     <SavingsAccountsPanel
                         accounts={accounts}
                         checkingAccountId={accountId}
@@ -370,7 +370,7 @@ export default function DashboardPage() {
 
                 {/* Projects Section (if enabled) */}
                 {projectsEnabled && (
-                    <div className="mb-8">
+                    <div className="mb-6 md:mb-8">
                         <ProjectsSection
                             projects={projects}
                             onCreateProject={() => setIsCreateProjectModalOpen(true)}
@@ -389,11 +389,11 @@ export default function DashboardPage() {
                 )}
 
                 {/* Older Budgets Panel (collapsible) */}
-                <div className="mb-8">
+                <div className="mb-6 md:mb-8">
                     <OlderBudgetsPanel budgets={olderBudgets} accountId={accountId} />
                 </div>
 
-                <div className="mb-8 flex justify-end">
+                <div className="mb-6 md:mb-8 flex justify-end">
                     <PeriodPicker
                         months={months}
                         onChange={handlePeriodChange}
@@ -405,15 +405,15 @@ export default function DashboardPage() {
 
     // Fallback to original dashboard if feature flag is disabled
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             <Toaster position="top-center" />
 
             {/* Header with Period Picker */}
-            <header className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                <div className="flex items-baseline gap-4">
-                    <h1 className="text-2xl font-bold">Dashboard</h1>
+            <header className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 md:gap-4 mb-4">
+                <div className="flex flex-wrap items-baseline gap-2 md:gap-4">
+                    <h1 className="text-xl md:text-2xl font-bold">Dashboard</h1>
                     {summary?.end_balance && (
-                        <span className="text-lg font-semibold text-blue-600">
+                        <span className="text-base md:text-lg font-semibold text-blue-600">
                             Saldo: {formatMoney(Number(summary.end_balance))}
                         </span>
                     )}
