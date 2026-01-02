@@ -379,4 +379,65 @@ class ForecastService
 
         return $this->moneyFactory->toFloat($this->moneyFactory->fromCents((int) $medianInCents));
     }
+
+    /**
+     * Haal de mediaan op voor een forecast item
+     */
+    public function getItemMedian(int $itemId): float
+    {
+        $item = $this->forecastItemRepository->find($itemId);
+        if (!$item) {
+            throw new NotFoundHttpException('Forecast item niet gevonden');
+        }
+
+        $accountId = $item->getAccount()->getId();
+
+        if ($item->getBudget()) {
+            return $this->calculateBudgetMedian($item->getBudget());
+        } elseif ($item->getCategory()) {
+            return $this->calculateCategoryMedian($item->getCategory(), $accountId);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Reset een forecast item naar de historische mediaan
+     */
+    public function resetItemToMedian(int $itemId): ForecastItem
+    {
+        $item = $this->forecastItemRepository->find($itemId);
+        if (!$item) {
+            throw new NotFoundHttpException('Forecast item niet gevonden');
+        }
+
+        $median = $this->getItemMedian($itemId);
+        $medianInCents = (int) round($median * 100);
+        $item->setExpectedAmountInCents($medianInCents);
+
+        $this->forecastItemRepository->save($item);
+
+        return $item;
+    }
+
+    /**
+     * Reset alle forecast items van een type naar hun mediaan
+     */
+    public function resetTypeToMedian(int $accountId, string $type): int
+    {
+        $items = $this->forecastItemRepository->findByAccountAndType($accountId, $type);
+        $count = 0;
+
+        foreach ($items as $item) {
+            $median = $this->getItemMedian($item->getId());
+            $medianInCents = (int) round($median * 100);
+            $item->setExpectedAmountInCents($medianInCents);
+            $this->forecastItemRepository->save($item, false);
+            $count++;
+        }
+
+        $this->forecastItemRepository->flush();
+
+        return $count;
+    }
 }

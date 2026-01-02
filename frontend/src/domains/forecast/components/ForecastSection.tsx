@@ -14,6 +14,8 @@ interface ForecastSectionProps {
     onAddItem: (item: CreateForecastItem) => Promise<void>;
     onUpdateItem: (itemId: number, data: UpdateForecastItem) => Promise<void>;
     onRemoveItem: (itemId: number) => Promise<void>;
+    onResetItemToMedian: (itemId: number) => Promise<void>;
+    onResetAllToMedian: () => Promise<void>;
     onReorderItems: (items: ForecastItem[]) => void;
 }
 
@@ -26,11 +28,26 @@ export function ForecastSection({
     onAddItem,
     onUpdateItem,
     onRemoveItem,
+    onResetItemToMedian,
+    onResetAllToMedian,
     onReorderItems
 }: ForecastSectionProps) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [draggedItem, setDraggedItem] = useState<ForecastItem | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+    const [isResettingAll, setIsResettingAll] = useState(false);
+
+    const handleResetAllToMedian = async () => {
+        if (!window.confirm(`Weet je zeker dat je alle ${type === 'INCOME' ? 'inkomsten' : 'uitgaven'} wilt resetten naar de mediaan?`)) {
+            return;
+        }
+        setIsResettingAll(true);
+        try {
+            await onResetAllToMedian();
+        } finally {
+            setIsResettingAll(false);
+        }
+    };
 
     const isIncome = type === 'INCOME';
     const headerColor = isIncome ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100';
@@ -130,10 +147,22 @@ export function ForecastSection({
             {/* Header */}
             <div className={`px-6 py-4 ${headerColor}`}>
                 <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold flex items-center space-x-2">
-                        <span>{isIncome ? '💰' : '💸'}</span>
-                        <span>{title}</span>
-                    </h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold flex items-center space-x-2">
+                            <span>{isIncome ? '💰' : '💸'}</span>
+                            <span>{title}</span>
+                        </h3>
+                        {items.length > 0 && (
+                            <button
+                                onClick={handleResetAllToMedian}
+                                disabled={isResettingAll}
+                                className="text-xs px-2 py-1 rounded bg-white/50 hover:bg-white/80 transition-colors disabled:opacity-50"
+                                title="Reset alle items naar mediaan"
+                            >
+                                {isResettingAll ? '...' : '↺ Alles naar mediaan'}
+                            </button>
+                        )}
+                    </div>
                     <div className="text-right">
                         <div className="text-sm">
                             {formatMoney(totalActual)} / {formatMoney(totalExpected)}
@@ -186,6 +215,7 @@ export function ForecastSection({
                                     item={item}
                                     onUpdate={onUpdateItem}
                                     onRemove={onRemoveItem}
+                                    onResetToMedian={onResetItemToMedian}
                                     onDragStart={handleItemDragStart}
                                     onDragEnd={handleItemDragEnd}
                                     isDragging={draggedItem?.id === item.id}

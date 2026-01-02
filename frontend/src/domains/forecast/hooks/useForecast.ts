@@ -75,6 +75,20 @@ export function useForecast() {
         await loadForecast();
     };
 
+    const resetItemToMedian = async (itemId: number): Promise<void> => {
+        if (!accountId) return;
+
+        await ForecastService.resetItemToMedian(accountId, itemId);
+        await loadForecast();
+    };
+
+    const resetTypeToMedian = async (type: 'INCOME' | 'EXPENSE'): Promise<void> => {
+        if (!accountId) return;
+
+        await ForecastService.resetTypeToMedian(accountId, type);
+        await loadForecast();
+    };
+
     const goToPreviousMonth = () => {
         setMonth(ForecastService.getPreviousMonth(month));
     };
@@ -107,6 +121,8 @@ export function useForecast() {
         updateItem,
         removeItem,
         updatePositions,
+        resetItemToMedian,
+        resetTypeToMedian,
         goToPreviousMonth,
         goToNextMonth,
         goToCurrentMonth,

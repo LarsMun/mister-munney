@@ -20,6 +20,8 @@ export default function ForecastPage() {
         updateItem,
         removeItem,
         updatePositions,
+        resetItemToMedian,
+        resetTypeToMedian,
         goToPreviousMonth,
         goToNextMonth,
         goToCurrentMonth,
@@ -201,6 +203,8 @@ export default function ForecastPage() {
                         onAddItem={addItem}
                         onUpdateItem={updateItem}
                         onRemoveItem={removeItem}
+                        onResetItemToMedian={resetItemToMedian}
+                        onResetAllToMedian={() => resetTypeToMedian('INCOME')}
                         onReorderItems={handleReorderIncomeItems}
                     />
 
@@ -214,6 +218,8 @@ export default function ForecastPage() {
                         onAddItem={addItem}
                         onUpdateItem={updateItem}
                         onRemoveItem={removeItem}
+                        onResetItemToMedian={resetItemToMedian}
+                        onResetAllToMedian={() => resetTypeToMedian('EXPENSE')}
                         onReorderItems={handleReorderExpenseItems}
                     />
 
