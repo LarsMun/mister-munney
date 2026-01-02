@@ -29,7 +29,9 @@ class TransactionRepository extends ServiceEntityRepository
 
     public function findByFilter(TransactionFilterDTO $filter): array
     {
-        $qb = $this->createQueryBuilder('t');
+        $qb = $this->createQueryBuilder('t')
+            ->leftJoin('t.category', 'cat')
+            ->addSelect('cat');
         $this->applyFilter($qb, $filter);
 
         if ($filter->sortBy) {
@@ -49,7 +51,9 @@ class TransactionRepository extends ServiceEntityRepository
      */
     public function findByFilterPaginated(TransactionFilterDTO $filter, int $offset, int $limit): array
     {
-        $qb = $this->createQueryBuilder('t');
+        $qb = $this->createQueryBuilder('t')
+            ->leftJoin('t.category', 'cat')
+            ->addSelect('cat');
         $this->applyFilter($qb, $filter);
 
         if ($filter->sortBy) {

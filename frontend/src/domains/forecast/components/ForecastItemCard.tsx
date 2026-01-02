@@ -1,6 +1,6 @@
 // frontend/src/domains/forecast/components/ForecastItemCard.tsx
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import { API_URL } from '../../../lib/api';
 import type { ForecastItem, UpdateForecastItem } from '../models/Forecast';
@@ -9,15 +9,17 @@ interface ForecastItemCardProps {
     item: ForecastItem;
     onUpdate: (itemId: number, data: UpdateForecastItem) => Promise<void>;
     onRemove: (itemId: number) => Promise<void>;
+    onResetToMedian: (itemId: number) => Promise<void>;
     onDragStart: (e: React.DragEvent, item: ForecastItem) => void;
     onDragEnd: () => void;
     isDragging: boolean;
 }
 
-export function ForecastItemCard({
+export const ForecastItemCard = memo(function ForecastItemCard({
     item,
     onUpdate,
     onRemove,
+    onResetToMedian,
     onDragStart,
     onDragEnd,
     isDragging
@@ -25,6 +27,16 @@ export function ForecastItemCard({
     const [isEditing, setIsEditing] = useState(false);
     const [editAmount, setEditAmount] = useState(item.expectedAmount.toString());
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
+
+    const handleResetToMedian = async () => {
+        setIsResetting(true);
+        try {
+            await onResetToMedian(item.id);
+        } finally {
+            setIsResetting(false);
+        }
+    };
 
     // Voor negatieve bedragen (bijv. spaaropnamen), gebruik absoluut voor progress
     const actualForProgress = Math.abs(item.actualAmount);
@@ -139,13 +151,23 @@ export function ForecastItemCard({
                         autoFocus
                     />
                 ) : (
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
-                        title="Klik om te bewerken"
-                    >
-                        {formatMoney(item.expectedAmount)}
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                        <button
+                            onClick={handleResetToMedian}
+                            disabled={isResetting}
+                            className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                            title="Reset naar mediaan"
+                        >
+                            {isResetting ? '...' : '↺'}
+                        </button>
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                            title="Klik om te bewerken"
+                        >
+                            {formatMoney(item.expectedAmount)}
+                        </button>
+                    </div>
                 )}
                 <div className="text-xs text-gray-500">verwacht</div>
             </div>
@@ -171,4 +193,4 @@ export function ForecastItemCard({
             </button>
         </div>
     );
-}
+});

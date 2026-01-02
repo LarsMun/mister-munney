@@ -299,4 +299,90 @@ class ForecastController extends AbstractController
 
         return $this->json(['success' => true]);
     }
+
+    #[OA\Post(
+        path: '/api/account/{accountId}/forecast/items/{itemId}/reset-to-median',
+        summary: 'Reset een forecast item naar de historische mediaan',
+        tags: ['Forecast'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            ),
+            new OA\Parameter(
+                name: 'itemId',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Item gereset naar mediaan'),
+            new OA\Response(response: 404, description: 'Item niet gevonden')
+        ]
+    )]
+    #[Route('/items/{itemId}/reset-to-median', name: 'forecast_reset_item_to_median', methods: ['POST'])]
+    public function resetItemToMedian(int $accountId, int $itemId): JsonResponse
+    {
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $item = $this->forecastService->resetItemToMedian($itemId);
+
+        return $this->json([
+            'id' => $item->getId(),
+            'expectedAmount' => $item->getExpectedAmountInCents() / 100,
+        ]);
+    }
+
+    #[OA\Post(
+        path: '/api/account/{accountId}/forecast/reset-to-median',
+        summary: 'Reset alle forecast items van een type naar hun mediaan',
+        tags: ['Forecast'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            )
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['type'],
+                properties: [
+                    new OA\Property(property: 'type', type: 'string', enum: ['INCOME', 'EXPENSE'])
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Items gereset naar mediaan'),
+            new OA\Response(response: 400, description: 'Ongeldig type')
+        ]
+    )]
+    #[Route('/reset-to-median', name: 'forecast_reset_type_to_median', methods: ['POST'])]
+    public function resetTypeToMedian(int $accountId, Request $request): JsonResponse
+    {
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $type = $data['type'] ?? null;
+
+        if (!in_array($type, ['INCOME', 'EXPENSE'], true)) {
+            return $this->json(['error' => 'Type moet INCOME of EXPENSE zijn'], 400);
+        }
+
+        $count = $this->forecastService->resetTypeToMedian($accountId, $type);
+
+        return $this->json([
+            'success' => true,
+            'updatedCount' => $count,
+        ]);
+    }
 }

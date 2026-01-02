@@ -53,6 +53,22 @@ export async function updatePositions(
     await api.put(`/account/${accountId}/forecast/positions`, positions);
 }
 
+export async function resetItemToMedian(
+    accountId: number,
+    itemId: number
+): Promise<{ id: number; expectedAmount: number }> {
+    const res = await api.post(`/account/${accountId}/forecast/items/${itemId}/reset-to-median`);
+    return res.data;
+}
+
+export async function resetTypeToMedian(
+    accountId: number,
+    type: 'INCOME' | 'EXPENSE'
+): Promise<{ success: boolean; updatedCount: number }> {
+    const res = await api.post(`/account/${accountId}/forecast/reset-to-median`, { type });
+    return res.data;
+}
+
 // Utility functions
 export function getCurrentMonth(): string {
     return new Date().toISOString().substring(0, 7);

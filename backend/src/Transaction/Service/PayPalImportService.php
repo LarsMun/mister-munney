@@ -17,6 +17,7 @@ class PayPalImportService
 {
     public function __construct(
         private readonly PayPalWebPasteParserService $parser,
+        private readonly PayPalCsvParserService $csvParser,
         private readonly PayPalMatchingService $matcher,
         private readonly TransactionRepository $transactionRepository,
         private readonly MoneyFactory $moneyFactory,
@@ -70,9 +71,57 @@ class PayPalImportService
     }
 
     /**
+     * Import PayPal transactions from CSV export
+     *
+     * @param string $csvContent CSV file content from PayPal export
+     * @param int $accountId Account ID to match against
+     * @return array Statistics about the import
+     */
+    public function importFromCsv(string $csvContent, int $accountId): array
+    {
+        // Parse CSV
+        $parsedTransactions = $this->csvParser->parseCsv($csvContent);
+
+        if (empty($parsedTransactions)) {
+            return [
+                'parsed' => 0,
+                'matched' => 0,
+                'imported' => 0,
+                'skipped' => 0,
+            ];
+        }
+
+        // Match with database transactions
+        $matches = $this->matcher->matchTransactions($parsedTransactions, $accountId);
+
+        // Create child transactions for each match
+        $imported = 0;
+        foreach ($matches as $match) {
+            $this->createChildTransaction(
+                $match['dbTransaction'],
+                $match['pastedTransaction'],
+                $match['pastedTransaction']['reference'] ?? null
+            );
+            $imported++;
+        }
+
+        // Apply patterns to newly created child transactions
+        if ($imported > 0) {
+            $this->applyPatterns($accountId);
+        }
+
+        return [
+            'parsed' => count($parsedTransactions),
+            'matched' => count($matches),
+            'imported' => $imported,
+            'skipped' => count($parsedTransactions) - count($matches),
+        ];
+    }
+
+    /**
      * Create a child transaction for a PayPal purchase
      */
-    private function createChildTransaction(Transaction $parentTransaction, array $pastedTx): void
+    private function createChildTransaction(Transaction $parentTransaction, array $pastedTx, ?string $reference = null): void
     {
         $child = new Transaction();
 
@@ -94,12 +143,12 @@ class PayPalImportService
         // Set PayPal specific fields
         $child->setMutationType('PayPal');
         $child->setTransactionCode('PP');
-        $child->setNotes(''); // Could add transaction reference here if available
+        $child->setNotes($reference ?? '');
         $child->setCounterpartyAccount(null);
         $child->setTag('paypal');
 
-        // Generate unique hash
-        $child->setHash($this->generateChildHash($parentTransaction, $child));
+        // Generate unique hash (include reference if available for better uniqueness)
+        $child->setHash($this->generateChildHash($parentTransaction, $child, $reference));
 
         // Link to parent
         $child->setParentTransaction($parentTransaction);
@@ -112,15 +161,20 @@ class PayPalImportService
     /**
      * Generate a unique hash for child transaction
      */
-    private function generateChildHash(Transaction $parent, Transaction $child): string
+    private function generateChildHash(Transaction $parent, Transaction $child, ?string $reference = null): string
     {
-        $data = sprintf(
-            '%s_%s_%s_%s',
-            $parent->getId(),
-            $child->getDate()->format('Y-m-d'),
-            $child->getDescription(),
-            $child->getAmount()->getAmount()
-        );
+        // If we have a PayPal reference, use it for uniqueness
+        if ($reference) {
+            $data = sprintf('%s_%s', $parent->getId(), $reference);
+        } else {
+            $data = sprintf(
+                '%s_%s_%s_%s',
+                $parent->getId(),
+                $child->getDate()->format('Y-m-d'),
+                $child->getDescription(),
+                $child->getAmount()->getAmount()
+            );
+        }
 
         return hash('sha256', $data);
     }

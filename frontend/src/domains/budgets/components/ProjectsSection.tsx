@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ProjectDetails } from '../models/AdaptiveBudget';
 import ProjectCard from './ProjectCard';
 
@@ -10,18 +10,18 @@ interface ProjectsSectionProps {
 export default function ProjectsSection({ projects, onCreateProject }: ProjectsSectionProps) {
     const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED'>('ACTIVE');
 
-    // Filter projects based on selected status
-    const filteredProjects = projects.filter(project => {
-        if (filter === 'ALL') return true;
-        return project.status === filter;
-    });
-
-    // Count by status
-    const counts = {
+    // Count by status (memoized to avoid recalculating on every render)
+    const counts = useMemo(() => ({
         ALL: projects.length,
         ACTIVE: projects.filter(p => p.status === 'ACTIVE').length,
         COMPLETED: projects.filter(p => p.status === 'COMPLETED').length,
-    };
+    }), [projects]);
+
+    // Filter projects based on selected status (memoized)
+    const filteredProjects = useMemo(() => {
+        if (filter === 'ALL') return projects;
+        return projects.filter(project => project.status === filter);
+    }, [projects, filter]);
 
     return (
         <div className="bg-white rounded-lg shadow p-6">

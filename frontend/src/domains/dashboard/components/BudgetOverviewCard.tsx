@@ -1,6 +1,6 @@
 // frontend/src/domains/dashboard/components/BudgetOverviewCard.tsx
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useBudgetSummary } from '../../budgets/hooks/useBudgetSummary';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import type { BudgetSummary } from '../../budgets/models/BudgetSummary';
@@ -126,7 +126,7 @@ interface BudgetSummaryItemProps {
     monthYear: string;
 }
 
-function BudgetSummaryItem({ summary, accountId, monthYear }: BudgetSummaryItemProps) {
+const BudgetSummaryItem = memo(function BudgetSummaryItem({ summary, accountId, monthYear }: BudgetSummaryItemProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([]);
     const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
@@ -415,4 +415,4 @@ function BudgetSummaryItem({ summary, accountId, monthYear }: BudgetSummaryItemP
             />
         </div>
     );
-}
+});

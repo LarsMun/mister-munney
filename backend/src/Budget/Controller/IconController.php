@@ -41,7 +41,9 @@ class IconController extends AbstractController
 
         sort($icons);
 
-        return $this->json($icons);
+        $response = $this->json($icons);
+        $response->headers->set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+        return $response;
     }
 
     #[Route('/icons/{filename}', name: 'api_icon_serve', methods: ['GET'])]

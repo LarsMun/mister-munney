@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ProjectDetails } from '../models/AdaptiveBudget';
 import { useNavigate } from 'react-router-dom';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
@@ -6,7 +7,7 @@ interface ProjectCardProps {
     project: ProjectDetails;
 }
 
-export default function ProjectCard({ project }: ProjectCardProps) {
+const ProjectCard = memo(function ProjectCard({ project }: ProjectCardProps) {
     const navigate = useNavigate();
 
     // Format dates
@@ -172,4 +173,6 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             )}
         </article>
     );
-}
+});
+
+export default ProjectCard;

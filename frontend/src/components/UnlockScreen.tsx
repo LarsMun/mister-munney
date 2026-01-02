@@ -16,7 +16,7 @@ export default function UnlockScreen() {
         setError(null);
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:18787/api';
             const response = await fetch(`${API_URL}/unlock`, {
                 method: 'POST',
                 headers: {

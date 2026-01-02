@@ -12,7 +12,8 @@ use DateTime;
  */
 class PayPalMatchingService
 {
-    private const DATE_WINDOW_DAYS = 5; // Match window: CSV date + 0 to 5 days
+    private const DATE_WINDOW_BEFORE = 3; // Match window: CSV date - 3 days (bank might post before PayPal)
+    private const DATE_WINDOW_AFTER = 5;  // Match window: CSV date + 5 days (bank might post after PayPal)
 
     public function __construct(
         private readonly TransactionRepository $transactionRepository,
@@ -62,9 +63,9 @@ class PayPalMatchingService
         $pastedAmount = $pastedTx['amount']; // Already in float (e.g., -24.99)
         $pastedDate = new DateTime($pastedTx['date']);
 
-        // Calculate date window
-        $minDate = clone $pastedDate;
-        $maxDate = (clone $pastedDate)->modify('+' . self::DATE_WINDOW_DAYS . ' days');
+        // Calculate date window (check both before and after PayPal date)
+        $minDate = (clone $pastedDate)->modify('-' . self::DATE_WINDOW_BEFORE . ' days');
+        $maxDate = (clone $pastedDate)->modify('+' . self::DATE_WINDOW_AFTER . ' days');
 
         foreach ($dbTransactions as $dbTx) {
             // Skip if already used
