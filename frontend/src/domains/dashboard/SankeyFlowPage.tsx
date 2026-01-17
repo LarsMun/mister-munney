@@ -32,6 +32,8 @@ const COLORS = {
     income: '#16a34a',
     total: '#3b82f6',
     expense: '#dc2626',
+    deficit: '#f97316',   // Orange for deficit (Tekort)
+    surplus: '#22c55e',   // Green for surplus (Overschot)
 };
 
 export default function SankeyFlowPage() {
@@ -147,6 +149,19 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
+        // Balance the flows: add deficit or surplus item
+        const difference = totalIncome - totalExpense;
+        if (difference < 0) {
+            // Expense > Income: Add "Tekort" (deficit) to income side
+            incomeBudgets.push({ name: 'Tekort', value: Math.abs(difference) });
+        } else if (difference > 0) {
+            // Income > Expense: Add "Overschot" (surplus) to expense side
+            expenseBudgets.push({ name: 'Overschot', value: difference });
+        }
+
+        // Now both sides are balanced
+        const balancedTotal = Math.max(totalIncome, totalExpense);
+
         // Wide, short layout that fits any viewport
         const width = 1400;
         const height = 500;
@@ -162,23 +177,25 @@ export default function SankeyFlowPage() {
         const availableForNodes = innerHeight - (maxNodes - 1) * nodeGap;
         const nodeHeight = Math.max(20, availableForNodes / maxNodes);
 
-        // Position income nodes evenly
+        // Position income nodes evenly (with special color for Tekort)
         const incomeNodes: NodePosition[] = [];
         const totalIncomeNodesHeight = incomeBudgets.length * nodeHeight + (incomeBudgets.length - 1) * nodeGap;
         let incomeY = padding.top + (innerHeight - totalIncomeNodesHeight) / 2;
 
         incomeBudgets.forEach(b => {
-            incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: nodeHeight, color: COLORS.income });
+            const color = b.name === 'Tekort' ? COLORS.deficit : COLORS.income;
+            incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: nodeHeight, color });
             incomeY += nodeHeight + nodeGap;
         });
 
-        // Position expense nodes evenly
+        // Position expense nodes evenly (with special color for Overschot)
         const expenseNodes: NodePosition[] = [];
         const totalExpenseNodesHeight = expenseBudgets.length * nodeHeight + (expenseBudgets.length - 1) * nodeGap;
         let expenseY = padding.top + (innerHeight - totalExpenseNodesHeight) / 2;
 
         expenseBudgets.forEach(b => {
-            expenseNodes.push({ name: b.name, type: 'expense', value: b.value, y: expenseY, height: nodeHeight, color: COLORS.expense });
+            const color = b.name === 'Overschot' ? COLORS.surplus : COLORS.expense;
+            expenseNodes.push({ name: b.name, type: 'expense', value: b.value, y: expenseY, height: nodeHeight, color });
             expenseY += nodeHeight + nodeGap;
         });
 
@@ -186,7 +203,7 @@ export default function SankeyFlowPage() {
         const totalNode: NodePosition = {
             name: 'Totaal',
             type: 'total',
-            value: Math.max(totalIncome, totalExpense),
+            value: balancedTotal,
             y: padding.top,
             height: innerHeight,
             color: COLORS.total
@@ -195,36 +212,35 @@ export default function SankeyFlowPage() {
         // Build flows with proportional heights based on values
         const flows: FlowPath[] = [];
 
-        // Income flows - proportional to their values
+        // Income flows - proportional to their values (using balanced total)
         let incomeFlowY = padding.top;
-        const incomeScale = innerHeight / totalIncome;
+        const flowScale = innerHeight / balancedTotal;
         incomeNodes.forEach(node => {
-            const flowHeightOnTotal = node.value * incomeScale;
+            const flowHeightOnTotal = node.value * flowScale;
             flows.push({
                 sourceY: node.y,
                 sourceHeight: nodeHeight,
                 targetY: incomeFlowY,
                 targetHeight: flowHeightOnTotal,
                 value: node.value,
-                color: COLORS.income,
+                color: node.color,
                 sourceName: node.name,
                 targetName: 'Totaal',
             });
             incomeFlowY += flowHeightOnTotal;
         });
 
-        // Expense flows - proportional to their values
+        // Expense flows - proportional to their values (using same balanced scale)
         let expenseFlowY = padding.top;
-        const expenseScale = innerHeight / totalExpense;
         expenseNodes.forEach(node => {
-            const flowHeightOnTotal = node.value * expenseScale;
+            const flowHeightOnTotal = node.value * flowScale;
             flows.push({
                 sourceY: expenseFlowY,
                 sourceHeight: flowHeightOnTotal,
                 targetY: node.y,
                 targetHeight: nodeHeight,
                 value: node.value,
-                color: COLORS.expense,
+                color: node.color,
                 sourceName: 'Totaal',
                 targetName: node.name,
             });
