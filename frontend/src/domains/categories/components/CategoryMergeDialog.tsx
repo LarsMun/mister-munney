@@ -85,8 +85,9 @@ export function CategoryMergeDialog({
             );
             setPreview(response.data);
             setStep('preview');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Kon preview niet laden');
+        } catch (err: unknown) {
+            const axiosError = err as { response?: { data?: { message?: string } } };
+            setError(axiosError.response?.data?.message || 'Kon preview niet laden');
             console.error('Failed to fetch merge preview:', err);
         } finally {
             setIsLoadingPreview(false);

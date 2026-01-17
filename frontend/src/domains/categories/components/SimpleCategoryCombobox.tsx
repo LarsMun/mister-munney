@@ -31,7 +31,7 @@ export default function SimpleCategoryCombobox({
         } else {
             setInput("");
         }
-    }, [selectedCategory?.id, selectedCategory?.name]);
+    }, [selectedCategory]);
 
     if (accountId === null) return null;
 

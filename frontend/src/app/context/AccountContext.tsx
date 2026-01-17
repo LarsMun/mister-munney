@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useState, useEffect, ReactNode, useCallback, useContext } from 'react';
 import api from '../../lib/axios';
 import type { Account } from '../../domains/accounts/models/Account';
 
-type AccountContextType = {
+export type AccountContextType = {
     accounts: Account[];
     accountId: number | null;
     setAccountId: (id: number) => void;
@@ -13,7 +14,7 @@ type AccountContextType = {
     resetAccountState: () => void;
 };
 
-const AccountContext = createContext<AccountContextType | undefined>(undefined);
+export const AccountContext = createContext<AccountContextType | undefined>(undefined);
 
 export function AccountProvider({ children }: { children: ReactNode }) {
     const [accounts, setAccounts] = useState<Account[]>([]);
@@ -91,7 +92,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
     // Update a single account in the context without refetching all
     const updateAccountInContext = useCallback((updatedAccount: Account) => {
-        setAccounts(prev => 
+        setAccounts(prev =>
             prev.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)
         );
     }, []);
