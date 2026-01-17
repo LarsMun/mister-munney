@@ -27,12 +27,27 @@ class AiCategorizationService
      */
     public function suggestCategories(array $transactions, int $accountId): array
     {
+        $this->logger->info('AI categorization started', [
+            'accountId' => $accountId,
+            'transactionCount' => count($transactions)
+        ]);
+
         if (empty($transactions)) {
+            $this->logger->info('No transactions to categorize');
             return [];
         }
 
         $categories = $this->categoryRepository->findBy(['account' => $accountId]);
-        if (empty($categories)) {
+
+        $this->logger->info('Categories fetched', [
+            'categoriesType' => gettype($categories),
+            'categoriesCount' => is_array($categories) ? count($categories) : 'N/A'
+        ]);
+
+        if (!is_array($categories) || empty($categories)) {
+            $this->logger->warning('No categories found or invalid categories response', [
+                'categoriesType' => gettype($categories)
+            ]);
             return [];
         }
 
@@ -128,6 +143,21 @@ class AiCategorizationService
      */
     private function buildPrompt(array $transactions, array $categories): string
     {
+        // Defensive null checks with logging
+        if (!is_array($categories)) {
+            $this->logger->error('buildPrompt received non-array categories', [
+                'type' => gettype($categories)
+            ]);
+            throw new \RuntimeException('Categories must be an array, got: ' . gettype($categories));
+        }
+
+        if (!is_array($transactions)) {
+            $this->logger->error('buildPrompt received non-array transactions', [
+                'type' => gettype($transactions)
+            ]);
+            throw new \RuntimeException('Transactions must be an array, got: ' . gettype($transactions));
+        }
+
         $categoryList = array_map(fn(Category $c) => [
             'id' => $c->getId(),
             'name' => $c->getName()
