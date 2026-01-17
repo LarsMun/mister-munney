@@ -147,108 +147,88 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
-        // Fixed dimensions that fit the viewport (90vh - header, conservative)
-        const width = 1600;
-        const maxHeight = 700;
-        const padding = { top: 40, bottom: 40, left: 220, right: 220 };
-        const nodeWidth = 28;
-        const innerHeight = maxHeight - padding.top - padding.bottom;
-
-        // Calculate node sizing based on how many nodes we have
-        const maxNodes = Math.max(incomeBudgets.length, expenseBudgets.length, 1);
-
-        // Ideal sizes
-        const idealNodeHeight = 40;
-        const idealNodeGap = 30;
-
-        // Calculate what we'd need ideally
-        const idealTotalHeight = maxNodes * idealNodeHeight + (maxNodes - 1) * idealNodeGap;
-
-        // Scale down if needed to fit
-        const scaleFactor = idealTotalHeight > innerHeight ? innerHeight / idealTotalHeight : 1;
-        const minNodeHeight = Math.max(20, idealNodeHeight * scaleFactor);  // Min 20px
-        const nodeGap = Math.max(10, idealNodeGap * scaleFactor);           // Min 10px
-
-        const height = maxHeight;
+        // Wide, short layout that fits any viewport
+        const width = 1400;
+        const height = 500;
+        const padding = { top: 30, bottom: 30, left: 180, right: 180 };
+        const nodeWidth = 24;
+        const innerHeight = height - padding.top - padding.bottom;
 
         const columnX = [padding.left, width / 2 - nodeWidth / 2, width - padding.right - nodeWidth];
 
-        // Scale based on values but with minimum heights
-        const maxValue = Math.max(totalIncome, totalExpense);
-        const availableHeight = innerHeight - (maxNodes - 1) * nodeGap;
-        const scale = availableHeight / maxValue;
+        // Calculate node heights - use equal distribution based on count
+        const maxNodes = Math.max(incomeBudgets.length, expenseBudgets.length, 1);
+        const nodeGap = 12;
+        const availableForNodes = innerHeight - (maxNodes - 1) * nodeGap;
+        const nodeHeight = Math.max(20, availableForNodes / maxNodes);
 
-        // Position income nodes with fixed gaps
+        // Position income nodes evenly
         const incomeNodes: NodePosition[] = [];
-        const incomeHeights = incomeBudgets.map(b => Math.max(b.value * scale, minNodeHeight));
-        const totalIncomeHeight = incomeHeights.reduce((s, h) => s + h, 0) + (incomeBudgets.length - 1) * nodeGap;
-        let incomeY = padding.top + (innerHeight - totalIncomeHeight) / 2;
+        const totalIncomeNodesHeight = incomeBudgets.length * nodeHeight + (incomeBudgets.length - 1) * nodeGap;
+        let incomeY = padding.top + (innerHeight - totalIncomeNodesHeight) / 2;
 
-        incomeBudgets.forEach((b, i) => {
-            const h = incomeHeights[i];
-            incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: h, color: COLORS.income });
-            incomeY += h + nodeGap;
+        incomeBudgets.forEach(b => {
+            incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: nodeHeight, color: COLORS.income });
+            incomeY += nodeHeight + nodeGap;
         });
 
-        // Position total node - spans from first income to last income position on the total side
-        const totalNodeHeight = incomeNodes.length > 0
-            ? incomeNodes.reduce((sum, n) => sum + n.height, 0)
-            : innerHeight;
-        const totalY = incomeNodes.length > 0 ? incomeNodes[0].y : padding.top;
+        // Position expense nodes evenly
+        const expenseNodes: NodePosition[] = [];
+        const totalExpenseNodesHeight = expenseBudgets.length * nodeHeight + (expenseBudgets.length - 1) * nodeGap;
+        let expenseY = padding.top + (innerHeight - totalExpenseNodesHeight) / 2;
+
+        expenseBudgets.forEach(b => {
+            expenseNodes.push({ name: b.name, type: 'expense', value: b.value, y: expenseY, height: nodeHeight, color: COLORS.expense });
+            expenseY += nodeHeight + nodeGap;
+        });
+
+        // Total node spans the full inner height to connect both sides
         const totalNode: NodePosition = {
             name: 'Totaal',
             type: 'total',
             value: Math.max(totalIncome, totalExpense),
-            y: totalY,
-            height: totalNodeHeight,
+            y: padding.top,
+            height: innerHeight,
             color: COLORS.total
         };
 
-        // Position expense nodes with fixed gaps
-        const expenseNodes: NodePosition[] = [];
-        const expenseHeights = expenseBudgets.map(b => Math.max(b.value * scale, minNodeHeight));
-        const totalExpenseHeight = expenseHeights.reduce((s, h) => s + h, 0) + (expenseBudgets.length - 1) * nodeGap;
-        let expenseY = padding.top + (innerHeight - totalExpenseHeight) / 2;
-
-        expenseBudgets.forEach((b, i) => {
-            const h = expenseHeights[i];
-            expenseNodes.push({ name: b.name, type: 'expense', value: b.value, y: expenseY, height: h, color: COLORS.expense });
-            expenseY += h + nodeGap;
-        });
-
-        // Build flows - connect income nodes to corresponding positions on total node
+        // Build flows with proportional heights based on values
         const flows: FlowPath[] = [];
 
-        let incomeFlowY = totalY;
+        // Income flows - proportional to their values
+        let incomeFlowY = padding.top;
+        const incomeScale = innerHeight / totalIncome;
         incomeNodes.forEach(node => {
+            const flowHeightOnTotal = node.value * incomeScale;
             flows.push({
                 sourceY: node.y,
-                sourceHeight: node.height,
+                sourceHeight: nodeHeight,
                 targetY: incomeFlowY,
-                targetHeight: node.height,
+                targetHeight: flowHeightOnTotal,
                 value: node.value,
                 color: COLORS.income,
                 sourceName: node.name,
                 targetName: 'Totaal',
             });
-            incomeFlowY += node.height;
+            incomeFlowY += flowHeightOnTotal;
         });
 
-        // Expense flows from total to expense nodes
-        let expenseFlowY = totalY;
+        // Expense flows - proportional to their values
+        let expenseFlowY = padding.top;
+        const expenseScale = innerHeight / totalExpense;
         expenseNodes.forEach(node => {
-            const flowHeight = (node.value / totalExpense) * totalNodeHeight;
+            const flowHeightOnTotal = node.value * expenseScale;
             flows.push({
                 sourceY: expenseFlowY,
-                sourceHeight: flowHeight,
+                sourceHeight: flowHeightOnTotal,
                 targetY: node.y,
-                targetHeight: node.height,
+                targetHeight: nodeHeight,
                 value: node.value,
                 color: COLORS.expense,
                 sourceName: 'Totaal',
                 targetName: node.name,
             });
-            expenseFlowY += flowHeight;
+            expenseFlowY += flowHeightOnTotal;
         });
 
         return { width, height, nodeWidth, columnX, incomeNodes, totalNode, expenseNodes, flows, totalIncome, totalExpense };
@@ -349,7 +329,7 @@ export default function SankeyFlowPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                <div className="flex-1 flex items-center justify-center p-4 min-h-0">
                     {isLoading ? (
                         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
                     ) : error ? (
@@ -361,11 +341,9 @@ export default function SankeyFlowPage() {
                         </div>
                     ) : (
                         <svg
-                            width="100%"
-                            height="100%"
                             viewBox={`0 0 ${layout.width} ${layout.height}`}
                             preserveAspectRatio="xMidYMid meet"
-                            className="max-w-full max-h-full"
+                            style={{ width: '100%', height: '100%', maxHeight: 'calc(90vh - 120px)' }}
                         >
                             {/* Flows */}
                             <g>
