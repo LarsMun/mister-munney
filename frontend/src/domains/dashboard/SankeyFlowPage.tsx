@@ -6,7 +6,7 @@ import { fetchSankeyFlow } from '../budgets/services/AdaptiveDashboardService';
 import { getAvailableMonths } from '../transactions/services/TransactionsService';
 import type { SankeyFlowData, SankeyMode } from './models/SankeyFlow';
 import { formatMoney } from '../../shared/utils/MoneyFormat';
-import { formatDateToLocalString } from '../../shared/utils/DateFormat';
+import PeriodPicker from '../transactions/components/PeriodPicker';
 
 interface NodePosition {
     name: string;
@@ -32,8 +32,16 @@ const COLORS = {
     income: '#16a34a',
     total: '#3b82f6',
     expense: '#dc2626',
-    deficit: '#f97316',   // Orange for deficit (Tekort)
-    surplus: '#22c55e',   // Green for surplus (Overschot)
+    deficit: '#f97316',   // Orange for Tekort
+    surplus: '#22c55e',   // Green for Overschot
+};
+
+// Darker versions for percentage text
+const COLORS_DARK = {
+    income: '#14532d',
+    expense: '#7f1d1d',
+    deficit: '#9a3412',
+    surplus: '#14532d',
 };
 
 export default function SankeyFlowPage() {
@@ -47,7 +55,6 @@ export default function SankeyFlowPage() {
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
     const [months, setMonths] = useState<string[]>([]);
-    const [selectedMonth, setSelectedMonth] = useState<string>('');
 
     // Close on Escape key
     useEffect(() => {
@@ -65,15 +72,6 @@ export default function SankeyFlowPage() {
         getAvailableMonths(accountId)
             .then(availableMonths => {
                 setMonths(availableMonths);
-                if (availableMonths.length > 0) {
-                    const currentMonth = availableMonths[0];
-                    setSelectedMonth(currentMonth);
-                    const [year, month] = currentMonth.split("-");
-                    const start = formatDateToLocalString(new Date(Number(year), Number(month) - 1, 1));
-                    const end = formatDateToLocalString(new Date(Number(year), Number(month), 0));
-                    setStartDate(start);
-                    setEndDate(end);
-                }
             })
             .catch(err => {
                 console.error('Error loading months:', err);
@@ -82,13 +80,9 @@ export default function SankeyFlowPage() {
             });
     }, [accountId]);
 
-    const handleMonthChange = (month: string) => {
-        setSelectedMonth(month);
-        const [year, m] = month.split("-");
-        const start = formatDateToLocalString(new Date(Number(year), Number(m) - 1, 1));
-        const end = formatDateToLocalString(new Date(Number(year), Number(m), 0));
-        setStartDate(start);
-        setEndDate(end);
+    const handlePeriodChange = (newStartDate: string, newEndDate: string) => {
+        setStartDate(newStartDate);
+        setEndDate(newEndDate);
     };
 
     // Load sankey data
@@ -149,19 +143,23 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
-        // Balance the flows: Tekort/Overschot always on expense side (bottom)
+        // Totaal = inkomsten (leidend)
+        // De expense flows worden proportioneel geschaald naar het Totaal
+        // Bij overschot: voeg Overschot toe zodat expense som = Totaal
+        // Bij tekort: voeg Tekort toe - de flows worden allemaal naar Totaal geschaald
         const difference = totalIncome - totalExpense;
-        if (difference < 0) {
-            // Expense > Income: Tekort (deficit) on expense side, balance income with hidden source
-            expenseBudgets.push({ name: 'Tekort', value: Math.abs(difference) });
-            incomeBudgets.push({ name: 'Spaargeld opname', value: Math.abs(difference) });
-        } else if (difference > 0) {
-            // Income > Expense: Overschot (surplus) on expense side
+        if (difference > 0) {
+            // Overschot: geld over, voeg toe aan expenses
             expenseBudgets.push({ name: 'Overschot', value: difference });
+        } else if (difference < 0) {
+            // Tekort: meer uitgegeven dan inkomsten
+            // We voegen Tekort toe als visuele indicator
+            expenseBudgets.push({ name: 'Tekort', value: Math.abs(difference) });
         }
 
-        // Now both sides are balanced
-        const balancedTotal = Math.max(totalIncome, totalExpense) + (difference < 0 ? Math.abs(difference) : 0);
+        // Calculate expense total after adding Overschot/Tekort
+        const expenseTotalWithBalance = expenseBudgets.reduce((s, b) => s + b.value, 0);
+        const displayTotal = totalIncome;
 
         // Wide, short layout that fits any viewport
         const width = 1400;
@@ -172,24 +170,23 @@ export default function SankeyFlowPage() {
 
         const columnX = [padding.left, width / 2 - nodeWidth / 2, width - padding.right - nodeWidth];
 
-        // Calculate node heights - use equal distribution based on count
+        // Calculate node heights - use equal distribution based on count, with max height
         const maxNodes = Math.max(incomeBudgets.length, expenseBudgets.length, 1);
         const nodeGap = 12;
         const availableForNodes = innerHeight - (maxNodes - 1) * nodeGap;
-        const nodeHeight = Math.max(20, availableForNodes / maxNodes);
+        const nodeHeight = Math.min(36, Math.max(20, availableForNodes / maxNodes));
 
-        // Position income nodes evenly (with special color for Tekort)
+        // Position income nodes evenly
         const incomeNodes: NodePosition[] = [];
         const totalIncomeNodesHeight = incomeBudgets.length * nodeHeight + (incomeBudgets.length - 1) * nodeGap;
         let incomeY = padding.top + (innerHeight - totalIncomeNodesHeight) / 2;
 
         incomeBudgets.forEach(b => {
-            const color = b.name === 'Spaargeld opname' ? COLORS.deficit : COLORS.income;
-            incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: nodeHeight, color });
+            incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: nodeHeight, color: COLORS.income });
             incomeY += nodeHeight + nodeGap;
         });
 
-        // Position expense nodes evenly (with special color for Overschot)
+        // Position expense nodes evenly
         const expenseNodes: NodePosition[] = [];
         const totalExpenseNodesHeight = expenseBudgets.length * nodeHeight + (expenseBudgets.length - 1) * nodeGap;
         let expenseY = padding.top + (innerHeight - totalExpenseNodesHeight) / 2;
@@ -206,7 +203,7 @@ export default function SankeyFlowPage() {
         const totalNode: NodePosition = {
             name: 'Totaal',
             type: 'total',
-            value: balancedTotal,
+            value: displayTotal,
             y: padding.top,
             height: innerHeight,
             color: COLORS.total
@@ -215,11 +212,14 @@ export default function SankeyFlowPage() {
         // Build flows with proportional heights based on values
         const flows: FlowPath[] = [];
 
-        // Income flows - proportional to their values (using balanced total)
+        // Two separate scales: income always fills the full Totaal, expenses scale to their sum
+        const incomeFlowScale = innerHeight / displayTotal;
+        const expenseFlowScale = innerHeight / expenseTotalWithBalance;
+
+        // Income flows - always fill the full Totaal bar
         let incomeFlowY = padding.top;
-        const flowScale = innerHeight / balancedTotal;
         incomeNodes.forEach(node => {
-            const flowHeightOnTotal = node.value * flowScale;
+            const flowHeightOnTotal = node.value * incomeFlowScale;
             flows.push({
                 sourceY: node.y,
                 sourceHeight: nodeHeight,
@@ -233,10 +233,10 @@ export default function SankeyFlowPage() {
             incomeFlowY += flowHeightOnTotal;
         });
 
-        // Expense flows - proportional to their values (using same balanced scale)
+        // Expense flows - fill the full height (scaled to their sum including Overschot/Tekort)
         let expenseFlowY = padding.top;
         expenseNodes.forEach(node => {
-            const flowHeightOnTotal = node.value * flowScale;
+            const flowHeightOnTotal = node.value * expenseFlowScale;
             flows.push({
                 sourceY: expenseFlowY,
                 sourceHeight: flowHeightOnTotal,
@@ -250,7 +250,7 @@ export default function SankeyFlowPage() {
             expenseFlowY += flowHeightOnTotal;
         });
 
-        return { width, height, nodeWidth, columnX, incomeNodes, totalNode, expenseNodes, flows, totalIncome, totalExpense };
+        return { width, height, nodeWidth, columnX, incomeNodes, totalNode, expenseNodes, flows, totalIncome, totalExpense, expenseTotalWithBalance };
     }, [data]);
 
     const flowPath = (flow: FlowPath, sourceX: number, targetX: number, nodeWidth: number) => {
@@ -267,12 +267,6 @@ export default function SankeyFlowPage() {
         `;
     };
 
-    const formatMonth = (month: string) => {
-        const [year, m] = month.split('-');
-        const monthNames = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'];
-        return `${monthNames[Number(m) - 1]} ${year}`;
-    };
-
     return (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
             {/* Modal container */}
@@ -282,16 +276,13 @@ export default function SankeyFlowPage() {
                     <div className="flex items-center gap-6">
                         <h1 className="text-xl font-bold text-gray-800">Geldstroom Diagram</h1>
 
-                        {/* Month selector */}
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => handleMonthChange(e.target.value)}
-                            className="px-4 py-2 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {months.map(month => (
-                                <option key={month} value={month}>{formatMonth(month)}</option>
-                            ))}
-                        </select>
+                        {/* Period picker */}
+                        <PeriodPicker
+                            months={months}
+                            onChange={handlePeriodChange}
+                            currentStartDate={startDate}
+                            currentEndDate={endDate}
+                        />
 
                         {/* Mode toggle */}
                         <div className="flex gap-1 bg-gray-200 p-1 rounded-lg">
@@ -402,6 +393,19 @@ export default function SankeyFlowPage() {
                                             fill={node.color}
                                             rx={4}
                                         />
+                                        {node.height >= 20 && (
+                                            <text
+                                                x={layout.columnX[0] + layout.nodeWidth / 2}
+                                                y={node.y + node.height / 2}
+                                                textAnchor="middle"
+                                                dominantBaseline="middle"
+                                                fontSize={9}
+                                                fontWeight={700}
+                                                fill={COLORS_DARK.income}
+                                            >
+                                                {Math.round(node.value / layout.totalIncome * 100)}%
+                                            </text>
+                                        )}
                                         <text
                                             x={layout.columnX[0] - 12}
                                             y={node.y + node.height / 2}
@@ -437,26 +441,36 @@ export default function SankeyFlowPage() {
                                     fill={layout.totalNode.color}
                                     rx={4}
                                 />
+                                {/* Label background */}
+                                <rect
+                                    x={layout.columnX[1] + layout.nodeWidth / 2 - 50}
+                                    y={layout.totalNode.y + layout.totalNode.height / 2 - 28}
+                                    width={100}
+                                    height={56}
+                                    fill={COLORS.total}
+                                    rx={6}
+                                />
                                 <text
                                     x={layout.columnX[1] + layout.nodeWidth / 2}
-                                    y={layout.totalNode.y + layout.totalNode.height / 2 - 12}
+                                    y={layout.totalNode.y + layout.totalNode.height / 2 - 8}
                                     textAnchor="middle"
                                     dominantBaseline="middle"
-                                    fontSize={18}
+                                    fontSize={16}
                                     fontWeight={700}
-                                    fill="#374151"
+                                    fill="white"
                                 >
                                     Totaal
                                 </text>
                                 <text
                                     x={layout.columnX[1] + layout.nodeWidth / 2}
-                                    y={layout.totalNode.y + layout.totalNode.height / 2 + 12}
+                                    y={layout.totalNode.y + layout.totalNode.height / 2 + 14}
                                     textAnchor="middle"
                                     dominantBaseline="middle"
-                                    fontSize={14}
-                                    fill="#6b7280"
+                                    fontSize={13}
+                                    fontWeight={600}
+                                    fill="white"
                                 >
-                                    {formatMoney(Math.max(layout.totalIncome, layout.totalExpense))}
+                                    {formatMoney(layout.totalIncome)}
                                 </text>
                             </g>
 
@@ -472,6 +486,19 @@ export default function SankeyFlowPage() {
                                             fill={node.color}
                                             rx={4}
                                         />
+                                        {node.height >= 20 && (
+                                            <text
+                                                x={layout.columnX[2] + layout.nodeWidth / 2}
+                                                y={node.y + node.height / 2}
+                                                textAnchor="middle"
+                                                dominantBaseline="middle"
+                                                fontSize={9}
+                                                fontWeight={700}
+                                                fill={node.name === 'Overschot' ? COLORS_DARK.surplus : node.name === 'Tekort' ? COLORS_DARK.deficit : COLORS_DARK.expense}
+                                            >
+                                                {Math.round(node.value / layout.expenseTotalWithBalance * 100)}%
+                                            </text>
+                                        )}
                                         <text
                                             x={layout.columnX[2] + layout.nodeWidth + 12}
                                             y={node.y + node.height / 2}
