@@ -211,12 +211,14 @@ class SankeyFlowService
         }
 
         $categoryIds = array_map(fn(Category $cat) => $cat->getId(), $categories->toArray());
+        $isIncomeBudget = $budget->getBudgetType() === BudgetType::INCOME;
 
         if ($mode === 'median') {
-            return $this->getCategoryMedians($categoryIds, $startDate);
+            return $this->getCategoryMedians($categoryIds, $startDate, $isIncomeBudget);
         }
 
         // Actual mode: get breakdown for date range
+        // Query returns: CREDIT as negative, DEBIT as positive (net amount)
         $breakdown = $this->transactionRepository->getCategoryBreakdownForDateRange(
             $categoryIds,
             $startDate,
@@ -226,8 +228,17 @@ class SankeyFlowService
         $result = [];
         foreach ($breakdown as $row) {
             $amountCents = (int) $row['totalAmount'];
-            // Convert cents to euros, take absolute value
-            $result[$row['categoryId']] = abs($amountCents / 100);
+            $amountEuros = $amountCents / 100;
+
+            // For INCOME budgets: credits are negative, so we want negative amounts made positive
+            // For EXPENSE budgets: debits are positive, so we want positive amounts
+            if ($isIncomeBudget) {
+                // Income: only count if net is negative (more credits than debits)
+                $result[$row['categoryId']] = $amountEuros < 0 ? abs($amountEuros) : 0;
+            } else {
+                // Expense: only count if net is positive (more debits than credits)
+                $result[$row['categoryId']] = $amountEuros > 0 ? $amountEuros : 0;
+            }
         }
 
         return $result;
@@ -238,9 +249,10 @@ class SankeyFlowService
      *
      * @param int[] $categoryIds
      * @param string $beforeDate YYYY-MM-DD - calculate median from months before this date
+     * @param bool $isIncomeBudget Whether this is an income budget
      * @return array<int, float> categoryId => median amount in euros
      */
-    private function getCategoryMedians(array $categoryIds, string $beforeDate): array
+    private function getCategoryMedians(array $categoryIds, string $beforeDate, bool $isIncomeBudget = false): array
     {
         if (empty($categoryIds)) {
             return [];
@@ -300,8 +312,21 @@ class SankeyFlowService
 
         foreach ($results as $row) {
             $categoryId = (int) $row['categoryId'];
-            $total = abs((int) $row['total']); // Take absolute value
-            $categoryMonthlyTotals[$categoryId][] = $total;
+            $totalCents = (int) $row['total'];
+
+            // For INCOME budgets: credits are negative, so we want negative totals made positive
+            // For EXPENSE budgets: debits are positive, so we want positive totals
+            if ($isIncomeBudget) {
+                // Income: only count months with net negative (more credits than debits)
+                $total = $totalCents < 0 ? abs($totalCents) : 0;
+            } else {
+                // Expense: only count months with net positive (more debits than credits)
+                $total = $totalCents > 0 ? $totalCents : 0;
+            }
+
+            if ($total > 0) {
+                $categoryMonthlyTotals[$categoryId][] = $total;
+            }
         }
 
         // Calculate median for each category
