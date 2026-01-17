@@ -11,6 +11,7 @@ import {
     BudgetType,
     ProjectStatus
 } from '../models/AdaptiveBudget';
+import type { SankeyFlowData, SankeyMode } from '../../dashboard/models/SankeyFlow';
 
 /**
  * Fetch active budgets with insights
@@ -225,4 +226,27 @@ export interface ProjectAttachment {
     originalFilename: string;
     category: string | null;
     uploadedAt: string;
+}
+
+/**
+ * Fetch Sankey flow data for visualizing money flow
+ *
+ * Returns data for a Sankey diagram showing:
+ * Income Budgets → Income Categories → Total → Expense Budgets → Expense Categories
+ */
+export async function fetchSankeyFlow(
+    accountId: number,
+    startDate: string,
+    endDate: string,
+    mode: SankeyMode = 'actual'
+): Promise<SankeyFlowData> {
+    const params = new URLSearchParams({
+        accountId: accountId.toString(),
+        startDate,
+        endDate,
+        mode
+    });
+
+    const response = await api.get(`/budgets/sankey-flow?${params.toString()}`);
+    return response.data;
 }

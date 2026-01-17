@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useAccount } from '../../app/context/AccountContext';
 import { useFeatureFlag } from '../../shared/contexts/FeatureFlagContext';
 import { useTransactions } from '../transactions/hooks/useTransactions';
 import { useMonthlyStatistics } from '../transactions/hooks/useMonthlyStatistics';
 import CompactTransactionChart from './components/CompactTransactionChart';
+
+// Lazy load SankeyFlowChart for code splitting
+const SankeyFlowChart = lazy(() => import('./components/SankeyFlowChart'));
 import InsightsPanel from './components/InsightsPanel';
 import BudgetOverviewCard from './components/BudgetOverviewCard';
 import PeriodPicker from '../transactions/components/PeriodPicker';
@@ -65,6 +68,7 @@ export default function DashboardPage() {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoadingAdaptive, setIsLoadingAdaptive] = useState(false);
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+    const [showSankeyFlow, setShowSankeyFlow] = useState(false);
 
     // Use transaction hook directly for period control
     const {
@@ -243,17 +247,56 @@ export default function DashboardPage() {
                     {summary?.daily && summary.daily.length > 0 && (
                         <details className="bg-white rounded-lg shadow">
                             <summary className="cursor-pointer p-6 font-semibold text-gray-800 hover:bg-gray-50 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-gray-400" aria-hidden="true">▶</span>
-                                    <span>Balans Overzicht (Huidige Periode)</span>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-gray-400" aria-hidden="true">▶</span>
+                                        <span>Balans Overzicht (Huidige Periode)</span>
+                                    </div>
+                                    {/* CHART/FLOW Toggle */}
+                                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                                        <button
+                                            onClick={() => setShowSankeyFlow(false)}
+                                            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                                                !showSankeyFlow
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            CHART
+                                        </button>
+                                        <button
+                                            onClick={() => setShowSankeyFlow(true)}
+                                            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                                                showSankeyFlow
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            FLOW
+                                        </button>
+                                    </div>
                                 </div>
                             </summary>
                             <div className="p-6 pt-0">
-                                <CompactTransactionChart
-                                    data={summary.daily}
-                                    title=""
-                                    height={400}
-                                />
+                                {showSankeyFlow ? (
+                                    <Suspense fallback={
+                                        <div className="flex items-center justify-center h-96">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                                        </div>
+                                    }>
+                                        <SankeyFlowChart
+                                            accountId={accountId ?? 0}
+                                            startDate={startDate ?? ''}
+                                            endDate={endDate ?? ''}
+                                        />
+                                    </Suspense>
+                                ) : (
+                                    <CompactTransactionChart
+                                        data={summary.daily}
+                                        title=""
+                                        height={400}
+                                    />
+                                )}
                             </div>
                         </details>
                     )}
