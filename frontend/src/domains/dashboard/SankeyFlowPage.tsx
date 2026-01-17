@@ -147,19 +147,29 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
-        // Dynamic sizing based on number of nodes
-        const maxNodes = Math.max(incomeBudgets.length, expenseBudgets.length);
-        const minNodeHeight = 40;  // Minimum height per node
-        const nodeGap = 30;        // Fixed gap between nodes
-
+        // Fixed dimensions that fit the viewport (90vh - header ≈ 850px max)
         const width = 1600;
-        const padding = { top: 60, bottom: 60, left: 220, right: 220 };
+        const maxHeight = 850;
+        const padding = { top: 50, bottom: 50, left: 220, right: 220 };
         const nodeWidth = 28;
+        const innerHeight = maxHeight - padding.top - padding.bottom;
 
-        // Calculate required height based on node count
-        const requiredHeight = maxNodes * minNodeHeight + (maxNodes - 1) * nodeGap + padding.top + padding.bottom;
-        const height = Math.max(600, requiredHeight);
-        const innerHeight = height - padding.top - padding.bottom;
+        // Calculate node sizing based on how many nodes we have
+        const maxNodes = Math.max(incomeBudgets.length, expenseBudgets.length, 1);
+
+        // Ideal sizes
+        const idealNodeHeight = 40;
+        const idealNodeGap = 30;
+
+        // Calculate what we'd need ideally
+        const idealTotalHeight = maxNodes * idealNodeHeight + (maxNodes - 1) * idealNodeGap;
+
+        // Scale down if needed to fit
+        const scaleFactor = idealTotalHeight > innerHeight ? innerHeight / idealTotalHeight : 1;
+        const minNodeHeight = Math.max(20, idealNodeHeight * scaleFactor);  // Min 20px
+        const nodeGap = Math.max(10, idealNodeGap * scaleFactor);           // Min 10px
+
+        const height = maxHeight;
 
         const columnX = [padding.left, width / 2 - nodeWidth / 2, width - padding.right - nodeWidth];
 
