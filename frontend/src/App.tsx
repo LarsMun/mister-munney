@@ -515,7 +515,7 @@ function AppContent() {
                 <main className="flex-grow container mx-auto p-4 md:p-6">
                     <Suspense fallback={<PageLoader />}>
                         <Routes>
-                            <Route path="/" element={<DashboardModule />} />
+                            <Route path="/*" element={<DashboardModule />} />
                             <Route path="/transactions/*" element={<TransactionsModule />} />
                             <Route path="/patterns/*" element={<PatternModule />} />
                             <Route path="/budgets/*" element={<BudgetsModule />} />
