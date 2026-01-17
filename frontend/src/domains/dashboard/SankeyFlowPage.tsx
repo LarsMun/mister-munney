@@ -149,18 +149,19 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
-        // Balance the flows: add deficit or surplus item
+        // Balance the flows: Tekort/Overschot always on expense side (bottom)
         const difference = totalIncome - totalExpense;
         if (difference < 0) {
-            // Expense > Income: Add "Tekort" (deficit) to income side
-            incomeBudgets.push({ name: 'Tekort', value: Math.abs(difference) });
+            // Expense > Income: Tekort (deficit) on expense side, balance income with hidden source
+            expenseBudgets.push({ name: 'Tekort', value: Math.abs(difference) });
+            incomeBudgets.push({ name: 'Spaargeld opname', value: Math.abs(difference) });
         } else if (difference > 0) {
-            // Income > Expense: Add "Overschot" (surplus) to expense side
+            // Income > Expense: Overschot (surplus) on expense side
             expenseBudgets.push({ name: 'Overschot', value: difference });
         }
 
         // Now both sides are balanced
-        const balancedTotal = Math.max(totalIncome, totalExpense);
+        const balancedTotal = Math.max(totalIncome, totalExpense) + (difference < 0 ? Math.abs(difference) : 0);
 
         // Wide, short layout that fits any viewport
         const width = 1400;
@@ -183,7 +184,7 @@ export default function SankeyFlowPage() {
         let incomeY = padding.top + (innerHeight - totalIncomeNodesHeight) / 2;
 
         incomeBudgets.forEach(b => {
-            const color = b.name === 'Tekort' ? COLORS.deficit : COLORS.income;
+            const color = b.name === 'Spaargeld opname' ? COLORS.deficit : COLORS.income;
             incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: nodeHeight, color });
             incomeY += nodeHeight + nodeGap;
         });
@@ -194,7 +195,9 @@ export default function SankeyFlowPage() {
         let expenseY = padding.top + (innerHeight - totalExpenseNodesHeight) / 2;
 
         expenseBudgets.forEach(b => {
-            const color = b.name === 'Overschot' ? COLORS.surplus : COLORS.expense;
+            let color = COLORS.expense;
+            if (b.name === 'Overschot') color = COLORS.surplus;
+            if (b.name === 'Tekort') color = COLORS.deficit;
             expenseNodes.push({ name: b.name, type: 'expense', value: b.value, y: expenseY, height: nodeHeight, color });
             expenseY += nodeHeight + nodeGap;
         });
