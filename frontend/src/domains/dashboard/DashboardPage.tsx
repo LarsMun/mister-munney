@@ -190,7 +190,7 @@ export default function DashboardPage() {
         setEndDate(end);
         // Extract month from start date (YYYY-MM format)
         setCurrentMonth(start.substring(0, 7));
-    }, []);
+    }, [setStartDate, setEndDate]);
 
     if (!accountId) {
         return (

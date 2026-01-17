@@ -36,32 +36,33 @@ export function CategoryDeleteDialog({
 
     // Fetch delete preview when dialog opens
     useEffect(() => {
+        const fetchDeletePreview = async () => {
+            if (!category) return;
+
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const response = await api.get(
+                    `/account/${accountId}/categories/${category.id}/preview-delete`
+                );
+                setPreview(response.data);
+            } catch (err: unknown) {
+                const axiosError = err as { response?: { data?: { message?: string } } };
+                setError(axiosError.response?.data?.message || 'Kon preview niet laden');
+                console.error('Failed to fetch delete preview:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         if (isOpen && category) {
             fetchDeletePreview();
         } else {
             setPreview(null);
             setError(null);
         }
-    }, [isOpen, category]);
-
-    const fetchDeletePreview = async () => {
-        if (!category) return;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await api.get(
-                `/account/${accountId}/categories/${category.id}/preview-delete`
-            );
-            setPreview(response.data);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Kon preview niet laden');
-            console.error('Failed to fetch delete preview:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    }, [isOpen, category, accountId]);
 
     const handleDelete = async () => {
         if (!category) return;

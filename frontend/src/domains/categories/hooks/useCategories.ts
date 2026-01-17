@@ -1,6 +1,6 @@
 // UseCategories.ts
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Category } from '../models/Category';
 import { fetchCategories, createCategory } from '../services/CategoryService';
 
@@ -9,15 +9,7 @@ export function useCategories(accountId: number) {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!accountId) return;
-        const run = async () => {
-            await refreshCategories();
-        };
-        run();
-    }, [accountId]);
-
-    async function refreshCategories() {
+    const refreshCategories = useCallback(async () => {
         setLoading(true);
         try {
             const result = await fetchCategories(accountId);
@@ -27,7 +19,12 @@ export function useCategories(accountId: number) {
         } finally {
             setLoading(false);
         }
-    }
+    }, [accountId]);
+
+    useEffect(() => {
+        if (!accountId) return;
+        refreshCategories();
+    }, [accountId, refreshCategories]);
 
     async function addCategory(newCategory: Partial<Category>) {
         const created = await createCategory(accountId, newCategory);

@@ -205,7 +205,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
 
         try {
             const data = await fetchCategoryHistory(accountId, category.categoryId);
-            setHistoricalData(data as any);
+            setHistoricalData(data);
         } catch (error) {
             console.error('Error fetching category history:', error);
             setHistoricalData(null);
@@ -228,7 +228,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
 
         try {
             const data = await fetchBudgetHistory(accountId, budget.id);
-            setHistoricalData(data as any);
+            setHistoricalData(data);
         } catch (error) {
             console.error('Error fetching budget history:', error);
             setHistoricalData(null);
