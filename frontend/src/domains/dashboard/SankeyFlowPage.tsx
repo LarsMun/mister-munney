@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { useAccount } from '../../app/context/AccountContext';
 import { fetchSankeyFlow } from '../budgets/services/AdaptiveDashboardService';
 import { getAvailableMonths } from '../transactions/services/TransactionsService';
@@ -35,6 +35,7 @@ const COLORS = {
 };
 
 export default function SankeyFlowPage() {
+    const navigate = useNavigate();
     const { accountId } = useAccount();
     const [mode, setMode] = useState<SankeyMode>('actual');
     const [data, setData] = useState<SankeyFlowData | null>(null);
@@ -45,6 +46,15 @@ export default function SankeyFlowPage() {
     const [endDate, setEndDate] = useState<string | null>(null);
     const [months, setMonths] = useState<string[]>([]);
     const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+    // Close on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') navigate('/');
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [navigate]);
 
     // Load available months
     useEffect(() => {
@@ -70,7 +80,6 @@ export default function SankeyFlowPage() {
             });
     }, [accountId]);
 
-    // Handle month change
     const handleMonthChange = (month: string) => {
         setSelectedMonth(month);
         const [year, m] = month.split("-");
@@ -99,7 +108,7 @@ export default function SankeyFlowPage() {
         loadData();
     }, [accountId, startDate, endDate, mode]);
 
-    // Build simple 3-column layout: Income Budgets → Total → Expense Budgets
+    // Build layout - use full viewport
     const layout = useMemo(() => {
         if (!data) return null;
 
@@ -138,49 +147,56 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
-        // Large layout for full page
-        const width = 1800;
-        const height = 900;
-        const padding = { top: 60, bottom: 60, left: 40, right: 40 };
-        const nodeWidth = 28;
-        const nodePadding = 20;
+        // Use most of the viewport
+        const width = 1600;
+        const height = 800;
+        const padding = { top: 40, bottom: 40, left: 200, right: 200 };
+        const nodeWidth = 24;
+        const nodePadding = 16;
         const columnX = [padding.left, width / 2 - nodeWidth / 2, width - padding.right - nodeWidth];
         const innerHeight = height - padding.top - padding.bottom;
 
         const maxValue = Math.max(totalIncome, totalExpense);
         const scale = innerHeight / maxValue;
 
-        // Position income nodes
+        // Position income nodes with proper spacing
         const incomeNodes: NodePosition[] = [];
-        let incomeY = padding.top;
-        const totalIncomeHeight = incomeBudgets.reduce((s, b) => s + Math.max(b.value * scale, 8), 0);
-        const incomeSpacing = incomeBudgets.length > 1
-            ? (innerHeight - totalIncomeHeight) / (incomeBudgets.length - 1)
+        const totalIncomeNodeHeight = incomeBudgets.reduce((s, b) => s + Math.max(b.value * scale, 12), 0);
+        const incomeGap = incomeBudgets.length > 1
+            ? Math.min(nodePadding, (innerHeight - totalIncomeNodeHeight) / (incomeBudgets.length - 1))
             : 0;
+        let incomeY = padding.top + (innerHeight - totalIncomeNodeHeight - incomeGap * (incomeBudgets.length - 1)) / 2;
 
         incomeBudgets.forEach(b => {
-            const h = Math.max(b.value * scale, 8);
+            const h = Math.max(b.value * scale, 12);
             incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: h, color: COLORS.income });
-            incomeY += h + Math.min(incomeSpacing, nodePadding);
+            incomeY += h + incomeGap;
         });
 
         // Position total node
         const totalHeight = Math.max(totalIncome, totalExpense) * scale;
         const totalY = padding.top + (innerHeight - totalHeight) / 2;
-        const totalNode: NodePosition = { name: 'Totaal', type: 'total', value: Math.max(totalIncome, totalExpense), y: totalY, height: totalHeight, color: COLORS.total };
+        const totalNode: NodePosition = {
+            name: 'Totaal',
+            type: 'total',
+            value: Math.max(totalIncome, totalExpense),
+            y: totalY,
+            height: totalHeight,
+            color: COLORS.total
+        };
 
-        // Position expense nodes
+        // Position expense nodes with proper spacing
         const expenseNodes: NodePosition[] = [];
-        let expenseY = padding.top;
-        const totalExpenseHeight = expenseBudgets.reduce((s, b) => s + Math.max(b.value * scale, 8), 0);
-        const expenseSpacing = expenseBudgets.length > 1
-            ? (innerHeight - totalExpenseHeight) / (expenseBudgets.length - 1)
+        const totalExpenseNodeHeight = expenseBudgets.reduce((s, b) => s + Math.max(b.value * scale, 12), 0);
+        const expenseGap = expenseBudgets.length > 1
+            ? Math.min(nodePadding, (innerHeight - totalExpenseNodeHeight) / (expenseBudgets.length - 1))
             : 0;
+        let expenseY = padding.top + (innerHeight - totalExpenseNodeHeight - expenseGap * (expenseBudgets.length - 1)) / 2;
 
         expenseBudgets.forEach(b => {
-            const h = Math.max(b.value * scale, 8);
+            const h = Math.max(b.value * scale, 12);
             expenseNodes.push({ name: b.name, type: 'expense', value: b.value, y: expenseY, height: h, color: COLORS.expense });
-            expenseY += h + Math.min(expenseSpacing, nodePadding);
+            expenseY += h + expenseGap;
         });
 
         // Build flows
@@ -233,121 +249,104 @@ export default function SankeyFlowPage() {
         `;
     };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="min-h-screen flex items-center justify-center text-red-500 text-xl">
-                {error}
-            </div>
-        );
-    }
-
-    if (!layout) {
-        return (
-            <div className="min-h-screen flex items-center justify-center text-gray-500">
-                <div className="text-center">
-                    <p className="text-2xl font-medium">Geen flow data beschikbaar</p>
-                    <p className="text-lg mt-2">Er zijn geen transacties in budgetten voor deze periode</p>
-                    <Link to="/" className="mt-6 inline-flex items-center gap-2 text-blue-600 hover:underline">
-                        <ArrowLeft className="w-5 h-5" />
-                        Terug naar Dashboard
-                    </Link>
-                </div>
-            </div>
-        );
-    }
+    const formatMonth = (month: string) => {
+        const [year, m] = month.split('-');
+        const monthNames = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'];
+        return `${monthNames[Number(m) - 1]} ${year}`;
+    };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-                <div className="max-w-[1920px] mx-auto px-6 py-4">
-                    <div className="flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex items-center gap-4">
-                            <Link to="/" className="text-gray-500 hover:text-gray-700 transition-colors">
-                                <ArrowLeft className="w-6 h-6" />
-                            </Link>
-                            <h1 className="text-2xl font-bold text-gray-800">Geldstroom Diagram</h1>
-                        </div>
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+            {/* Modal container */}
+            <div className="bg-white w-[95vw] h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center gap-6">
+                        <h1 className="text-xl font-bold text-gray-800">Geldstroom Diagram</h1>
 
-                        <div className="flex flex-wrap items-center gap-4">
-                            {/* Month selector */}
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => handleMonthChange(e.target.value)}
-                                className="px-4 py-2.5 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        {/* Month selector */}
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => handleMonthChange(e.target.value)}
+                            className="px-4 py-2 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            {months.map(month => (
+                                <option key={month} value={month}>{formatMonth(month)}</option>
+                            ))}
+                        </select>
+
+                        {/* Mode toggle */}
+                        <div className="flex gap-1 bg-gray-200 p-1 rounded-lg">
+                            <button
+                                onClick={() => setMode('actual')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                                    mode === 'actual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                                }`}
                             >
-                                {months.map(month => {
-                                    const [year, m] = month.split('-');
-                                    const monthNames = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'];
-                                    return (
-                                        <option key={month} value={month}>
-                                            {monthNames[Number(m) - 1]} {year}
-                                        </option>
-                                    );
-                                })}
-                            </select>
+                                Actueel
+                            </button>
+                            <button
+                                onClick={() => setMode('median')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                                    mode === 'median' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                Mediaan (6 mnd)
+                            </button>
+                        </div>
+                    </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setMode('actual')}
-                                    className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
-                                        mode === 'actual' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    Actueel
-                                </button>
-                                <button
-                                    onClick={() => setMode('median')}
-                                    className={`px-5 py-2.5 rounded-lg font-medium transition-all ${
-                                        mode === 'median' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    Mediaan (6 mnd)
-                                </button>
-                            </div>
-
-                            <div className="flex flex-wrap gap-6 text-base">
+                    <div className="flex items-center gap-6">
+                        {layout && (
+                            <div className="flex gap-6 text-sm">
                                 <span className="flex items-center gap-2">
-                                    <span className="w-4 h-4 rounded-full" style={{ backgroundColor: COLORS.income }} />
-                                    <span className="text-gray-600">Inkomsten:</span>
-                                    <span className="font-bold text-lg" style={{ color: COLORS.income }}>{formatMoney(layout.totalIncome)}</span>
+                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.income }} />
+                                    <span className="text-gray-500">Inkomsten:</span>
+                                    <span className="font-bold" style={{ color: COLORS.income }}>{formatMoney(layout.totalIncome)}</span>
                                 </span>
                                 <span className="flex items-center gap-2">
-                                    <span className="w-4 h-4 rounded-full" style={{ backgroundColor: COLORS.expense }} />
-                                    <span className="text-gray-600">Uitgaven:</span>
-                                    <span className="font-bold text-lg" style={{ color: COLORS.expense }}>{formatMoney(layout.totalExpense)}</span>
+                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.expense }} />
+                                    <span className="text-gray-500">Uitgaven:</span>
+                                    <span className="font-bold" style={{ color: COLORS.expense }}>{formatMoney(layout.totalExpense)}</span>
                                 </span>
                                 <span className="flex items-center gap-2">
-                                    <span className="w-4 h-4 rounded-full" style={{ backgroundColor: COLORS.total }} />
-                                    <span className="text-gray-600">Netto:</span>
-                                    <span className="font-bold text-xl" style={{ color: layout.totalIncome - layout.totalExpense >= 0 ? COLORS.income : COLORS.expense }}>
+                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.total }} />
+                                    <span className="text-gray-500">Netto:</span>
+                                    <span className="font-bold" style={{ color: layout.totalIncome - layout.totalExpense >= 0 ? COLORS.income : COLORS.expense }}>
                                         {formatMoney(layout.totalIncome - layout.totalExpense)}
                                     </span>
                                 </span>
                             </div>
-                        </div>
+                        )}
+
+                        <button
+                            onClick={() => navigate('/')}
+                            className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                            title="Sluiten (Esc)"
+                        >
+                            <X className="w-6 h-6 text-gray-500" />
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            {/* Chart - Full width, min 1800px */}
-            <div className="overflow-x-auto">
-                <div className="min-w-[1800px] p-6">
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                {/* Content */}
+                <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                    {isLoading ? (
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
+                    ) : error ? (
+                        <div className="text-red-500 text-xl">{error}</div>
+                    ) : !layout ? (
+                        <div className="text-center text-gray-500">
+                            <p className="text-2xl font-medium">Geen flow data beschikbaar</p>
+                            <p className="text-lg mt-2">Er zijn geen transacties in budgetten voor deze periode</p>
+                        </div>
+                    ) : (
                         <svg
                             width="100%"
-                            height="900"
+                            height="100%"
                             viewBox={`0 0 ${layout.width} ${layout.height}`}
                             preserveAspectRatio="xMidYMid meet"
-                            className="block"
+                            className="max-w-full max-h-full"
                         >
                             {/* Flows */}
                             <g>
@@ -388,22 +387,22 @@ export default function SankeyFlowPage() {
                                             rx={4}
                                         />
                                         <text
-                                            x={layout.columnX[0] - 15}
-                                            y={node.y + node.height / 2 - 2}
+                                            x={layout.columnX[0] - 12}
+                                            y={node.y + node.height / 2}
                                             textAnchor="end"
                                             dominantBaseline="middle"
-                                            fontSize={16}
+                                            fontSize={14}
                                             fontWeight={600}
                                             fill="#374151"
                                         >
                                             {node.name}
                                         </text>
                                         <text
-                                            x={layout.columnX[0] - 15}
-                                            y={node.y + node.height / 2 + 20}
+                                            x={layout.columnX[0] - 12}
+                                            y={node.y + node.height / 2 + 18}
                                             textAnchor="end"
                                             dominantBaseline="middle"
-                                            fontSize={14}
+                                            fontSize={12}
                                             fill="#6b7280"
                                         >
                                             {formatMoney(node.value)}
@@ -424,10 +423,10 @@ export default function SankeyFlowPage() {
                                 />
                                 <text
                                     x={layout.columnX[1] + layout.nodeWidth / 2}
-                                    y={layout.totalNode.y + layout.totalNode.height / 2 - 14}
+                                    y={layout.totalNode.y + layout.totalNode.height / 2 - 12}
                                     textAnchor="middle"
                                     dominantBaseline="middle"
-                                    fontSize={20}
+                                    fontSize={18}
                                     fontWeight={700}
                                     fill="#374151"
                                 >
@@ -435,10 +434,10 @@ export default function SankeyFlowPage() {
                                 </text>
                                 <text
                                     x={layout.columnX[1] + layout.nodeWidth / 2}
-                                    y={layout.totalNode.y + layout.totalNode.height / 2 + 14}
+                                    y={layout.totalNode.y + layout.totalNode.height / 2 + 12}
                                     textAnchor="middle"
                                     dominantBaseline="middle"
-                                    fontSize={16}
+                                    fontSize={14}
                                     fill="#6b7280"
                                 >
                                     {formatMoney(Math.max(layout.totalIncome, layout.totalExpense))}
@@ -458,22 +457,22 @@ export default function SankeyFlowPage() {
                                             rx={4}
                                         />
                                         <text
-                                            x={layout.columnX[2] + layout.nodeWidth + 15}
-                                            y={node.y + node.height / 2 - 2}
+                                            x={layout.columnX[2] + layout.nodeWidth + 12}
+                                            y={node.y + node.height / 2}
                                             textAnchor="start"
                                             dominantBaseline="middle"
-                                            fontSize={16}
+                                            fontSize={14}
                                             fontWeight={600}
                                             fill="#374151"
                                         >
                                             {node.name}
                                         </text>
                                         <text
-                                            x={layout.columnX[2] + layout.nodeWidth + 15}
-                                            y={node.y + node.height / 2 + 20}
+                                            x={layout.columnX[2] + layout.nodeWidth + 12}
+                                            y={node.y + node.height / 2 + 18}
                                             textAnchor="start"
                                             dominantBaseline="middle"
-                                            fontSize={14}
+                                            fontSize={12}
                                             fill="#6b7280"
                                         >
                                             {formatMoney(node.value)}
@@ -482,14 +481,14 @@ export default function SankeyFlowPage() {
                                 ))}
                             </g>
                         </svg>
-                    </div>
+                    )}
                 </div>
             </div>
 
             {/* Tooltip */}
             {tooltip && (
                 <div
-                    className="fixed bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-xl text-base z-50 pointer-events-none"
+                    className="fixed bg-gray-900 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-[60] pointer-events-none"
                     style={{ left: tooltip.x + 15, top: tooltip.y - 15 }}
                 >
                     {tooltip.content}
