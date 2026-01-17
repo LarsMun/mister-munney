@@ -12,6 +12,7 @@ use App\Budget\Service\ActiveBudgetService;
 use App\Budget\Service\BudgetInsightsService;
 use App\Budget\Service\ProjectAggregatorService;
 use App\Budget\Service\ProjectStatusCalculator;
+use App\Budget\Service\SankeyFlowService;
 use App\Entity\Budget;
 use App\Entity\ExternalPayment;
 use App\Enum\BudgetType;
@@ -40,6 +41,7 @@ class AdaptiveDashboardController extends AbstractController
         private readonly BudgetInsightsService $budgetInsightsService,
         private readonly ProjectAggregatorService $projectAggregatorService,
         private readonly ProjectStatusCalculator $statusCalculator,
+        private readonly SankeyFlowService $sankeyFlowService,
         private readonly BudgetRepository $budgetRepository,
         private readonly AccountRepository $accountRepository,
         private readonly FeatureFlagService $featureFlagService,
@@ -515,5 +517,53 @@ class AdaptiveDashboardController extends AbstractController
         }, $payments);
 
         return $this->json($dtos);
+    }
+
+    /**
+     * Get Sankey flow data for visualizing money flow
+     *
+     * Returns data for a Sankey diagram showing:
+     * Income Budgets → Income Categories → Total → Expense Budgets → Expense Categories
+     */
+    #[Route('/sankey-flow', name: 'get_sankey_flow', methods: ['GET'])]
+    public function getSankeyFlow(Request $request): JsonResponse
+    {
+        // Check feature flag
+        if (!$this->featureFlagService->isEnabled('living_dashboard')) {
+            throw new AccessDeniedHttpException('Living dashboard feature is disabled');
+        }
+
+        $accountId = $request->query->getInt('accountId');
+        $startDate = $request->query->get('startDate'); // YYYY-MM-DD
+        $endDate = $request->query->get('endDate'); // YYYY-MM-DD
+        $mode = $request->query->get('mode', 'actual'); // 'actual' | 'median'
+
+        // Validate required parameters
+        if (!$startDate || !$endDate) {
+            return $this->json(['error' => 'startDate and endDate are required'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Validate mode parameter
+        if (!in_array($mode, ['actual', 'median'])) {
+            return $this->json(['error' => 'mode must be "actual" or "median"'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Verify account ownership if accountId is provided
+        if ($accountId > 0) {
+            if ($error = $this->verifyAccountOwnership($accountId)) {
+                return $error;
+            }
+        } else {
+            return $this->json(['error' => 'accountId is required'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            return $this->json(['error' => 'Account not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $flowData = $this->sankeyFlowService->generateFlowData($account, $startDate, $endDate, $mode);
+
+        return $this->json($flowData);
     }
 }

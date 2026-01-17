@@ -32,6 +32,8 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "d3-sankey": "^0.12.3",
+    "d3-shape": "^3.2.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.11.17",
     "lodash.debounce": "^4.0.8",
@@ -51,6 +53,8 @@
   "devDependencies": {
     "@eslint/js": "^9.13.0",
     "@playwright/test": "^1.57.0",
+    "@types/d3-sankey": "^0.12.5",
+    "@types/d3-shape": "^3.1.8",
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^22.8.6",
     "@types/react": "^19.0.1",
