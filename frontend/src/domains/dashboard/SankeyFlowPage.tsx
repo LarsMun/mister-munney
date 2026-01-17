@@ -108,7 +108,7 @@ export default function SankeyFlowPage() {
         loadData();
     }, [accountId, startDate, endDate, mode]);
 
-    // Build layout - use full viewport
+    // Build layout - dynamic height based on content
     const layout = useMemo(() => {
         if (!data) return null;
 
@@ -147,59 +147,66 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
-        // Use most of the viewport
+        // Dynamic sizing based on number of nodes
+        const maxNodes = Math.max(incomeBudgets.length, expenseBudgets.length);
+        const minNodeHeight = 40;  // Minimum height per node
+        const nodeGap = 30;        // Fixed gap between nodes
+
         const width = 1600;
-        const height = 800;
-        const padding = { top: 40, bottom: 40, left: 200, right: 200 };
-        const nodeWidth = 24;
-        const nodePadding = 16;
-        const columnX = [padding.left, width / 2 - nodeWidth / 2, width - padding.right - nodeWidth];
+        const padding = { top: 60, bottom: 60, left: 220, right: 220 };
+        const nodeWidth = 28;
+
+        // Calculate required height based on node count
+        const requiredHeight = maxNodes * minNodeHeight + (maxNodes - 1) * nodeGap + padding.top + padding.bottom;
+        const height = Math.max(600, requiredHeight);
         const innerHeight = height - padding.top - padding.bottom;
 
+        const columnX = [padding.left, width / 2 - nodeWidth / 2, width - padding.right - nodeWidth];
+
+        // Scale based on values but with minimum heights
         const maxValue = Math.max(totalIncome, totalExpense);
-        const scale = innerHeight / maxValue;
+        const availableHeight = innerHeight - (maxNodes - 1) * nodeGap;
+        const scale = availableHeight / maxValue;
 
-        // Position income nodes with proper spacing
+        // Position income nodes with fixed gaps
         const incomeNodes: NodePosition[] = [];
-        const totalIncomeNodeHeight = incomeBudgets.reduce((s, b) => s + Math.max(b.value * scale, 12), 0);
-        const incomeGap = incomeBudgets.length > 1
-            ? Math.min(nodePadding, (innerHeight - totalIncomeNodeHeight) / (incomeBudgets.length - 1))
-            : 0;
-        let incomeY = padding.top + (innerHeight - totalIncomeNodeHeight - incomeGap * (incomeBudgets.length - 1)) / 2;
+        const incomeHeights = incomeBudgets.map(b => Math.max(b.value * scale, minNodeHeight));
+        const totalIncomeHeight = incomeHeights.reduce((s, h) => s + h, 0) + (incomeBudgets.length - 1) * nodeGap;
+        let incomeY = padding.top + (innerHeight - totalIncomeHeight) / 2;
 
-        incomeBudgets.forEach(b => {
-            const h = Math.max(b.value * scale, 12);
+        incomeBudgets.forEach((b, i) => {
+            const h = incomeHeights[i];
             incomeNodes.push({ name: b.name, type: 'income', value: b.value, y: incomeY, height: h, color: COLORS.income });
-            incomeY += h + incomeGap;
+            incomeY += h + nodeGap;
         });
 
-        // Position total node
-        const totalHeight = Math.max(totalIncome, totalExpense) * scale;
-        const totalY = padding.top + (innerHeight - totalHeight) / 2;
+        // Position total node - spans from first income to last income position on the total side
+        const totalNodeHeight = incomeNodes.length > 0
+            ? incomeNodes.reduce((sum, n) => sum + n.height, 0)
+            : innerHeight;
+        const totalY = incomeNodes.length > 0 ? incomeNodes[0].y : padding.top;
         const totalNode: NodePosition = {
             name: 'Totaal',
             type: 'total',
             value: Math.max(totalIncome, totalExpense),
             y: totalY,
-            height: totalHeight,
+            height: totalNodeHeight,
             color: COLORS.total
         };
 
-        // Position expense nodes with proper spacing
+        // Position expense nodes with fixed gaps
         const expenseNodes: NodePosition[] = [];
-        const totalExpenseNodeHeight = expenseBudgets.reduce((s, b) => s + Math.max(b.value * scale, 12), 0);
-        const expenseGap = expenseBudgets.length > 1
-            ? Math.min(nodePadding, (innerHeight - totalExpenseNodeHeight) / (expenseBudgets.length - 1))
-            : 0;
-        let expenseY = padding.top + (innerHeight - totalExpenseNodeHeight - expenseGap * (expenseBudgets.length - 1)) / 2;
+        const expenseHeights = expenseBudgets.map(b => Math.max(b.value * scale, minNodeHeight));
+        const totalExpenseHeight = expenseHeights.reduce((s, h) => s + h, 0) + (expenseBudgets.length - 1) * nodeGap;
+        let expenseY = padding.top + (innerHeight - totalExpenseHeight) / 2;
 
-        expenseBudgets.forEach(b => {
-            const h = Math.max(b.value * scale, 12);
+        expenseBudgets.forEach((b, i) => {
+            const h = expenseHeights[i];
             expenseNodes.push({ name: b.name, type: 'expense', value: b.value, y: expenseY, height: h, color: COLORS.expense });
-            expenseY += h + expenseGap;
+            expenseY += h + nodeGap;
         });
 
-        // Build flows
+        // Build flows - connect income nodes to corresponding positions on total node
         const flows: FlowPath[] = [];
 
         let incomeFlowY = totalY;
@@ -217,11 +224,13 @@ export default function SankeyFlowPage() {
             incomeFlowY += node.height;
         });
 
+        // Expense flows from total to expense nodes
         let expenseFlowY = totalY;
         expenseNodes.forEach(node => {
+            const flowHeight = (node.value / totalExpense) * totalNodeHeight;
             flows.push({
                 sourceY: expenseFlowY,
-                sourceHeight: node.height,
+                sourceHeight: flowHeight,
                 targetY: node.y,
                 targetHeight: node.height,
                 value: node.value,
@@ -229,7 +238,7 @@ export default function SankeyFlowPage() {
                 sourceName: 'Totaal',
                 targetName: node.name,
             });
-            expenseFlowY += node.height;
+            expenseFlowY += flowHeight;
         });
 
         return { width, height, nodeWidth, columnX, incomeNodes, totalNode, expenseNodes, flows, totalIncome, totalExpense };
