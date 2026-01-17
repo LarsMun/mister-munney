@@ -77,21 +77,46 @@ class AiCategorizationService
     {
         $prompt = $this->buildPrompt($transactions, $categories);
 
-        $response = $client->chat()->create([
-            'model' => 'gpt-4o-mini',
-            'messages' => [
-                ['role' => 'system', 'content' => 'Je bent een expert in het categoriseren van banktransacties. Analyseer de transacties en wijs de meest passende categorie toe. Antwoord alleen met geldige JSON.'],
-                ['role' => 'user', 'content' => $prompt],
-            ],
-            'temperature' => 0.3,
-            'response_format' => ['type' => 'json_object']
-        ]);
+        try {
+            $response = $client->chat()->create([
+                'model' => 'gpt-4o-mini',
+                'messages' => [
+                    ['role' => 'system', 'content' => 'Je bent een expert in het categoriseren van banktransacties. Analyseer de transacties en wijs de meest passende categorie toe. Antwoord alleen met geldige JSON.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'temperature' => 0.3,
+                'response_format' => ['type' => 'json_object']
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('OpenAI API call failed', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            throw new \RuntimeException('OpenAI API call failed: ' . $e->getMessage());
+        }
+
+        if (!isset($response->choices[0])) {
+            $this->logger->error('OpenAI response missing choices', [
+                'response' => json_encode($response)
+            ]);
+            throw new \RuntimeException('OpenAI returned invalid response (no choices)');
+        }
 
         $content = $response->choices[0]->message->content;
         $result = json_decode($content, true);
 
+        if ($result === null) {
+            $this->logger->error('Failed to parse OpenAI JSON response', [
+                'content' => $content
+            ]);
+            throw new \RuntimeException('Failed to parse AI response as JSON');
+        }
+
         if (!isset($result['suggestions']) || !is_array($result['suggestions'])) {
-            throw new \RuntimeException('Invalid AI response format');
+            $this->logger->error('Invalid AI response format', [
+                'result' => $result
+            ]);
+            throw new \RuntimeException('Invalid AI response format (missing suggestions array)');
         }
 
         return $this->mapSuggestions($result['suggestions'], $transactions, $categories);
