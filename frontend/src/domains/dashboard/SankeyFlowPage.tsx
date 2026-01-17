@@ -147,10 +147,10 @@ export default function SankeyFlowPage() {
 
         if (totalIncome === 0 && totalExpense === 0) return null;
 
-        // Fixed dimensions that fit the viewport (90vh - header ≈ 850px max)
+        // Fixed dimensions that fit the viewport (90vh - header, conservative)
         const width = 1600;
-        const maxHeight = 850;
-        const padding = { top: 50, bottom: 50, left: 220, right: 220 };
+        const maxHeight = 700;
+        const padding = { top: 40, bottom: 40, left: 220, right: 220 };
         const nodeWidth = 28;
         const innerHeight = maxHeight - padding.top - padding.bottom;
 
