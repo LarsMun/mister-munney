@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAccount } from '../../app/context/AccountContext';
 import { fetchSankeyFlow } from '../budgets/services/AdaptiveDashboardService';
+import { getAvailableMonths } from '../transactions/services/TransactionsService';
 import type { SankeyFlowData, SankeyMode } from './models/SankeyFlow';
 import { formatMoney } from '../../shared/utils/MoneyFormat';
+import { formatDateToLocalString } from '../../shared/utils/DateFormat';
 
 interface NodePosition {
     name: string;
@@ -33,16 +35,52 @@ const COLORS = {
 };
 
 export default function SankeyFlowPage() {
-    const { accountId, periodStart, periodEnd } = useAccount();
+    const { accountId } = useAccount();
     const [mode, setMode] = useState<SankeyMode>('actual');
     const [data, setData] = useState<SankeyFlowData | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
+    const [startDate, setStartDate] = useState<string | null>(null);
+    const [endDate, setEndDate] = useState<string | null>(null);
+    const [months, setMonths] = useState<string[]>([]);
+    const [selectedMonth, setSelectedMonth] = useState<string>('');
 
-    const startDate = periodStart?.toISOString().split('T')[0] || '';
-    const endDate = periodEnd?.toISOString().split('T')[0] || '';
+    // Load available months
+    useEffect(() => {
+        if (!accountId) return;
 
+        getAvailableMonths(accountId)
+            .then(availableMonths => {
+                setMonths(availableMonths);
+                if (availableMonths.length > 0) {
+                    const currentMonth = availableMonths[0];
+                    setSelectedMonth(currentMonth);
+                    const [year, month] = currentMonth.split("-");
+                    const start = formatDateToLocalString(new Date(Number(year), Number(month) - 1, 1));
+                    const end = formatDateToLocalString(new Date(Number(year), Number(month), 0));
+                    setStartDate(start);
+                    setEndDate(end);
+                }
+            })
+            .catch(err => {
+                console.error('Error loading months:', err);
+                setError('Kon periodes niet laden');
+                setIsLoading(false);
+            });
+    }, [accountId]);
+
+    // Handle month change
+    const handleMonthChange = (month: string) => {
+        setSelectedMonth(month);
+        const [year, m] = month.split("-");
+        const start = formatDateToLocalString(new Date(Number(year), Number(m) - 1, 1));
+        const end = formatDateToLocalString(new Date(Number(year), Number(m), 0));
+        setStartDate(start);
+        setEndDate(end);
+    };
+
+    // Load sankey data
     useEffect(() => {
         async function loadData() {
             if (!accountId || !startDate || !endDate) return;
@@ -240,6 +278,23 @@ export default function SankeyFlowPage() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-4">
+                            {/* Month selector */}
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => handleMonthChange(e.target.value)}
+                                className="px-4 py-2.5 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {months.map(month => {
+                                    const [year, m] = month.split('-');
+                                    const monthNames = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'];
+                                    return (
+                                        <option key={month} value={month}>
+                                            {monthNames[Number(m) - 1]} {year}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setMode('actual')}
