@@ -28,11 +28,15 @@ export interface BulkAssignmentResponse {
 
 export async function getAiCategorySuggestions(
     accountId: number,
+    transactionIds?: number[],
     limit: number = 50
 ): Promise<AiSuggestionsResponse> {
     const response = await api.post(
         `/account/${accountId}/transactions/ai-suggest-categories`,
-        { limit }
+        {
+            limit,
+            transactionIds: transactionIds?.slice(0, limit) // Only send up to limit
+        }
     );
     return response.data;
 }

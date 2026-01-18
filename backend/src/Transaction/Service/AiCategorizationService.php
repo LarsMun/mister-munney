@@ -96,7 +96,7 @@ class AiCategorizationService
             $response = $client->chat()->create([
                 'model' => 'gpt-4o-mini',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Je bent een expert in het categoriseren van banktransacties. Analyseer de transacties en wijs de meest passende categorie toe. Antwoord alleen met geldige JSON.'],
+                    ['role' => 'system', 'content' => 'Je bent een expert in het categoriseren van banktransacties voor Nederlandse consumenten. Analyseer de transacties en wijs de meest passende categorie toe. Let op: buitenlandse transacties (bijv. in Kroatië, Spanje, etc.) zijn vaak vakantie-uitgaven zoals restaurants, winkels, supermarkten, parkeren, of attracties. Probeer altijd een passende categorie te vinden op basis van het type uitgave, niet de locatie. Antwoord alleen met geldige JSON.'],
                     ['role' => 'user', 'content' => $prompt],
                 ],
                 'temperature' => 0.3,
@@ -197,8 +197,14 @@ class AiCategorizationService
             "Categoriseer de volgende banktransacties.\n\n" .
             "Beschikbare categorieën:\n%s\n\n" .
             "Transacties om te categoriseren:\n%s\n\n" .
+            "BELANGRIJK:\n" .
+            "- Buitenlandse transacties (andere taal/valuta) zijn meestal vakantie-uitgaven\n" .
+            "- Kijk naar het TYPE uitgave, niet de locatie of taal\n" .
+            "- Voorbeelden: 'RESTORAN' = restaurant, 'MARKET/KONZUM/SPAR' = boodschappen, 'PARKING' = parkeren, 'BENZIN/PETROL' = brandstof\n" .
+            "- Geef liever een best guess met lagere confidence dan null\n" .
+            "- Gebruik null alleen als er echt GEEN categorie past\n\n" .
             "Geef voor elke transactie:\n" .
-            "1. De meest passende categorie ID (of null als geen goede match)\n" .
+            "1. De meest passende categorie ID (of null als echt geen match)\n" .
             "2. Een confidence score tussen 0 en 1\n" .
             "3. Een korte uitleg (max 50 karakters)\n\n" .
             "Antwoord in dit JSON formaat:\n" .

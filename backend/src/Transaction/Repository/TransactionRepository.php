@@ -924,6 +924,29 @@ class TransactionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find transactions by IDs for a specific account
+     *
+     * @param int[] $ids
+     * @param int $accountId
+     * @return Transaction[]
+     */
+    public function findByIdsAndAccount(array $ids, int $accountId): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('t')
+            ->where('t.account = :accountId')
+            ->andWhere('t.id IN (:ids)')
+            ->setParameter('accountId', $accountId)
+            ->setParameter('ids', $ids)
+            ->orderBy('t.date', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Find all uncategorized transactions for pattern discovery
      *
      * @param int $accountId
