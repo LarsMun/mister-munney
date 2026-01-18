@@ -43,7 +43,8 @@ class AiCategorizationController extends AbstractController
     #[OA\RequestBody(
         content: new OA\JsonContent(
             properties: [
-                new OA\Property(property: 'limit', type: 'integer', example: 50, description: 'Maximum number of transactions to suggest categories for')
+                new OA\Property(property: 'limit', type: 'integer', example: 50, description: 'Maximum number of transactions to suggest categories for'),
+                new OA\Property(property: 'transactionIds', type: 'array', items: new OA\Items(type: 'integer'), description: 'Optional list of specific transaction IDs to categorize')
             ]
         )
     )]
@@ -77,9 +78,19 @@ class AiCategorizationController extends AbstractController
         try {
             $data = json_decode($request->getContent(), true);
             $limit = $data['limit'] ?? 50;
+            $transactionIds = $data['transactionIds'] ?? null;
 
-            // Get uncategorized transactions
-            $transactions = $this->transactionRepository->findUncategorizedTransactions($accountId, $limit);
+            // Get transactions - either specific IDs or uncategorized
+            if (!empty($transactionIds) && is_array($transactionIds)) {
+                // Limit the IDs to prevent abuse
+                $transactionIds = array_slice($transactionIds, 0, $limit);
+                $transactions = $this->transactionRepository->findByIdsAndAccount($transactionIds, $accountId);
+                // Filter to only uncategorized
+                $transactions = array_filter($transactions, fn($t) => $t->getCategory() === null);
+                $transactions = array_values($transactions); // Re-index array
+            } else {
+                $transactions = $this->transactionRepository->findUncategorizedTransactions($accountId, $limit);
+            }
 
             if (empty($transactions)) {
                 return new JsonResponse([

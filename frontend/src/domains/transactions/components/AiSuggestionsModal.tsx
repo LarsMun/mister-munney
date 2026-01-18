@@ -37,7 +37,11 @@ export default function AiSuggestionsModal({ accountId, open, onClose, onSuccess
     const loadSuggestions = async () => {
         setLoading(true);
         try {
-            const response = await getAiCategorySuggestions(accountId, 50);
+            // Only send IDs of uncategorized transactions that are currently filtered
+            const uncategorizedIds = transactions
+                .filter(t => !t.categoryId)
+                .map(t => t.id);
+            const response = await getAiCategorySuggestions(accountId, uncategorizedIds, 50);
 
             if (response.suggestions.length === 0) {
                 toast.success(response.message || "Geen transacties gevonden om te categoriseren");
