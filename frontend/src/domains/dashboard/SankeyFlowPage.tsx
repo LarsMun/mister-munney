@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useAccount } from '../../app/context/AccountContext';
 import { fetchSankeyFlow } from '../budgets/services/AdaptiveDashboardService';
 import { getAvailableMonths } from '../transactions/services/TransactionsService';
@@ -95,6 +95,29 @@ export default function SankeyFlowPage() {
     const [endDate, setEndDate] = useState<string | null>(null);
     const [months, setMonths] = useState<string[]>([]);
     const [showCategoryDetail, setShowCategoryDetail] = useState(false);
+    const [zoom, setZoom] = useState(1);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const handleZoomIn = () => setZoom(z => Math.min(z + 0.25, 3));
+    const handleZoomOut = () => setZoom(z => Math.max(z - 0.25, 0.5));
+    const handleZoomReset = () => setZoom(1);
+
+    // Scroll wheel zoom
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                setZoom(z => Math.min(Math.max(z + delta, 0.5), 3));
+            }
+        };
+
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        return () => container.removeEventListener('wheel', handleWheel);
+    }, []);
 
     // Close on Escape key
     useEffect(() => {
@@ -605,6 +628,31 @@ export default function SankeyFlowPage() {
                             )
                         )}
 
+                        {/* Zoom controls */}
+                        <div className="flex items-center gap-1 bg-gray-200 p-1 rounded-lg">
+                            <button
+                                onClick={handleZoomOut}
+                                className="p-1.5 rounded hover:bg-gray-300 transition-colors"
+                                title="Zoom uit"
+                            >
+                                <ZoomOut className="w-4 h-4 text-gray-600" />
+                            </button>
+                            <button
+                                onClick={handleZoomReset}
+                                className="px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-300 rounded transition-colors min-w-[3rem]"
+                                title="Reset zoom"
+                            >
+                                {Math.round(zoom * 100)}%
+                            </button>
+                            <button
+                                onClick={handleZoomIn}
+                                className="p-1.5 rounded hover:bg-gray-300 transition-colors"
+                                title="Zoom in"
+                            >
+                                <ZoomIn className="w-4 h-4 text-gray-600" />
+                            </button>
+                        </div>
+
                         <button
                             onClick={() => navigate('/')}
                             className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
@@ -616,7 +664,10 @@ export default function SankeyFlowPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-4 min-h-0 flex items-center justify-center">
+                <div
+                    ref={containerRef}
+                    className={`flex-1 p-4 min-h-0 ${zoom > 1 ? 'overflow-auto' : 'flex items-center justify-center overflow-hidden'}`}
+                >
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
@@ -638,7 +689,12 @@ export default function SankeyFlowPage() {
                             <svg
                                 viewBox={`0 0 ${categoryLayout.width} ${categoryLayout.height}`}
                                 preserveAspectRatio="xMidYMid meet"
-                                className="w-full h-full max-w-full max-h-full"
+                                style={{
+                                    width: zoom === 1 ? '100%' : `${categoryLayout.width * zoom}px`,
+                                    height: zoom === 1 ? '100%' : `${categoryLayout.height * zoom}px`,
+                                    maxWidth: zoom === 1 ? '100%' : 'none',
+                                    maxHeight: zoom === 1 ? '100%' : 'none',
+                                }}
                             >
                                 {/* Flows */}
                                 <g>
@@ -799,7 +855,12 @@ export default function SankeyFlowPage() {
                         <svg
                             viewBox={`0 0 ${layout.width} ${layout.height}`}
                             preserveAspectRatio="xMidYMid meet"
-                            className="w-full h-full max-w-full max-h-full"
+                            style={{
+                                width: zoom === 1 ? '100%' : `${layout.width * zoom}px`,
+                                height: zoom === 1 ? '100%' : `${layout.height * zoom}px`,
+                                maxWidth: zoom === 1 ? '100%' : 'none',
+                                maxHeight: zoom === 1 ? '100%' : 'none',
+                            }}
                         >
                             {/* Flows */}
                             <g>
