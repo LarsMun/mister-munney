@@ -215,7 +215,7 @@ export default function TransactionPage() {
                 open={aiModalOpen}
                 onClose={() => setAiModalOpen(false)}
                 onSuccess={handleRefresh}
-                transactions={allTransactions}
+                transactions={filteredTransactions}
                 categories={categories.map(c => ({ id: c.id, name: c.name, color: c.color }))}
             />
 
