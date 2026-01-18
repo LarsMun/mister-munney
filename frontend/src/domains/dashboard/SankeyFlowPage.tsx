@@ -96,11 +96,36 @@ export default function SankeyFlowPage() {
     const [months, setMonths] = useState<string[]>([]);
     const [showCategoryDetail, setShowCategoryDetail] = useState(false);
     const [zoom, setZoom] = useState(1);
+    const [isPanning, setIsPanning] = useState(false);
+    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
 
     const handleZoomIn = () => setZoom(z => Math.min(z + 0.25, 3));
     const handleZoomOut = () => setZoom(z => Math.max(z - 0.25, 0.5));
     const handleZoomReset = () => setZoom(1);
+
+    // Pan/drag functionality
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (zoom > 1 && e.button === 0) {
+            setIsPanning(true);
+            setPanStart({ x: e.clientX, y: e.clientY });
+            e.preventDefault();
+        }
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (isPanning && containerRef.current) {
+            const dx = panStart.x - e.clientX;
+            const dy = panStart.y - e.clientY;
+            containerRef.current.scrollLeft += dx;
+            containerRef.current.scrollTop += dy;
+            setPanStart({ x: e.clientX, y: e.clientY });
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsPanning(false);
+    };
 
     // Scroll wheel zoom
     useEffect(() => {
@@ -666,7 +691,11 @@ export default function SankeyFlowPage() {
                 {/* Content */}
                 <div
                     ref={containerRef}
-                    className={`flex-1 p-4 min-h-0 ${zoom > 1 ? 'overflow-auto' : 'flex items-center justify-center overflow-hidden'}`}
+                    className={`flex-1 p-4 min-h-0 ${zoom > 1 ? 'overflow-auto' : 'flex items-center justify-center overflow-hidden'} ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
                 >
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
