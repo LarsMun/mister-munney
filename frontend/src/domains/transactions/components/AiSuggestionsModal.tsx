@@ -39,7 +39,7 @@ export default function AiSuggestionsModal({ accountId, open, onClose, onSuccess
         try {
             // Only send IDs of uncategorized transactions that are currently filtered
             const uncategorizedIds = transactions
-                .filter(t => !t.categoryId)
+                .filter(t => !t.category)
                 .map(t => t.id);
             const response = await getAiCategorySuggestions(accountId, uncategorizedIds, 50);
 
