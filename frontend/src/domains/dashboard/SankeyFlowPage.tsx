@@ -616,7 +616,7 @@ export default function SankeyFlowPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto p-4 min-h-0">
+                <div className="flex-1 p-4 min-h-0 flex items-center justify-center">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
@@ -637,8 +637,8 @@ export default function SankeyFlowPage() {
                         ) : (
                             <svg
                                 viewBox={`0 0 ${categoryLayout.width} ${categoryLayout.height}`}
-                                preserveAspectRatio="xMinYMin meet"
-                                style={{ minWidth: `${categoryLayout.width}px`, minHeight: `${categoryLayout.height}px` }}
+                                preserveAspectRatio="xMidYMid meet"
+                                className="w-full h-full max-w-full max-h-full"
                             >
                                 {/* Flows */}
                                 <g>
@@ -798,8 +798,8 @@ export default function SankeyFlowPage() {
                     ) : (
                         <svg
                             viewBox={`0 0 ${layout.width} ${layout.height}`}
-                            preserveAspectRatio="xMinYMin meet"
-                            style={{ minWidth: `${layout.width}px`, minHeight: `${layout.height}px` }}
+                            preserveAspectRatio="xMidYMid meet"
+                            className="w-full h-full max-w-full max-h-full"
                         >
                             {/* Flows */}
                             <g>
