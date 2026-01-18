@@ -96,7 +96,22 @@ class AiCategorizationService
             $response = $client->chat()->create([
                 'model' => 'gpt-4o-mini',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Je bent een expert in het categoriseren van banktransacties voor Nederlandse consumenten. Analyseer de transacties en wijs de meest passende categorie toe. Let op: buitenlandse transacties (bijv. in Kroatië, Spanje, etc.) zijn vaak vakantie-uitgaven zoals restaurants, winkels, supermarkten, parkeren, of attracties. Probeer altijd een passende categorie te vinden op basis van het type uitgave, niet de locatie. Antwoord alleen met geldige JSON.'],
+                    ['role' => 'system', 'content' => 'Je bent een expert in het categoriseren van banktransacties voor Nederlandse consumenten. Je hebt uitgebreide kennis van buitenlandse winkels, merken en lokale termen.
+
+BUITENLANDSE TRANSACTIES (HRV=Kroatië, ESP=Spanje, ITA=Italië, etc.):
+- Dit zijn meestal vakantie-uitgaven
+- Herken lokale termen: ugostiteljstvo/restoran=horeca, slastičarnica=ijssalon, ležaljke=ligbedden, benzinska=tankstation
+- Herken ketens: Müller=drogist, Hervis=sport, Konzum/Spar/Plodine=supermarkt, PBZ/OTP=bank/pinautomaat
+- IPC/parking=parkeren, beach/plaža=strand
+
+BEDRAG ALS HINT:
+- €1-5: koffie, parkeren, klein drankje
+- €5-15: ijsje, snack, kleine aankoop
+- €15-40: lunch, strandbar, kleine winkelaankoop
+- €40-100: diner, grotere aankoop, uitje
+- €100+: hotel, grote uitgave, excursie
+
+Geef altijd je beste gok op basis van alle aanwijzingen. Antwoord alleen met geldige JSON.'],
                     ['role' => 'user', 'content' => $prompt],
                 ],
                 'temperature' => 0.3,
@@ -194,21 +209,15 @@ class AiCategorizationService
         ], $transactions);
 
         return sprintf(
-            "Categoriseer de volgende banktransacties.\n\n" .
-            "Beschikbare categorieën:\n%s\n\n" .
-            "Transacties om te categoriseren:\n%s\n\n" .
-            "BELANGRIJK:\n" .
-            "- Buitenlandse transacties (andere taal/valuta) zijn meestal vakantie-uitgaven\n" .
-            "- Kijk naar het TYPE uitgave, niet de locatie of taal\n" .
-            "- Voorbeelden: 'RESTORAN' = restaurant, 'MARKET/KONZUM/SPAR' = boodschappen, 'PARKING' = parkeren, 'BENZIN/PETROL' = brandstof\n" .
-            "- Geef liever een best guess met lagere confidence dan null\n" .
-            "- Gebruik null alleen als er echt GEEN categorie past\n\n" .
-            "Geef voor elke transactie:\n" .
-            "1. De meest passende categorie ID (of null als echt geen match)\n" .
-            "2. Een confidence score tussen 0 en 1\n" .
-            "3. Een korte uitleg (max 50 karakters)\n\n" .
-            "Antwoord in dit JSON formaat:\n" .
-            '{"suggestions": [{"transactionId": 123, "categoryId": 5, "confidence": 0.95, "reasoning": "Supermarkt aankoop"}]}',
+            "Hier zijn transacties die ik wil categoriseren. Bekijk ze en geef je beste gok voor elke transactie.\n\n" .
+            "Mijn categorieën:\n%s\n\n" .
+            "Transacties:\n%s\n\n" .
+            "Geef voor elke transactie je beste gok:\n" .
+            "- categoryId: de meest passende categorie (gebruik null alleen als er echt geen enkele past)\n" .
+            "- confidence: hoe zeker je bent (0-1)\n" .
+            "- reasoning: korte uitleg waarom, bijv. 'Müller = drogist' of 'klein bedrag = koffie'\n\n" .
+            "JSON formaat:\n" .
+            '{"suggestions": [{"transactionId": 123, "categoryId": 5, "confidence": 0.7, "reasoning": "Müller = drogist"}]}',
             json_encode($categoryList, JSON_PRETTY_PRINT),
             json_encode($transactionList, JSON_PRETTY_PRINT)
         );
