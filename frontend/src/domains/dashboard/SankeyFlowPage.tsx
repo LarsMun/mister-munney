@@ -36,6 +36,45 @@ const COLORS = {
     surplus: '#22c55e',   // Green for Overschot
 };
 
+// Fallback colors for categories that have white or no color
+const CATEGORY_FALLBACK_COLORS = [
+    '#6366f1', // indigo
+    '#8b5cf6', // violet
+    '#ec4899', // pink
+    '#f59e0b', // amber
+    '#10b981', // emerald
+    '#06b6d4', // cyan
+    '#f97316', // orange
+    '#84cc16', // lime
+];
+
+// Check if a color is white or near-white
+const isWhiteColor = (color: string | undefined): boolean => {
+    if (!color) return true;
+    const c = color.toLowerCase().trim();
+    if (c === 'white' || c === '#fff' || c === '#ffffff') return true;
+    // Check for near-white colors (e.g., #fafafa, #f5f5f5)
+    if (c.match(/^#f[a-f0-9]f[a-f0-9]f[a-f0-9]$/i)) return true;
+    return false;
+};
+
+// Get a consistent fallback color based on category name
+const getFallbackColor = (name: string): string => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return CATEGORY_FALLBACK_COLORS[Math.abs(hash) % CATEGORY_FALLBACK_COLORS.length];
+};
+
+// Get category color, replacing white with a fallback
+const getCategoryColor = (color: string | undefined, name: string): string => {
+    if (isWhiteColor(color)) {
+        return getFallbackColor(name);
+    }
+    return color!;
+};
+
 // Darker versions for percentage text
 const COLORS_DARK = {
     income: '#14532d',
@@ -55,6 +94,7 @@ export default function SankeyFlowPage() {
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
     const [months, setMonths] = useState<string[]>([]);
+    const [showCategoryDetail, setShowCategoryDetail] = useState(false);
 
     // Close on Escape key
     useEffect(() => {
@@ -253,6 +293,219 @@ export default function SankeyFlowPage() {
         return { width, height, nodeWidth, columnX, incomeNodes, totalNode, expenseNodes, flows, totalIncome, totalExpense, expenseTotalWithBalance };
     }, [data]);
 
+    // Category detail layout: Expense Budgets → Categories (grouped by budget)
+    const categoryLayout = useMemo(() => {
+        if (!data) return null;
+
+        // Find expense budgets and their categories from the data
+        const expenseBudgetNodes: { index: number; name: string; id?: number }[] = [];
+        const categoryNodeMap = new Map<number, { index: number; name: string; id?: number; color?: string }>();
+
+        data.nodes.forEach((node, idx) => {
+            if (node.type === 'expense_budget') {
+                expenseBudgetNodes.push({ index: idx, name: node.name, id: node.id });
+            } else if (node.type === 'expense_category') {
+                categoryNodeMap.set(idx, { index: idx, name: node.name, id: node.id, color: node.color });
+            }
+        });
+
+        // Find links from expense_budget to expense_category
+        const budgetToCategoryLinks: { budgetIndex: number; categoryIndex: number; value: number }[] = [];
+        data.links.forEach(link => {
+            const sourceNode = data.nodes[link.source];
+            const targetNode = data.nodes[link.target];
+            if (sourceNode.type === 'expense_budget' && targetNode.type === 'expense_category') {
+                budgetToCategoryLinks.push({
+                    budgetIndex: link.source,
+                    categoryIndex: link.target,
+                    value: link.value
+                });
+            }
+        });
+
+        if (budgetToCategoryLinks.length === 0) return null;
+
+        // Calculate totals per budget
+        const budgetTotals = new Map<number, number>();
+        budgetToCategoryLinks.forEach(link => {
+            budgetTotals.set(link.budgetIndex, (budgetTotals.get(link.budgetIndex) || 0) + link.value);
+        });
+
+        // Filter budgets with actual data and sort by value
+        const budgetsWithData = expenseBudgetNodes
+            .filter(b => (budgetTotals.get(b.index) || 0) > 0)
+            .map(b => ({ ...b, value: budgetTotals.get(b.index) || 0 }))
+            .sort((a, b) => b.value - a.value);
+
+        if (budgetsWithData.length === 0) return null;
+
+        // Group categories by budget (in budget order) to minimize line crossings
+        const orderedCategories: {
+            index: number;
+            name: string;
+            value: number;
+            color?: string;
+            budgetIndex: number;
+            budgetValue: number;
+            valueInBudget: number;
+            isFirstInBudget: boolean;
+        }[] = [];
+        const seenCategories = new Set<number>();
+
+        budgetsWithData.forEach((budget, budgetIdx) => {
+            // Get all categories for this budget, sorted by value
+            const budgetCategories = budgetToCategoryLinks
+                .filter(link => link.budgetIndex === budget.index && !seenCategories.has(link.categoryIndex))
+                .sort((a, b) => b.value - a.value);
+
+            budgetCategories.forEach((link, catIdxInBudget) => {
+                const catNode = categoryNodeMap.get(link.categoryIndex);
+                if (catNode && !seenCategories.has(link.categoryIndex)) {
+                    // Calculate total value for this category across all budgets
+                    const totalCatValue = budgetToCategoryLinks
+                        .filter(l => l.categoryIndex === link.categoryIndex)
+                        .reduce((sum, l) => sum + l.value, 0);
+
+                    orderedCategories.push({
+                        index: catNode.index,
+                        name: catNode.name,
+                        value: totalCatValue,
+                        color: catNode.color,
+                        budgetIndex: budget.index,
+                        budgetValue: budget.value,
+                        valueInBudget: link.value,
+                        isFirstInBudget: catIdxInBudget === 0 && budgetIdx > 0
+                    });
+                    seenCategories.add(link.categoryIndex);
+                }
+            });
+        });
+
+        if (orderedCategories.length === 0) return null;
+
+        const totalExpense = budgetsWithData.reduce((sum, b) => sum + b.value, 0);
+
+        // Layout dimensions - dynamic height based on number of nodes
+        const width = 1400;
+        const padding = { top: 30, bottom: 30, left: 220, right: 220 };
+        const nodeWidth = 24;
+        const nodeHeight = 32;
+        const nodeGap = 8;
+
+        // Calculate required height based on the column with most nodes
+        const maxNodes = Math.max(budgetsWithData.length, orderedCategories.length);
+        const requiredHeight = maxNodes * nodeHeight + (maxNodes - 1) * nodeGap + padding.top + padding.bottom;
+        const height = Math.max(500, requiredHeight);
+        const innerHeight = height - padding.top - padding.bottom;
+
+        const columnX = [padding.left, width - padding.right - nodeWidth];
+
+        // Position budget nodes (left column) - distribute evenly
+        const budgetNodes: NodePosition[] = [];
+        const totalBudgetNodesHeight = budgetsWithData.length * nodeHeight + (budgetsWithData.length - 1) * nodeGap;
+        let budgetY = padding.top + (innerHeight - totalBudgetNodesHeight) / 2;
+
+        budgetsWithData.forEach(b => {
+            budgetNodes.push({
+                name: b.name,
+                type: 'expense',
+                value: b.value,
+                y: budgetY,
+                height: nodeHeight,
+                color: COLORS.expense
+            });
+            budgetY += nodeHeight + nodeGap;
+        });
+
+        // Position category nodes (right column) - in budget-grouped order
+        interface CategoryNodePosition extends NodePosition {
+            budgetValue: number;
+            valueInBudget: number;
+            isFirstInBudget: boolean;
+            percentOfTotal: number;
+            percentOfBudget: number;
+        }
+        const categoryNodes: CategoryNodePosition[] = [];
+        const totalCategoryNodesHeight = orderedCategories.length * nodeHeight + (orderedCategories.length - 1) * nodeGap;
+        let categoryY = padding.top + (innerHeight - totalCategoryNodesHeight) / 2;
+
+        orderedCategories.forEach(c => {
+            categoryNodes.push({
+                name: c.name,
+                type: 'category',
+                value: c.value,
+                y: categoryY,
+                height: nodeHeight,
+                color: getCategoryColor(c.color, c.name),
+                budgetValue: c.budgetValue,
+                valueInBudget: c.valueInBudget,
+                isFirstInBudget: c.isFirstInBudget,
+                percentOfTotal: Math.round(c.value / totalExpense * 100),
+                percentOfBudget: Math.round(c.valueInBudget / c.budgetValue * 100)
+            });
+            categoryY += nodeHeight + nodeGap;
+        });
+
+        // Build flows
+        const flows: FlowPath[] = [];
+        const budgetFlowOffsets = new Map<number, number>();
+        const categoryFlowOffsets = new Map<number, number>();
+
+        // Initialize offsets
+        budgetsWithData.forEach((_, idx) => budgetFlowOffsets.set(idx, 0));
+        orderedCategories.forEach((_, idx) => categoryFlowOffsets.set(idx, 0));
+
+        // Create index mappings
+        const budgetIndexToPosition = new Map<number, number>();
+        budgetsWithData.forEach((b, idx) => budgetIndexToPosition.set(b.index, idx));
+
+        const categoryIndexToPosition = new Map<number, number>();
+        orderedCategories.forEach((c, idx) => categoryIndexToPosition.set(c.index, idx));
+
+        // Process links in budget order, then by category position
+        const sortedLinks = [...budgetToCategoryLinks].sort((a, b) => {
+            const budgetPosA = budgetIndexToPosition.get(a.budgetIndex) ?? 999;
+            const budgetPosB = budgetIndexToPosition.get(b.budgetIndex) ?? 999;
+            if (budgetPosA !== budgetPosB) return budgetPosA - budgetPosB;
+            const catPosA = categoryIndexToPosition.get(a.categoryIndex) ?? 999;
+            const catPosB = categoryIndexToPosition.get(b.categoryIndex) ?? 999;
+            return catPosA - catPosB;
+        });
+
+        sortedLinks.forEach(link => {
+            const budgetPos = budgetIndexToPosition.get(link.budgetIndex);
+            const categoryPos = categoryIndexToPosition.get(link.categoryIndex);
+
+            if (budgetPos === undefined || categoryPos === undefined) return;
+
+            const budgetNode = budgetNodes[budgetPos];
+            const categoryNode = categoryNodes[categoryPos];
+
+            // Calculate proportional heights
+            const sourceFlowHeight = (link.value / budgetNode.value) * nodeHeight;
+            const targetFlowHeight = (link.value / categoryNode.value) * nodeHeight;
+
+            const sourceOffset = budgetFlowOffsets.get(budgetPos) || 0;
+            const targetOffset = categoryFlowOffsets.get(categoryPos) || 0;
+
+            flows.push({
+                sourceY: budgetNode.y + sourceOffset,
+                sourceHeight: sourceFlowHeight,
+                targetY: categoryNode.y + targetOffset,
+                targetHeight: targetFlowHeight,
+                value: link.value,
+                color: categoryNode.color,
+                sourceName: budgetNode.name,
+                targetName: categoryNode.name
+            });
+
+            budgetFlowOffsets.set(budgetPos, sourceOffset + sourceFlowHeight);
+            categoryFlowOffsets.set(categoryPos, targetOffset + targetFlowHeight);
+        });
+
+        return { width, height, nodeWidth, columnX, budgetNodes, categoryNodes, flows, totalExpense };
+    }, [data]);
+
     const flowPath = (flow: FlowPath, sourceX: number, targetX: number, nodeWidth: number) => {
         const x0 = sourceX + nodeWidth;
         const x1 = targetX;
@@ -303,29 +556,53 @@ export default function SankeyFlowPage() {
                                 Mediaan (6 mnd)
                             </button>
                         </div>
+
+                        {/* Category detail toggle */}
+                        <button
+                            onClick={() => setShowCategoryDetail(!showCategoryDetail)}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                                showCategoryDetail
+                                    ? 'bg-red-600 text-white'
+                                    : 'bg-gray-200 text-gray-600 hover:text-gray-900'
+                            }`}
+                        >
+                            Categorieën
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-6">
-                        {layout && (
-                            <div className="flex gap-6 text-sm">
-                                <span className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.income }} />
-                                    <span className="text-gray-500">Inkomsten:</span>
-                                    <span className="font-bold" style={{ color: COLORS.income }}>{formatMoney(layout.totalIncome)}</span>
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.expense }} />
-                                    <span className="text-gray-500">Uitgaven:</span>
-                                    <span className="font-bold" style={{ color: COLORS.expense }}>{formatMoney(layout.totalExpense)}</span>
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.total }} />
-                                    <span className="text-gray-500">Netto:</span>
-                                    <span className="font-bold" style={{ color: layout.totalIncome - layout.totalExpense >= 0 ? COLORS.income : COLORS.expense }}>
-                                        {formatMoney(layout.totalIncome - layout.totalExpense)}
+                        {showCategoryDetail ? (
+                            categoryLayout && (
+                                <div className="flex gap-6 text-sm">
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.expense }} />
+                                        <span className="text-gray-500">Totaal uitgaven:</span>
+                                        <span className="font-bold" style={{ color: COLORS.expense }}>{formatMoney(categoryLayout.totalExpense)}</span>
                                     </span>
-                                </span>
-                            </div>
+                                </div>
+                            )
+                        ) : (
+                            layout && (
+                                <div className="flex gap-6 text-sm">
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.income }} />
+                                        <span className="text-gray-500">Inkomsten:</span>
+                                        <span className="font-bold" style={{ color: COLORS.income }}>{formatMoney(layout.totalIncome)}</span>
+                                    </span>
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.expense }} />
+                                        <span className="text-gray-500">Uitgaven:</span>
+                                        <span className="font-bold" style={{ color: COLORS.expense }}>{formatMoney(layout.totalExpense)}</span>
+                                    </span>
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.total }} />
+                                        <span className="text-gray-500">Netto:</span>
+                                        <span className="font-bold" style={{ color: layout.totalIncome - layout.totalExpense >= 0 ? COLORS.income : COLORS.expense }}>
+                                            {formatMoney(layout.totalIncome - layout.totalExpense)}
+                                        </span>
+                                    </span>
+                                </div>
+                            )
                         )}
 
                         <button
@@ -339,21 +616,190 @@ export default function SankeyFlowPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 flex items-center justify-center p-4 min-h-0">
+                <div className="flex-1 overflow-auto p-4 min-h-0">
                     {isLoading ? (
-                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
+                        <div className="flex items-center justify-center h-full">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600" />
+                        </div>
                     ) : error ? (
-                        <div className="text-red-500 text-xl">{error}</div>
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-red-500 text-xl">{error}</div>
+                        </div>
+                    ) : showCategoryDetail ? (
+                        // Category detail view: Expense Budgets → Categories
+                        !categoryLayout ? (
+                            <div className="flex items-center justify-center h-full">
+                                <div className="text-center text-gray-500">
+                                    <p className="text-2xl font-medium">Geen categorie data beschikbaar</p>
+                                    <p className="text-lg mt-2">Er zijn geen categorieën gekoppeld aan uitgaven budgetten</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <svg
+                                viewBox={`0 0 ${categoryLayout.width} ${categoryLayout.height}`}
+                                preserveAspectRatio="xMinYMin meet"
+                                style={{ minWidth: `${categoryLayout.width}px`, minHeight: `${categoryLayout.height}px` }}
+                            >
+                                {/* Flows */}
+                                <g>
+                                    {categoryLayout.flows.map((flow, i) => (
+                                        <path
+                                            key={i}
+                                            d={flowPath(flow, categoryLayout.columnX[0], categoryLayout.columnX[1], categoryLayout.nodeWidth)}
+                                            fill={flow.color}
+                                            fillOpacity={0.4}
+                                            onMouseEnter={e => setTooltip({
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                                content: `${flow.sourceName} → ${flow.targetName}: ${formatMoney(flow.value)}`
+                                            })}
+                                            onMouseMove={e => setTooltip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                                            onMouseLeave={() => setTooltip(null)}
+                                            className="cursor-pointer hover:fill-opacity-60 transition-all"
+                                        />
+                                    ))}
+                                </g>
+
+                                {/* Budget nodes (left column) */}
+                                <g>
+                                    {categoryLayout.budgetNodes.map((node, i) => (
+                                        <g key={`budget-${i}`}>
+                                            <rect
+                                                x={categoryLayout.columnX[0]}
+                                                y={node.y}
+                                                width={categoryLayout.nodeWidth}
+                                                height={node.height}
+                                                fill={node.color}
+                                                rx={4}
+                                            />
+                                            {node.height >= 20 && (
+                                                <text
+                                                    x={categoryLayout.columnX[0] + categoryLayout.nodeWidth / 2}
+                                                    y={node.y + node.height / 2}
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                    fontSize={9}
+                                                    fontWeight={700}
+                                                    fill={COLORS_DARK.expense}
+                                                >
+                                                    {Math.round(node.value / categoryLayout.totalExpense * 100)}%
+                                                </text>
+                                            )}
+                                            <text
+                                                x={categoryLayout.columnX[0] - 12}
+                                                y={node.y + node.height / 2}
+                                                textAnchor="end"
+                                                dominantBaseline="middle"
+                                                fontSize={14}
+                                                fontWeight={600}
+                                                fill="#374151"
+                                            >
+                                                {node.name}
+                                            </text>
+                                            <text
+                                                x={categoryLayout.columnX[0] - 12}
+                                                y={node.y + node.height / 2 + 18}
+                                                textAnchor="end"
+                                                dominantBaseline="middle"
+                                                fontSize={12}
+                                                fill="#6b7280"
+                                            >
+                                                {formatMoney(node.value)}
+                                            </text>
+                                        </g>
+                                    ))}
+                                </g>
+
+                                {/* Category nodes (right column) */}
+                                <g>
+                                    {categoryLayout.categoryNodes.map((node, i) => (
+                                        <g key={`category-${i}`}>
+                                            {/* Separator line between budget groups */}
+                                            {node.isFirstInBudget && (
+                                                <line
+                                                    x1={categoryLayout.columnX[1] - 8}
+                                                    y1={node.y - 4}
+                                                    x2={categoryLayout.columnX[1] + categoryLayout.nodeWidth + 8}
+                                                    y2={node.y - 4}
+                                                    stroke="#eeeeee"
+                                                    strokeWidth={0.5}
+                                                />
+                                            )}
+                                            <rect
+                                                x={categoryLayout.columnX[1]}
+                                                y={node.y}
+                                                width={categoryLayout.nodeWidth}
+                                                height={node.height}
+                                                fill={node.color}
+                                                rx={4}
+                                            />
+                                            {node.height >= 20 && (
+                                                <text
+                                                    x={categoryLayout.columnX[1] + categoryLayout.nodeWidth / 2}
+                                                    y={node.y + node.height / 2}
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                    fontSize={9}
+                                                    fontWeight={700}
+                                                    fill="white"
+                                                >
+                                                    {node.percentOfBudget}%
+                                                </text>
+                                            )}
+                                            <text
+                                                x={categoryLayout.columnX[1] + categoryLayout.nodeWidth + 12}
+                                                y={node.y + node.height / 2}
+                                                textAnchor="start"
+                                                dominantBaseline="middle"
+                                                fontSize={14}
+                                                fontWeight={600}
+                                                fill="#374151"
+                                            >
+                                                {node.name}
+                                            </text>
+                                            <text
+                                                x={categoryLayout.columnX[1] + categoryLayout.nodeWidth + 12}
+                                                y={node.y + node.height / 2 + 18}
+                                                textAnchor="start"
+                                                dominantBaseline="middle"
+                                                fontSize={12}
+                                                fill="#6b7280"
+                                            >
+                                                {formatMoney(node.value)}
+                                            </text>
+                                            {/* Invisible hover area for tooltip */}
+                                            <rect
+                                                x={categoryLayout.columnX[1]}
+                                                y={node.y}
+                                                width={categoryLayout.nodeWidth + 220}
+                                                height={node.height}
+                                                fill="transparent"
+                                                onMouseEnter={e => setTooltip({
+                                                    x: e.clientX,
+                                                    y: e.clientY,
+                                                    content: `${node.percentOfTotal}% van totale uitgaven`
+                                                })}
+                                                onMouseMove={e => setTooltip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                                                onMouseLeave={() => setTooltip(null)}
+                                                className="cursor-pointer"
+                                            />
+                                        </g>
+                                    ))}
+                                </g>
+                            </svg>
+                        )
                     ) : !layout ? (
-                        <div className="text-center text-gray-500">
-                            <p className="text-2xl font-medium">Geen flow data beschikbaar</p>
-                            <p className="text-lg mt-2">Er zijn geen transacties in budgetten voor deze periode</p>
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center text-gray-500">
+                                <p className="text-2xl font-medium">Geen flow data beschikbaar</p>
+                                <p className="text-lg mt-2">Er zijn geen transacties in budgetten voor deze periode</p>
+                            </div>
                         </div>
                     ) : (
                         <svg
                             viewBox={`0 0 ${layout.width} ${layout.height}`}
-                            preserveAspectRatio="xMidYMid meet"
-                            style={{ width: '100%', height: '100%', maxHeight: 'calc(90vh - 120px)' }}
+                            preserveAspectRatio="xMinYMin meet"
+                            style={{ minWidth: `${layout.width}px`, minHeight: `${layout.height}px` }}
                         >
                             {/* Flows */}
                             <g>

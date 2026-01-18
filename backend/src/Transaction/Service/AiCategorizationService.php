@@ -102,19 +102,40 @@ class AiCategorizationService
                 'temperature' => 0.3,
                 'response_format' => ['type' => 'json_object']
             ]);
-        } catch (\Exception $e) {
-            $this->logger->error('OpenAI API call failed', [
+        } catch (\OpenAI\Exceptions\ErrorException $e) {
+            $this->logger->error('OpenAI API error', [
                 'error' => $e->getMessage(),
                 'code' => $e->getCode()
             ]);
-            throw new \RuntimeException('OpenAI API call failed: ' . $e->getMessage());
+            throw new \RuntimeException('OpenAI API error: ' . $e->getMessage());
+        } catch (\OpenAI\Exceptions\UnserializableResponse $e) {
+            $this->logger->error('OpenAI returned invalid response', [
+                'error' => $e->getMessage()
+            ]);
+            throw new \RuntimeException('OpenAI returned invalid response. Check if API key is valid.');
+        } catch (\Exception $e) {
+            $errorMessage = $e->getMessage();
+            // Check for common API key errors
+            if (str_contains($errorMessage, 'Undefined array key "choices"') ||
+                str_contains($errorMessage, 'invalid_api_key') ||
+                str_contains($errorMessage, '401')) {
+                $this->logger->error('OpenAI API key invalid or expired', [
+                    'error' => $errorMessage
+                ]);
+                throw new \RuntimeException('OpenAI API key is invalid or expired. Please check your API key configuration.');
+            }
+            $this->logger->error('OpenAI API call failed', [
+                'error' => $errorMessage,
+                'code' => $e->getCode()
+            ]);
+            throw new \RuntimeException('OpenAI API call failed: ' . $errorMessage);
         }
 
         if (!isset($response->choices[0])) {
             $this->logger->error('OpenAI response missing choices', [
                 'response' => json_encode($response)
             ]);
-            throw new \RuntimeException('OpenAI returned invalid response (no choices)');
+            throw new \RuntimeException('OpenAI returned invalid response (no choices). Check if API key is valid.');
         }
 
         $content = $response->choices[0]->message->content;
