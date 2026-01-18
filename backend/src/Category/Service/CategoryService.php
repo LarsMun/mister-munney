@@ -142,12 +142,56 @@ class CategoryService
         $category = new Category();
         $category->setName($data['name']);
         $category->setIcon($data['icon'] ?? null);
-        $category->setColor($data['color'] ?? null);
+        $category->setColor($this->sanitizeColor($data['color'] ?? null));
         $category->setAccount($account);
 
         $this->categoryRepository->save($category);
 
         return $category;
+    }
+
+    private const PASTEL_COLORS = [
+        '#a78bfa', // violet
+        '#f472b6', // pink
+        '#fb923c', // orange
+        '#fbbf24', // amber
+        '#a3e635', // lime
+        '#34d399', // emerald
+        '#22d3ee', // cyan
+        '#60a5fa', // blue
+        '#c084fc', // purple
+        '#f87171', // red
+        '#4ade80', // green
+        '#facc15', // yellow
+    ];
+
+    /**
+     * Sanitize color: replace white colors with a random pastel color
+     */
+    private function sanitizeColor(?string $color): string
+    {
+        if ($color === null) {
+            return $this->getRandomPastelColor();
+        }
+
+        $c = strtolower(trim($color));
+
+        // Replace white colors
+        if ($c === 'white' || $c === '#fff' || $c === '#ffffff') {
+            return $this->getRandomPastelColor();
+        }
+
+        // Replace near-white colors (e.g., #fafafa, #f5f5f5)
+        if (preg_match('/^#f[a-f0-9]f[a-f0-9]f[a-f0-9]$/i', $c)) {
+            return $this->getRandomPastelColor();
+        }
+
+        return $color;
+    }
+
+    private function getRandomPastelColor(): string
+    {
+        return self::PASTEL_COLORS[array_rand(self::PASTEL_COLORS)];
     }
 
     /**
@@ -183,7 +227,7 @@ class CategoryService
         }
 
         if (array_key_exists('color', $data)) {
-            $category->setColor($data['color']);
+            $category->setColor($this->sanitizeColor($data['color']));
         }
 
         $this->categoryRepository->save($category);
