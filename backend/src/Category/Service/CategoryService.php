@@ -151,22 +151,42 @@ class CategoryService
     }
 
     private const PASTEL_COLORS = [
-        '#a78bfa', // violet
-        '#f472b6', // pink
-        '#fb923c', // orange
-        '#fbbf24', // amber
-        '#a3e635', // lime
-        '#34d399', // emerald
-        '#22d3ee', // cyan
-        '#60a5fa', // blue
-        '#c084fc', // purple
-        '#f87171', // red
-        '#4ade80', // green
-        '#facc15', // yellow
+        // Rood / Roze tinten
+        '#FF6B6B', '#E07A5F', '#F87171', '#FB7185', '#F472B6', '#EC4899',
+        // Oranje / Geel tinten
+        '#FF8C42', '#FB923C', '#FDBA74', '#FBBF24', '#FCD34D', '#FACC15',
+        // Groen tinten
+        '#4ADE80', '#34D399', '#10B981', '#22C55E', '#84CC16', '#A3E635',
+        // Blauw / Cyaan tinten
+        '#38BDF8', '#0EA5E9', '#3B82F6', '#60A5FA', '#22D3EE', '#06B6D4',
+        // Paars / Violet tinten
+        '#A78BFA', '#8B5CF6', '#A855F7', '#C084FC', '#D946EF', '#E879F9',
+        // Pastel tinten (maar niet te licht)
+        '#FDA4AF', '#BEF264', '#86EFAC', '#67E8F9', '#A5B4FC', '#C4B5FD',
     ];
 
     /**
-     * Sanitize color: replace white colors with a random pastel color
+     * Check if a color is too light (brightness > 230 on 0-255 scale)
+     */
+    private function isColorTooLight(string $hex): bool
+    {
+        $color = ltrim($hex, '#');
+        if (strlen($color) !== 6) {
+            return false;
+        }
+
+        $r = hexdec(substr($color, 0, 2));
+        $g = hexdec(substr($color, 2, 2));
+        $b = hexdec(substr($color, 4, 2));
+
+        // Calculate perceived brightness (YIQ formula)
+        $brightness = ($r * 299 + $g * 587 + $b * 114) / 1000;
+
+        return $brightness > 230;
+    }
+
+    /**
+     * Sanitize color: replace white/too light colors with a random pastel color
      */
     private function sanitizeColor(?string $color): string
     {
@@ -181,8 +201,8 @@ class CategoryService
             return $this->getRandomPastelColor();
         }
 
-        // Replace near-white colors (e.g., #fafafa, #f5f5f5)
-        if (preg_match('/^#f[a-f0-9]f[a-f0-9]f[a-f0-9]$/i', $c)) {
+        // Check if color is too light using brightness calculation
+        if ($this->isColorTooLight($c)) {
             return $this->getRandomPastelColor();
         }
 
