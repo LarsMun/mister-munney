@@ -277,7 +277,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
 
     return (
         <article
-            className="border-2 border-gray-200 bg-white rounded-lg p-4 transition-all hover:shadow-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:outline-none"
+            className="border-2 border-gray-200 bg-white rounded-lg p-4 transition-all hover:shadow-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:outline-none flex flex-col"
             aria-label={`Budget ${budget.name}`}
         >
             {/* Header */}
@@ -337,7 +337,8 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
                         <div className="text-2xl font-bold text-gray-900">{formatBudgetAmount(insight.current)}</div>
                     </div>
 
-                    {/* Category Distribution - List with bars */}
+                    {/* Category Distribution - List with bars (flex-grow to push chart to bottom) */}
+                    <div className="flex-grow">
                     {!isLoadingBreakdown && breakdown.length > 0 && (
                         <div className="mb-4">
                             <div className="text-xs text-gray-500 mb-2">Verdeling per categorie</div>
@@ -391,8 +392,9 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                         </div>
                     )}
+                    </div>
 
-                    {/* Monthly History Bar Chart */}
+                    {/* Monthly History Bar Chart - always at bottom */}
                     {!isLoadingBudgetHistory && budgetHistoryData && budgetHistoryData.history.length > 0 && (
                         <div>
                             <div className="text-xs text-gray-500 mb-2">Maandelijks verloop</div>
