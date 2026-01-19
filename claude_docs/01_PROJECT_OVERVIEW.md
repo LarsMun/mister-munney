@@ -1,5 +1,7 @@
 # Mister Money - Project Overview
 
+**Last Updated:** January 19, 2026
+
 ## Application Summary
 
 **Mister Money (Munney)** is a personal finance management application built with a modern stack:
@@ -8,6 +10,7 @@
 - **Frontend**: React 19 with TypeScript, Vite, and Tailwind CSS
 - **Database**: MySQL 8.0
 - **Containerization**: Docker with multi-environment support
+- **Status**: Production-ready, actively used
 
 ## Architecture Overview
 
@@ -90,11 +93,13 @@ money/
 1. **Account Management**: Bank account tracking with IBAN validation
 2. **Transaction Management**: Import and categorize bank transactions (CSV)
 3. **Pattern Matching**: Auto-categorize transactions based on description patterns
-4. **Budget Tracking**: Monthly budgets per category with insights
+4. **Budget Tracking**: Monthly budgets per category with insights and visualizations
 5. **Savings Accounts**: Track savings goals and progress
-6. **AI Integration**: OpenAI-powered category suggestions
+6. **AI Integration**: OpenAI-powered category suggestions with smart filtering
 7. **Multi-user**: Account sharing between users
 8. **Security**: JWT auth, rate limiting, hCaptcha, account locking
+9. **Dashboard Visualizations**: Sankey flow diagrams, budget progress charts
+10. **Mobile Support**: Responsive design with hamburger menu for mobile devices
 
 ## Technology Stack
 
@@ -122,13 +127,15 @@ money/
 - MySQL 8.0
 - Self-hosted GitHub Actions runner
 
-## Environments
+## Environments (OTAP Model)
 
-| Environment | URL | Branch | Database |
-|-------------|-----|--------|----------|
-| Local | localhost:3000/8787 | develop | money_db |
-| Development | devmunney.home.munne.me | develop | money_db_dev |
-| Production | munney.munne.me | main | money_db_prod |
+The project uses a 3-environment OTAP model with combined Test+Acceptance:
+
+| OTAP Stage | Environment | URL | Branch | Database |
+|------------|-------------|-----|--------|----------|
+| **O** (Ontwikkeling) | Local | localhost:3000/8787 | feature/* | money_db |
+| **T+A** (Test + Acceptatie) | devmunney | devmunney.home.munne.me | develop | money_db_dev |
+| **P** (Productie) | munney | munney.munne.me | main | money_db_prod |
 
 ## Key Entities
 

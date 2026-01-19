@@ -1,12 +1,14 @@
 # Quick Reference Card
 
-## URLs
+**Last Updated:** January 19, 2026
 
-| Environment | Frontend | Backend API |
-|-------------|----------|-------------|
-| Local | http://localhost:3000 | http://localhost:8787/api |
-| Development | https://devmunney.home.munne.me | https://devmunney.home.munne.me/api |
-| Production | https://munney.munne.me | https://munney.munne.me/api |
+## URLs (OTAP)
+
+| OTAP | Environment | Frontend | Backend API |
+|------|-------------|----------|-------------|
+| O | Local | http://localhost:3000 | http://localhost:8787/api |
+| T+A | devmunney | https://devmunney.home.munne.me | https://devmunney.home.munne.me/api |
+| P | munney | https://munney.munne.me | https://munney.munne.me/api |
 
 ## Docker Commands
 
@@ -182,12 +184,14 @@ MAIL_FROM_ADDRESS=xxx
 APP_URL=xxx
 ```
 
-## Branch → Environment Mapping
+## OTAP: Branch → Environment Mapping
 
 ```
-main     → Production (munney.munne.me)
-develop  → Development (devmunney.home.munne.me)
-feature/* → Local only (until PR merged to develop)
+OTAP Stage          Branch      Environment
+─────────────────────────────────────────────────────
+O (Ontwikkeling)    feature/*   Local (localhost:3000)
+T+A (Test+Accept)   develop     devmunney.home.munne.me
+P (Productie)       main        munney.munne.me
 ```
 
 ## Testing

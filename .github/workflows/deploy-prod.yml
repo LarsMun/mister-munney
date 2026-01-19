@@ -75,13 +75,26 @@ jobs:
             echo "✅ JWT keys already exist"
           fi
 
+      - name: 📸 Tag current images for rollback
+        run: |
+          cd /srv/munney-prod
+          echo "Tagging current images for potential rollback..."
+          if docker images | grep -q "munney-prod-backend.*latest"; then
+            docker tag munney-prod-backend:latest munney-prod-backend:rollback || true
+            echo "✅ Backend image tagged for rollback"
+          fi
+          if docker images | grep -q "munney-prod-frontend.*latest"; then
+            docker tag munney-prod-frontend:latest munney-prod-frontend:rollback || true
+            echo "✅ Frontend image tagged for rollback"
+          fi
+
       - name: 🏗️  Build production images
         run: |
           cd /srv/munney-prod
           echo "Building with no-cache for clean build..."
           docker compose -f deploy/ubuntu/docker-compose.prod.yml build --no-cache
           echo "✅ Images built"
-          
+
       - name: 🔄 Deploy containers
         run: |
           cd /srv/munney-prod
@@ -108,6 +121,7 @@ jobs:
           echo "✅ Cache refreshed"
           
       - name: 🏥 Health check
+        id: health-check
         run: |
           echo "Running health checks..."
           sleep 5
@@ -117,13 +131,21 @@ jobs:
             echo "⚠️  Frontend check failed"
             exit 1
           fi
-          if curl -f -s https://munney.munne.me/api/doc.json > /dev/null; then
+          if curl -f -s https://munney.munne.me/api/health > /dev/null; then
             echo "✅ Backend API responding"
           else
             echo "⚠️  Backend API check failed"
             exit 1
           fi
-          
+
+      - name: 🔙 Rollback on failure
+        if: failure() && steps.health-check.outcome == 'failure'
+        run: |
+          echo "❌ Deployment failed, initiating rollback..."
+          cd /srv/munney-prod
+          chmod +x deploy/ubuntu/rollback.sh
+          ./deploy/ubuntu/rollback.sh
+
       - name: ✅ Deployment complete
         run: |
           echo "========================================"
