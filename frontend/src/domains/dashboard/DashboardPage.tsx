@@ -331,6 +331,7 @@ export default function DashboardPage() {
                                         accountId={accountId}
                                         startDate={startDate ?? undefined}
                                         endDate={endDate ?? undefined}
+                                        totalAmount={totalIncome}
                                     />
                                 </div>
                             </div>
@@ -366,6 +367,7 @@ export default function DashboardPage() {
                                         accountId={accountId}
                                         startDate={startDate ?? undefined}
                                         endDate={endDate ?? undefined}
+                                        totalAmount={totalExpense}
                                     />
                                 </div>
                             </div>

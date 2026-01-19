@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ActiveBudget } from '../../budgets/models/AdaptiveBudget';
-import { Sparklines, SparklinesLine } from 'react-sparklines';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from 'lucide-react';
 import { getCategoryBreakdown, fetchBudgetHistory, type BudgetHistory } from '../../budgets/services/BudgetsService';
 import { getTransactions } from '../../transactions/services/TransactionsService';
@@ -16,9 +16,10 @@ interface ActiveBudgetsGridProps {
     startDate?: string;
     endDate?: string;
     accountId?: number;
+    totalAmount?: number;
 }
 
-export default function ActiveBudgetsGrid({ budgets, startDate, endDate, accountId }: ActiveBudgetsGridProps) {
+export default function ActiveBudgetsGrid({ budgets, startDate, endDate, accountId, totalAmount }: ActiveBudgetsGridProps) {
     if (budgets.length === 0) {
         return (
             <div className="text-center py-8 text-gray-500">
@@ -37,6 +38,7 @@ export default function ActiveBudgetsGrid({ budgets, startDate, endDate, account
                     startDate={startDate}
                     endDate={endDate}
                     accountId={accountId}
+                    totalAmount={totalAmount}
                 />
             ))}
         </div>
@@ -48,15 +50,20 @@ interface BudgetCardCompactProps {
     startDate?: string;
     endDate?: string;
     accountId?: number;
+    totalAmount?: number;
 }
 
-function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCardCompactProps) {
+function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount }: BudgetCardCompactProps) {
     const { insight } = budget;
 
     // State for expansion and categories
     const [isExpanded, setIsExpanded] = useState(false);
     const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([]);
-    const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
+    const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(true);
+
+    // State for budget history (monthly data)
+    const [budgetHistoryData, setBudgetHistoryData] = useState<BudgetHistory | null>(null);
+    const [isLoadingBudgetHistory, setIsLoadingBudgetHistory] = useState(true);
 
     // Drawer state for category transactions
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -70,8 +77,48 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isBudgetHistory, setIsBudgetHistory] = useState(false);
 
+    // Load category breakdown and budget history on mount
+    useEffect(() => {
+        if (!accountId || !startDate || !endDate) return;
+
+        // Fetch category breakdown
+        const loadBreakdown = async () => {
+            setIsLoadingBreakdown(true);
+            try {
+                const data = await getCategoryBreakdown(accountId, budget.id, startDate, endDate);
+                setBreakdown(data);
+            } catch (error) {
+                console.error('Error fetching category breakdown:', error);
+            } finally {
+                setIsLoadingBreakdown(false);
+            }
+        };
+
+        // Fetch budget history (last 12 months)
+        const loadHistory = async () => {
+            setIsLoadingBudgetHistory(true);
+            try {
+                const data = await fetchBudgetHistory(accountId, budget.id, 12);
+                setBudgetHistoryData(data);
+            } catch (error) {
+                console.error('Error fetching budget history:', error);
+            } finally {
+                setIsLoadingBudgetHistory(false);
+            }
+        };
+
+        loadBreakdown();
+        loadHistory();
+    }, [accountId, budget.id, startDate, endDate]);
+
     // Check if this is an income budget to invert the sign display
     const isIncomeBudget = budget.budgetType === 'INCOME';
+
+    // Calculate percentage of total
+    const currentAmount = insight ? Math.abs(parseFloat(insight.current)) : 0;
+    const percentageOfTotal = totalAmount && totalAmount > 0
+        ? Math.round((currentAmount / totalAmount) * 100)
+        : null;
 
     // Helper function to format amount (positive for INCOME budgets)
     const formatBudgetAmount = (amount: string | number | null): string => {
@@ -142,19 +189,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
     };
 
     // Handler for expanding/collapsing categories
-    const handleToggle = async () => {
-        if (!isExpanded && breakdown.length === 0 && accountId && startDate && endDate) {
-            // Fetch breakdown data on first expand using date range
-            setIsLoadingBreakdown(true);
-            try {
-                const data = await getCategoryBreakdown(accountId, budget.id, startDate, endDate);
-                setBreakdown(data);
-            } catch (error) {
-                console.error('Error fetching category breakdown:', error);
-            } finally {
-                setIsLoadingBreakdown(false);
-            }
-        }
+    const handleToggle = () => {
         setIsExpanded(!isExpanded);
     };
 
@@ -248,16 +283,23 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
             {/* Header */}
             <div className="mb-3 flex items-start justify-between">
                 <div className="flex-1">
-                    <button
-                        type="button"
-                        onClick={handleBudgetTitleClick}
-                        className="text-left w-full group"
-                        title="Bekijk alle transacties in dit budget"
-                    >
-                        <h4 className="font-semibold text-gray-900 text-base truncate group-hover:text-blue-600 group-hover:underline transition-colors">
-                            {budget.name}
-                        </h4>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handleBudgetTitleClick}
+                            className="text-left group flex-1 min-w-0"
+                            title="Bekijk alle transacties in dit budget"
+                        >
+                            <h4 className="font-semibold text-gray-900 text-base truncate group-hover:text-blue-600 group-hover:underline transition-colors">
+                                {budget.name}
+                            </h4>
+                        </button>
+                        {percentageOfTotal !== null && (
+                            <span className="flex-shrink-0 text-sm font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                {percentageOfTotal}%
+                            </span>
+                        )}
+                    </div>
                     <p className="text-xs text-gray-500 mt-1">
                         {budget.categoryCount} {budget.categoryCount === 1 ? 'categorie' : 'categorieën'}
                     </p>
@@ -295,39 +337,124 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId }: BudgetCard
                         <div className="text-2xl font-bold text-gray-900">{formatBudgetAmount(insight.current)}</div>
                     </div>
 
-                    {/* Sparkline */}
-                    {insight.sparkline && insight.sparkline.length > 0 && (
-                        <div className="mb-6">
-                            <div className="h-16" aria-hidden="true">
-                                <Sparklines data={insight.sparkline} width={200} height={48} margin={4}>
-                                    <SparklinesLine
-                                        color="#3B82F6"
-                                        style={{ strokeWidth: 2, fill: 'none' }}
-                                    />
-                                </Sparklines>
+                    {/* Category Distribution - List with bars */}
+                    {!isLoadingBreakdown && breakdown.length > 0 && (
+                        <div className="mb-4">
+                            <div className="text-xs text-gray-500 mb-2">Verdeling per categorie</div>
+                            <div className="space-y-2">
+                                {(() => {
+                                    const total = breakdown.reduce((sum, cat) => sum + Math.abs(cat.spentAmount), 0);
+                                    return breakdown
+                                        .filter(cat => cat.spentAmount !== 0)
+                                        .sort((a, b) => Math.abs(b.spentAmount) - Math.abs(a.spentAmount))
+                                        .slice(0, 5)
+                                        .map((cat) => {
+                                            const percentage = total > 0 ? (Math.abs(cat.spentAmount) / total) * 100 : 0;
+                                            return (
+                                                <div key={cat.categoryId} className="group">
+                                                    <div className="flex items-center justify-between text-xs mb-0.5">
+                                                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                            <div
+                                                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                                                style={{ backgroundColor: cat.categoryColor }}
+                                                            />
+                                                            <span className="text-gray-700 truncate">{cat.categoryName}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                            <span className="text-gray-500 tabular-nums">{percentage.toFixed(0)}%</span>
+                                                            <span className="text-gray-900 font-medium tabular-nums">{formatMoney(Math.abs(cat.spentAmount))}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full transition-all"
+                                                            style={{
+                                                                width: `${percentage}%`,
+                                                                backgroundColor: cat.categoryColor
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        });
+                                })()}
+                                {breakdown.filter(cat => cat.spentAmount !== 0).length > 5 && (
+                                    <div className="text-xs text-gray-400 text-center pt-1">
+                                        +{breakdown.filter(cat => cat.spentAmount !== 0).length - 5} meer categorieën
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
-
-                    {/* Comparison metrics - smaller */}
-                    <div className="space-y-1.5 text-sm">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Normaal:</span>
-                            <span className="font-medium text-gray-700">{formatBudgetAmount(insight.normal)}</span>
+                    {isLoadingBreakdown && (
+                        <div className="mb-4 h-20 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                         </div>
-                        {insight.previousPeriod && (
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-600">{insight.previousPeriodLabel}:</span>
-                                <span className="font-medium text-gray-700">{formatBudgetAmount(insight.previousPeriod)}</span>
+                    )}
+
+                    {/* Monthly History Bar Chart */}
+                    {!isLoadingBudgetHistory && budgetHistoryData && budgetHistoryData.history.length > 0 && (
+                        <div>
+                            <div className="text-xs text-gray-500 mb-2">Maandelijks verloop</div>
+                            <div className="h-24">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={(() => {
+                                            // Data comes DESC (newest first), take first 8 and reverse for chronological order
+                                            const recentMonths = budgetHistoryData.history.slice(0, 8).reverse();
+                                            return recentMonths.map(h => ({
+                                                month: new Date(h.month + '-01').toLocaleDateString('nl-NL', { month: 'short' }),
+                                                amount: Math.abs(h.total),
+                                                fullMonth: h.month
+                                            }));
+                                        })()}
+                                        margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                                    >
+                                        <XAxis
+                                            dataKey="month"
+                                            tick={{ fontSize: 10, fill: '#6B7280' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis hide />
+                                        <Tooltip
+                                            formatter={(value: number) => [formatMoney(value), isIncomeBudget ? 'Ontvangen' : 'Uitgegeven']}
+                                            labelFormatter={(label, payload) => {
+                                                if (payload && payload[0]) {
+                                                    const fullMonth = payload[0].payload.fullMonth;
+                                                    return new Date(fullMonth + '-01').toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+                                                }
+                                                return label;
+                                            }}
+                                            contentStyle={{ fontSize: '12px', borderRadius: '8px' }}
+                                        />
+                                        <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                                            {budgetHistoryData.history.slice(0, 8).reverse().map((entry, index) => {
+                                                // Highlight current month
+                                                const isCurrentPeriod = startDate && entry.month === startDate.substring(0, 7);
+                                                return (
+                                                    <Cell
+                                                        key={`cell-${index}`}
+                                                        fill={isCurrentPeriod ? '#3B82F6' : '#93C5FD'}
+                                                    />
+                                                );
+                                            })}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
-                        )}
-                        {insight.lastYear && (
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-600">Vorig jaar:</span>
-                                <span className="font-medium text-gray-700">{formatBudgetAmount(insight.lastYear)}</span>
+                            {/* Show average line indicator */}
+                            <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                                <span>Gem: {formatMoney(budgetHistoryData.averagePerMonth)}</span>
+                                <span>{budgetHistoryData.monthCount} maanden</span>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
+                    {isLoadingBudgetHistory && (
+                        <div className="h-24 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                        </div>
+                    )}
                 </>
             ) : (
                 <div className="text-xs text-gray-600 italic">
