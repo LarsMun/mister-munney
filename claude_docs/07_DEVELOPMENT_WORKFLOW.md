@@ -1,11 +1,53 @@
 # Development Workflow Guide
 
+**Last Updated:** January 19, 2026
+
+## OTAP Environment Model
+
+This project uses a 3-environment OTAP model where Test and Acceptance are combined:
+
+| Stage | Environment | URL | Branch | Purpose |
+|-------|-------------|-----|--------|---------|
+| **O** (Ontwikkeling) | Local | localhost:3000 | feature/* | Development and unit testing |
+| **T+A** (Test + Acceptatie) | devmunney | devmunney.home.munne.me | develop | Integration testing, UAT, staging |
+| **P** (Productie) | munney | munney.munne.me | main | Production |
+
+### Promotion Workflow
+
+```
+Local (O) ──PR──> devmunney (T+A) ──PR──> munney (P)
+   │                    │                     │
+   │                    │                     └── Live users
+   │                    └── Test new features, verify fixes, UAT
+   └── Develop and test locally
+```
+
+### What to Validate at Each Stage
+
+**Local (Ontwikkeling):**
+- Code compiles without errors
+- Unit tests pass
+- Feature works as intended
+- No console errors
+
+**devmunney (Test + Acceptatie):**
+- Integration with real database
+- Cross-browser testing
+- Performance verification
+- User acceptance (manual testing)
+- No regressions in existing functionality
+
+**munney (Productie):**
+- Health checks pass
+- No errors in logs
+- User-facing functionality works
+
 ## Git Branching Strategy
 
 ### Current Setup
 ```
 main (production)
-  └── develop (development server)
+  └── develop (development server / test+acceptance)
         └── feature/* (local development)
 ```
 

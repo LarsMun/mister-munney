@@ -1,9 +1,21 @@
 # CI/CD Recommendations
 
-## Priority 1: Add Testing to Pipeline
+**Last Updated:** January 19, 2026
 
-### Backend Tests
-Add to both dev and prod workflows:
+> **Note:** Most of these recommendations have been implemented. See [02_CI_CD_ANALYSIS.md](02_CI_CD_ANALYSIS.md) for current status.
+
+---
+
+## Priority 1: Add Testing to Pipeline ✅ IMPLEMENTED
+
+The CI pipeline (`ci.yml`) now includes:
+- PHPUnit tests for backend
+- TypeScript type checking
+- ESLint validation
+- Production build validation
+
+### Original Recommendation (for reference)
+Backend tests added to workflows:
 
 ```yaml
 - name: Run backend tests
@@ -24,9 +36,12 @@ Add to both dev and prod workflows:
     npm run build
 ```
 
-## Priority 2: Add PR Validation Workflow
+## Priority 2: Add PR Validation Workflow ✅ IMPLEMENTED
 
-Create `.github/workflows/pr-check.yml`:
+The CI pipeline runs on all pull requests to develop and main branches.
+
+### Original Recommendation (for reference)
+Example workflow:
 
 ```yaml
 name: PR Validation
@@ -82,7 +97,9 @@ jobs:
         run: cd frontend && npm run build
 ```
 
-## Priority 3: Improve Deployment Safety
+## Priority 3: Improve Deployment Safety ⚠️ PARTIALLY IMPLEMENTED
+
+Database backups are created before production deployments. Rollback mechanism is still pending.
 
 ### Add Migration Validation
 ```yaml
@@ -126,7 +143,7 @@ jobs:
     docker compose -f deploy/ubuntu/docker-compose.prod.yml up -d
 ```
 
-## Priority 4: Replace Sleep with Health Polling
+## Priority 4: Replace Sleep with Health Polling ❌ PENDING
 
 ```yaml
 - name: Wait for healthy services
@@ -152,9 +169,11 @@ jobs:
     exit 1
 ```
 
-## Priority 5: Standardize Environment Configuration
+## Priority 5: Standardize Environment Configuration ✅ IMPLEMENTED
 
-Create unified `.env.example` templates:
+Environment files are configured per environment with clear structure.
+
+### Reference Template:
 
 ```bash
 # Shared variables (all environments)
@@ -179,8 +198,11 @@ APP_URL=
 CORS_ALLOW_ORIGIN=
 ```
 
-## Priority 6: Add API Health Endpoint
+## Priority 6: Add API Health Endpoint ❌ PENDING
 
+This would improve deployment verification.
+
+### Recommended Implementation
 Create `backend/src/Controller/HealthController.php`:
 
 ```php
@@ -219,9 +241,14 @@ Update health check in workflow:
     echo "Health check passed"
 ```
 
-## Priority 7: Consolidate Docker Compose Files
+## Priority 7: Consolidate Docker Compose Files ✅ IMPLEMENTED
 
-Recommended structure:
+Docker Compose files are now properly organized:
+- `docker-compose.yml` - Local development
+- `deploy/ubuntu/docker-compose.dev.yml` - Server dev (devmunney)
+- `deploy/ubuntu/docker-compose.prod.yml` - Server prod (munney)
+
+### Original Recommended structure:
 ```
 docker-compose.yml           # Base services definition
 docker-compose.local.yml     # Local development overrides
@@ -234,10 +261,19 @@ deploy/
 
 Remove redundant `docker-compose.prod.yml` from root.
 
-## Implementation Order
+## Implementation Status Summary
 
-1. **Week 1**: Add PR validation workflow
-2. **Week 2**: Add backend tests to deployment pipelines
-3. **Week 3**: Add frontend validation to pipelines
-4. **Week 4**: Implement health polling and rollback
-5. **Ongoing**: Add more tests, improve coverage
+| Priority | Recommendation | Status |
+|----------|---------------|--------|
+| 1 | Add Testing to Pipeline | ✅ Done |
+| 2 | Add PR Validation Workflow | ✅ Done |
+| 3 | Improve Deployment Safety | ⚠️ Partial (backups done, rollback pending) |
+| 4 | Replace Sleep with Health Polling | ❌ Pending |
+| 5 | Standardize Environment Configuration | ✅ Done |
+| 6 | Add API Health Endpoint | ❌ Pending |
+| 7 | Consolidate Docker Compose Files | ✅ Done |
+
+### Remaining Work
+1. Implement automatic rollback on deployment failure
+2. Add health endpoint for comprehensive service checks
+3. Replace sleep timers with health polling

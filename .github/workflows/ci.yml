@@ -25,7 +25,7 @@ jobs:
         with:
           php-version: '8.3'
           extensions: pdo_pgsql, intl, zip
-          coverage: none
+          coverage: pcov
 
       - name: 📦 Get Composer cache directory
         id: composer-cache
@@ -61,13 +61,21 @@ jobs:
       - name: 🧪 Run PHPUnit tests (Unit tests only)
         run: |
           if [ -d "tests/Unit" ] && [ "$(find tests/Unit -name '*Test.php' 2>/dev/null | head -1)" ]; then
-            ./vendor/bin/phpunit --testdox --testsuite=Unit
+            ./vendor/bin/phpunit --testdox --testsuite=Unit --coverage-text --coverage-clover=coverage.xml
           else
             echo "ℹ️  No unit tests found, skipping PHPUnit"
             echo "ℹ️  Integration tests require database and are skipped in CI"
           fi
         env:
           APP_ENV: test
+
+      - name: 📊 Upload Backend Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 7
 
       - name: 🔬 Check Symfony container
         run: |
@@ -103,6 +111,17 @@ jobs:
 
       - name: 🧹 ESLint check
         run: npm run lint
+
+      - name: 🧪 Run unit tests with coverage
+        run: npm run test:coverage
+
+      - name: 📊 Upload Frontend Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 7
 
       - name: 🏗️ Build check
         run: npm run build
