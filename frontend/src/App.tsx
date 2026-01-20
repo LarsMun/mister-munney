@@ -20,6 +20,7 @@ const PatternModule = lazy(() => import('./domains/patterns'));
 const BudgetsModule = lazy(() => import('./domains/budgets'));
 const CategoriesModule = lazy(() => import('./domains/categories'));
 const ForecastModule = lazy(() => import('./domains/forecast'));
+const RecurringModule = lazy(() => import('./domains/recurring'));
 const AccountManagement = lazy(() => import('./domains/accounts'));
 
 function AppContent() {
@@ -258,6 +259,18 @@ function AppContent() {
                             >
                                 Categorieën
                             </NavLink>
+                            <NavLink
+                                to="/recurring"
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-lg transition-colors font-medium ${
+                                        isActive
+                                            ? 'bg-white/20 text-white'
+                                            : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Terugkerend
+                            </NavLink>
 
                             {/* Import Icon Button */}
                             <button
@@ -432,6 +445,17 @@ function AppContent() {
                             >
                                 Categorieën
                             </NavLink>
+                            <NavLink
+                                to="/recurring"
+                                onClick={() => setShowMobileMenu(false)}
+                                className={({ isActive }) =>
+                                    `px-4 py-3 rounded-lg transition-colors font-medium ${
+                                        isActive ? 'bg-white/20' : 'hover:bg-white/10'
+                                    }`
+                                }
+                            >
+                                Terugkerend
+                            </NavLink>
 
                             <div className="border-t border-white/20 my-2"></div>
 
@@ -521,6 +545,7 @@ function AppContent() {
                             <Route path="/budgets/*" element={<BudgetsModule />} />
                             <Route path="/categories/*" element={<CategoriesModule />} />
                             <Route path="/forecast/*" element={<ForecastModule />} />
+                            <Route path="/recurring/*" element={<RecurringModule />} />
                             <Route path="/accounts" element={<AccountManagement />} />
                         </Routes>
                     </Suspense>
