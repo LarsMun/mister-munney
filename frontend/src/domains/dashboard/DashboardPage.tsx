@@ -20,6 +20,7 @@ import SavingsAccountsPanel from './components/SavingsAccountsPanel';
 import AccountService from '../accounts/services/AccountService';
 import type { Account } from '../accounts/models/Account';
 import { formatMoney } from '../../shared/utils/MoneyFormat';
+import { UpcomingTransactionsWidget } from '../recurring/components/UpcomingTransactionsWidget';
 
 const formatPeriod = (startDate: string, endDate: string): string => {
     const start = new Date(startDate);
@@ -375,12 +376,13 @@ export default function DashboardPage() {
                     </>
                 )}
 
-                {/* Savings Accounts Section */}
-                <div className="mb-6 md:mb-8">
+                {/* Savings Accounts and Upcoming Transactions - Side by side on desktop */}
+                <div className="mb-6 md:mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <SavingsAccountsPanel
                         accounts={accounts}
                         checkingAccountId={accountId}
                     />
+                    <UpcomingTransactionsWidget maxItems={8} />
                 </div>
 
                 {/* Projects Section (if enabled) */}
