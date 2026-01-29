@@ -30,10 +30,21 @@ export const ForecastItemCard = memo(function ForecastItemCard({
     const remaining = item.expectedAmount - item.actualAmount;
     const progress = item.expectedAmount > 0 ? (item.actualAmount / item.expectedAmount) * 100 : 0;
     const isAdjusted = item.expectedAmount !== item.actualAmount; // You might want to track original expected vs current
+
+    // Determine status based on progress
+    const isOverBudget = item.actualAmount > item.expectedAmount && item.expectedAmount > 0;
+    const isOnTarget = progress >= 95 && progress <= 105 && item.expectedAmount > 0; // Within 5% of target
     const isComplete = item.actualAmount >= item.expectedAmount && item.expectedAmount > 0;
 
-    const progressColor = type === 'expense' ? 'bg-blue-500' : 'bg-emerald-500';
-    const remainingColor = type === 'expense' ? 'text-gray-700' : 'text-emerald-600';
+    // Dynamic color based on progress
+    const getProgressColor = () => {
+        if (isOverBudget) return 'bg-orange-500'; // Over budget
+        if (isOnTarget) return 'bg-green-500'; // On target
+        return type === 'expense' ? 'bg-blue-500' : 'bg-emerald-500'; // Normal progress
+    };
+
+    const progressColor = getProgressColor();
+    const remainingColor = isOverBudget ? 'text-orange-600' : type === 'expense' ? 'text-gray-700' : 'text-emerald-600';
 
     const handleAdjust = async (newRemainingValue: string) => {
         const parsedRemaining = parseFloat(newRemainingValue);
@@ -88,14 +99,14 @@ export const ForecastItemCard = memo(function ForecastItemCard({
                     <span className="font-medium text-gray-800">
                         {item.customName || item.name}
                     </span>
-                    {isAdjusted && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                            aangepast
+                    {isOverBudget && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                            over budget
                         </span>
                     )}
-                    {isComplete && (
-                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                            ✓
+                    {isOnTarget && !isOverBudget && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            ✓ op doel
                         </span>
                     )}
                 </div>
