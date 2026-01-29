@@ -1,12 +1,14 @@
 // frontend/src/domains/forecast/ForecastPage.tsx
 
 import { useForecast } from './hooks/useForecast';
-import { ForecastSection } from './components/ForecastSection';
+import { StatusCard } from './components/StatusCard';
+import { ForecastItemCard } from './components/ForecastItemCard';
 import { AvailableItemsList } from './components/AvailableItemsList';
 import { useAccount } from '../../app/context/AccountContext';
 import { formatMoney } from '../../shared/utils/MoneyFormat';
 import { formatMonthDisplay, getCurrentMonth } from './services/ForecastService';
-import type { ForecastItem, PositionUpdate } from './models/Forecast';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { ForecastItem } from './models/Forecast';
 
 export default function ForecastPage() {
     const { accountId } = useAccount();
@@ -16,35 +18,13 @@ export default function ForecastPage() {
         availableItems,
         isLoading,
         error,
-        addItem,
         updateItem,
         removeItem,
-        updatePositions,
-        resetItemToMedian,
-        resetTypeToMedian,
         goToPreviousMonth,
         goToNextMonth,
         goToCurrentMonth,
-        refresh
+        refresh,
     } = useForecast();
-
-    const handleReorderIncomeItems = async (items: ForecastItem[]) => {
-        const positions: PositionUpdate[] = items.map((item, index) => ({
-            id: item.id,
-            position: index,
-            type: 'INCOME' as const
-        }));
-        await updatePositions(positions);
-    };
-
-    const handleReorderExpenseItems = async (items: ForecastItem[]) => {
-        const positions: PositionUpdate[] = items.map((item, index) => ({
-            id: item.id,
-            position: index,
-            type: 'EXPENSE' as const
-        }));
-        await updatePositions(positions);
-    };
 
     if (!accountId) {
         return (
@@ -78,159 +58,154 @@ export default function ForecastPage() {
 
     const currentMonth = getCurrentMonth();
     const isCurrentMonth = month === currentMonth;
-    // Disable next button if we're at current month or in the future
     const canGoToNextMonth = month < currentMonth;
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            {/* Header with Month Navigation */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-900">Cashflow Forecast</h1>
-                    <p className="text-sm md:text-base text-gray-600 mt-1">
-                        Beheer je verwachte inkomsten en uitgaven
-                    </p>
-                </div>
+        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+                {/* Header with Month Navigation */}
+                <div className="flex items-center justify-between">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-800">Cashflow Forecast</h1>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={goToPreviousMonth}
+                            className="p-2 text-gray-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                            title="Vorige maand"
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </button>
 
-                <div className="flex items-center space-x-2">
-                    <button
-                        onClick={goToPreviousMonth}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        title="Vorige maand"
-                    >
-                        ←
-                    </button>
+                        <button
+                            onClick={goToCurrentMonth}
+                            className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
+                                isCurrentMonth
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-white text-gray-700 hover:bg-gray-50 shadow-sm'
+                            }`}
+                        >
+                            {formatMonthDisplay(month)}
+                        </button>
 
-                    <button
-                        onClick={goToCurrentMonth}
-                        className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
-                            isCurrentMonth
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                    >
-                        {formatMonthDisplay(month)}
-                    </button>
-
-                    {canGoToNextMonth && (
                         <button
                             onClick={goToNextMonth}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            disabled={!canGoToNextMonth}
+                            className={`p-2 rounded-lg transition-all ${
+                                canGoToNextMonth
+                                    ? 'text-gray-600 hover:bg-white hover:shadow-sm'
+                                    : 'text-gray-300 cursor-not-allowed'
+                            }`}
                             title="Volgende maand"
                         >
-                            →
+                            <ChevronRight className="w-5 h-5" />
                         </button>
-                    )}
+                    </div>
+                </div>
+
+                {/* Main Status Card */}
+                {forecast && (
+                    <StatusCard
+                        currentBalance={forecast.currentBalance}
+                        expectedEndBalance={forecast.projectedBalance}
+                        totalActualIncome={forecast.totalActualIncome}
+                        totalAdjustedIncome={forecast.totalExpectedIncome}
+                        totalActualExpenses={forecast.totalActualExpenses}
+                        totalAdjustedExpenses={forecast.totalExpectedExpenses}
+                    />
+                )}
+
+                {/* Income Section */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                            <span className="w-3 h-3 bg-emerald-500 rounded-full"></span>
+                            Inkomsten
+                        </h3>
+                        <span className="text-sm text-gray-500">
+                            {formatMoney(forecast?.totalActualIncome || 0)} /{' '}
+                            {formatMoney(forecast?.totalExpectedIncome || 0)}
+                        </span>
+                    </div>
+
+                    <div className="space-y-2">
+                        {forecast?.incomeItems && forecast.incomeItems.length > 0 ? (
+                            forecast.incomeItems.map((item: ForecastItem) => (
+                                <ForecastItemCard
+                                    key={item.id}
+                                    item={item}
+                                    type="income"
+                                    onUpdate={updateItem}
+                                    onRemove={removeItem}
+                                />
+                            ))
+                        ) : (
+                            <div className="bg-white border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                                <p className="text-gray-500">Geen inkomsten toegevoegd</p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    Sleep budgetten of categorieën hierheen
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Expenses Section */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                            <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                            Uitgaven
+                        </h3>
+                        <span className="text-sm text-gray-500">
+                            {formatMoney(forecast?.totalActualExpenses || 0)} /{' '}
+                            {formatMoney(forecast?.totalExpectedExpenses || 0)}
+                        </span>
+                    </div>
+
+                    <div className="space-y-2">
+                        {forecast?.expenseItems && forecast.expenseItems.length > 0 ? (
+                            forecast.expenseItems.map((item: ForecastItem) => (
+                                <ForecastItemCard
+                                    key={item.id}
+                                    item={item}
+                                    type="expense"
+                                    onUpdate={updateItem}
+                                    onRemove={removeItem}
+                                />
+                            ))
+                        ) : (
+                            <div className="bg-white border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                                <p className="text-gray-500">Geen uitgaven toegevoegd</p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    Sleep budgetten of categorieën hierheen
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Available Items (collapsed at bottom on mobile, sidebar on desktop) */}
+                <div className="lg:hidden">
+                    <AvailableItemsList
+                        budgets={availableItems.budgets}
+                        categories={availableItems.categories}
+                        onRefresh={refresh}
+                    />
+                </div>
+
+                {/* Tip */}
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
+                    <strong>Tip:</strong> Klik op een "Nog €..." bedrag om je verwachting aan te passen. Zo maak je je
+                    forecast nauwkeuriger op basis van wat je deze maand weet.
                 </div>
             </div>
 
-            {/* Summary Cards */}
-            {forecast && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    {/* Current Balance */}
-                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
-                        <div className="text-xs md:text-sm text-gray-500 mb-1">Huidig Saldo</div>
-                        <div className={`text-lg md:text-2xl font-bold ${
-                            forecast.currentBalance >= 0 ? 'text-gray-900' : 'text-red-600'
-                        }`}>
-                            {formatMoney(forecast.currentBalance)}
-                        </div>
-                    </div>
-
-                    {/* Expected Result */}
-                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
-                        <div className="text-xs md:text-sm text-gray-500 mb-1">Verwacht Resultaat</div>
-                        <div className={`text-lg md:text-2xl font-bold ${
-                            forecast.expectedResult >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                            {forecast.expectedResult >= 0 ? '+' : ''}{formatMoney(forecast.expectedResult)}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1 hidden sm:block">
-                            {formatMoney(forecast.totalExpectedIncome)} - {formatMoney(forecast.totalExpectedExpenses)}
-                        </div>
-                    </div>
-
-                    {/* Actual Result */}
-                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
-                        <div className="text-xs md:text-sm text-gray-500 mb-1">Actueel Resultaat</div>
-                        <div className={`text-lg md:text-2xl font-bold ${
-                            forecast.actualResult >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                            {forecast.actualResult >= 0 ? '+' : ''}{formatMoney(forecast.actualResult)}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1 hidden sm:block">
-                            {formatMoney(forecast.totalActualIncome)} - {formatMoney(forecast.totalActualExpenses)}
-                        </div>
-                    </div>
-
-                    {/* Projected Balance */}
-                    <div className="bg-white rounded-lg shadow-md p-3 md:p-4">
-                        <div className="text-xs md:text-sm text-gray-500 mb-1">Verwacht Eindsaldo</div>
-                        <div className={`text-lg md:text-2xl font-bold ${
-                            forecast.projectedBalance >= 0 ? 'text-blue-600' : 'text-red-600'
-                        }`}>
-                            {formatMoney(forecast.projectedBalance)}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1 hidden sm:block">
-                            na verwachte transacties
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                {/* Available Items - moved to bottom on mobile */}
-                <div className="lg:col-span-1 order-2 lg:order-1">
-                    <div className="lg:sticky lg:top-4">
-                        <AvailableItemsList
-                            budgets={availableItems.budgets}
-                            categories={availableItems.categories}
-                            onRefresh={refresh}
-                        />
-                    </div>
-                </div>
-
-                {/* Forecast Sections - shown first on mobile */}
-                <div className="lg:col-span-2 space-y-4 md:space-y-6 order-1 lg:order-2">
-                    {/* Income Section */}
-                    <ForecastSection
-                        title="Inkomsten"
-                        type="INCOME"
-                        items={forecast?.incomeItems || []}
-                        totalExpected={forecast?.totalExpectedIncome || 0}
-                        totalActual={forecast?.totalActualIncome || 0}
-                        onAddItem={addItem}
-                        onUpdateItem={updateItem}
-                        onRemoveItem={removeItem}
-                        onResetItemToMedian={resetItemToMedian}
-                        onResetAllToMedian={() => resetTypeToMedian('INCOME')}
-                        onReorderItems={handleReorderIncomeItems}
-                    />
-
-                    {/* Expense Section */}
-                    <ForecastSection
-                        title="Uitgaven"
-                        type="EXPENSE"
-                        items={forecast?.expenseItems || []}
-                        totalExpected={forecast?.totalExpectedExpenses || 0}
-                        totalActual={forecast?.totalActualExpenses || 0}
-                        onAddItem={addItem}
-                        onUpdateItem={updateItem}
-                        onRemoveItem={removeItem}
-                        onResetItemToMedian={resetItemToMedian}
-                        onResetAllToMedian={() => resetTypeToMedian('EXPENSE')}
-                        onReorderItems={handleReorderExpenseItems}
-                    />
-
-                    {/* Help text */}
-                    <div className="text-center text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
-                        <p>
-                            <strong>Tip:</strong> Klik op een verwacht bedrag om het aan te passen.
-                            Sleep items om de volgorde te wijzigen.
-                        </p>
-                    </div>
-                </div>
+            {/* Sidebar for available items on desktop */}
+            <div className="hidden lg:block fixed right-6 top-24 w-80">
+                <AvailableItemsList
+                    budgets={availableItems.budgets}
+                    categories={availableItems.categories}
+                    onRefresh={refresh}
+                />
             </div>
         </div>
     );

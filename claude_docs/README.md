@@ -1,6 +1,6 @@
 # Mister Money (Munney) - Documentation
 
-**Last Updated:** January 19, 2026
+**Last Updated:** January 20, 2026
 
 This directory contains comprehensive documentation for the Mister Money personal finance application.
 
@@ -31,7 +31,7 @@ This directory contains comprehensive documentation for the Mister Money persona
 ### Codebase Metrics
 - **Backend**: 141 PHP files, 20+ test files
 - **Frontend**: 144 TypeScript files, 156+ unit tests, 5 E2E spec files
-- **Documentation**: 12 files, ~4,000+ lines
+- **Documentation**: 11 files, ~4,000+ lines
 
 ### Recent Improvements (January 2026)
 - ✅ Health endpoints (/api/health, /api/health/live, /api/health/ready)
@@ -60,7 +60,6 @@ For detailed assessment, see [APPLICATION_RATING.md](APPLICATION_RATING.md).
 | [APPLICATION_RATING.md](APPLICATION_RATING.md) | Production readiness assessment and scores |
 | [01_PROJECT_OVERVIEW.md](01_PROJECT_OVERVIEW.md) | Application architecture, tech stack, and directory structure |
 | [02_CI_CD_ANALYSIS.md](02_CI_CD_ANALYSIS.md) | Current CI/CD setup (implemented) |
-| [03_CI_CD_RECOMMENDATIONS.md](03_CI_CD_RECOMMENDATIONS.md) | Historical recommendations (most now implemented) |
 | [04_DATABASE_SCHEMA.md](04_DATABASE_SCHEMA.md) | Database entities, relationships, and migration history |
 | [05_DOCKER_SETUP.md](05_DOCKER_SETUP.md) | Docker configuration for all environments |
 | [06_TESTING_GUIDE.md](06_TESTING_GUIDE.md) | Test setup, running tests, and writing new tests |
@@ -117,10 +116,10 @@ The application now has a fully working CI/CD pipeline:
 - **Automated Deployments**: Push to develop → devmunney, push to main → production
 - **Database Backups**: Daily automated backups
 
-### Remaining Improvements
-1. Add automatic rollback on deployment failure
-2. Improve test coverage
-3. Add monitoring/alerting
+### Remaining Nice-to-Have
+1. Add monitoring/alerting (APM integration)
+2. Add 2FA authentication
+3. Add Redis caching
 
 See [02_CI_CD_ANALYSIS.md](02_CI_CD_ANALYSIS.md) for current status.
 
@@ -149,4 +148,4 @@ See [07_DEVELOPMENT_WORKFLOW.md](07_DEVELOPMENT_WORKFLOW.md) for the full OTAP w
 
 ---
 
-*Documentation last updated: January 19, 2026*
+*Documentation last updated: January 20, 2026*

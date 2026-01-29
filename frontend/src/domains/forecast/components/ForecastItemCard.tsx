@@ -7,190 +7,139 @@ import type { ForecastItem, UpdateForecastItem } from '../models/Forecast';
 
 interface ForecastItemCardProps {
     item: ForecastItem;
+    type: 'income' | 'expense';
     onUpdate: (itemId: number, data: UpdateForecastItem) => Promise<void>;
     onRemove: (itemId: number) => Promise<void>;
-    onResetToMedian: (itemId: number) => Promise<void>;
-    onDragStart: (e: React.DragEvent, item: ForecastItem) => void;
-    onDragEnd: () => void;
-    isDragging: boolean;
+    onDragStart?: (e: React.DragEvent, item: ForecastItem) => void;
+    onDragEnd?: () => void;
+    isDragging?: boolean;
 }
 
 export const ForecastItemCard = memo(function ForecastItemCard({
     item,
+    type,
     onUpdate,
     onRemove,
-    onResetToMedian,
     onDragStart,
     onDragEnd,
-    isDragging
+    isDragging = false,
 }: ForecastItemCardProps) {
     const [isEditing, setIsEditing] = useState(false);
-    const [editAmount, setEditAmount] = useState(item.expectedAmount.toString());
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
+    const [tempValue, setTempValue] = useState('');
 
-    const handleResetToMedian = async () => {
-        setIsResetting(true);
-        try {
-            await onResetToMedian(item.id);
-        } finally {
-            setIsResetting(false);
-        }
-    };
+    const remaining = item.expectedAmount - item.actualAmount;
+    const progress = item.expectedAmount > 0 ? (item.actualAmount / item.expectedAmount) * 100 : 0;
+    const isAdjusted = item.expectedAmount !== item.actualAmount; // You might want to track original expected vs current
+    const isComplete = item.actualAmount >= item.expectedAmount && item.expectedAmount > 0;
 
-    // Voor negatieve bedragen (bijv. spaaropnamen), gebruik absoluut voor progress
-    const actualForProgress = Math.abs(item.actualAmount);
-    const progress = item.expectedAmount > 0
-        ? Math.min((actualForProgress / item.expectedAmount) * 100, 100)
-        : 0;
+    const progressColor = type === 'expense' ? 'bg-blue-500' : 'bg-emerald-500';
+    const remainingColor = type === 'expense' ? 'text-gray-700' : 'text-emerald-600';
 
-    const isNegativeActual = item.actualAmount < 0;
-    const isComplete = !isNegativeActual && item.actualAmount >= item.expectedAmount && item.expectedAmount > 0;
-    const isOverBudget = !isNegativeActual && item.actualAmount > item.expectedAmount && item.expectedAmount > 0;
-
-    const handleSaveAmount = async () => {
-        const newAmount = parseFloat(editAmount);
-        if (isNaN(newAmount) || newAmount < 0) return;
-
-        setIsUpdating(true);
-        try {
-            await onUpdate(item.id, { expectedAmount: newAmount });
+    const handleAdjust = async (newRemainingValue: string) => {
+        const parsedRemaining = parseFloat(newRemainingValue);
+        if (isNaN(parsedRemaining)) {
             setIsEditing(false);
-        } finally {
-            setIsUpdating(false);
+            return;
+        }
+
+        // Calculate new expected amount: actual + remaining
+        const newExpectedAmount = Math.max(0, item.actualAmount + parsedRemaining);
+
+        try {
+            await onUpdate(item.id, { expectedAmount: newExpectedAmount });
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error updating forecast item:', error);
+            setIsEditing(false);
         }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            handleSaveAmount();
+            handleAdjust(tempValue);
         } else if (e.key === 'Escape') {
-            setEditAmount(item.expectedAmount.toString());
             setIsEditing(false);
         }
     };
 
+    const startEditing = () => {
+        setIsEditing(true);
+        setTempValue(remaining.toFixed(2));
+    };
+
     return (
         <div
-            draggable
-            onDragStart={(e) => onDragStart(e, item)}
+            draggable={!!onDragStart}
+            onDragStart={onDragStart ? (e) => onDragStart(e, item) : undefined}
             onDragEnd={onDragEnd}
-            className={`flex items-center space-x-3 p-3 rounded-lg bg-white border transition-all cursor-grab
-                ${isDragging ? 'opacity-50 border-blue-300' : 'border-gray-200 hover:border-gray-300'}
-            `}
+            className={`bg-white rounded-lg p-4 border border-gray-100 hover:border-gray-200 transition-all ${
+                isDragging ? 'opacity-50' : ''
+            } ${onDragStart ? 'cursor-grab' : ''}`}
         >
-            {/* Drag Handle */}
-            <div className="text-gray-400 cursor-grab">⋮⋮</div>
-
-            {/* Icon */}
-            {item.icon && (
-                <img
-                    src={`${API_URL}/api/icons/${item.icon}`}
-                    alt=""
-                    className="w-6 h-6 flex-shrink-0"
-                />
-            )}
-
-            {/* Name and Progress */}
-            <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-900 truncate">
-                    {item.customName || item.name}
-                </div>
-
-                {/* Progress bar */}
-                <div className="mt-1 flex items-center space-x-2">
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full transition-all ${
-                                isNegativeActual
-                                    ? 'bg-green-500'
-                                    : isOverBudget
-                                        ? 'bg-red-500'
-                                        : isComplete
-                                            ? 'bg-green-500'
-                                            : 'bg-blue-500'
-                            }`}
-                            style={{ width: `${Math.min(progress, 100)}%` }}
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    {item.icon && (
+                        <img
+                            src={`${API_URL}/api/icons/${item.icon}`}
+                            alt=""
+                            className="w-5 h-5 flex-shrink-0"
                         />
-                    </div>
-                    <span className="text-xs text-gray-500 w-12 text-right">
-                        {progress.toFixed(0)}%
+                    )}
+                    <span className="font-medium text-gray-800">
+                        {item.customName || item.name}
                     </span>
+                    {isAdjusted && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            aangepast
+                        </span>
+                    )}
+                    {isComplete && (
+                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                            ✓
+                        </span>
+                    )}
                 </div>
             </div>
 
-            {/* Actual Amount */}
-            <div className="text-right">
-                <div className={`font-semibold ${
-                    isNegativeActual
-                        ? 'text-green-600'
-                        : isOverBudget
-                            ? 'text-red-600'
-                            : isComplete
-                                ? 'text-green-600'
-                                : 'text-gray-900'
-                }`}>
-                    {formatMoney(item.actualAmount)}
-                </div>
-                <div className="text-xs text-gray-500">
-                    {isNegativeActual ? 'terugboeking' : 'actueel'}
-                </div>
+            {/* Progress bar */}
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+                <div
+                    className={`h-full rounded-full transition-all ${progressColor}`}
+                    style={{ width: `${Math.min(progress, 100)}%` }}
+                />
             </div>
 
-            {/* Expected Amount (editable) */}
-            <div className="text-right w-24">
-                {isEditing ? (
-                    <input
-                        type="number"
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                        onBlur={handleSaveAmount}
-                        onKeyDown={handleKeyDown}
-                        disabled={isUpdating}
-                        className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        autoFocus
-                    />
-                ) : (
-                    <div className="flex items-center justify-end gap-1">
+            <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">
+                    {formatMoney(item.actualAmount)} {type === 'expense' ? 'uitgegeven' : 'ontvangen'}
+                </span>
+
+                <div className="flex items-center gap-2">
+                    {isEditing ? (
+                        <div className="flex items-center gap-1">
+                            <span className="text-gray-500">Nog</span>
+                            <span className="text-gray-500">€</span>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={tempValue}
+                                onChange={(e) => setTempValue(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                onBlur={() => handleAdjust(tempValue)}
+                                className="w-20 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                autoFocus
+                            />
+                        </div>
+                    ) : (
                         <button
-                            onClick={handleResetToMedian}
-                            disabled={isResetting}
-                            className="text-gray-400 hover:text-blue-600 transition-colors p-1"
-                            title="Reset naar mediaan"
+                            onClick={startEditing}
+                            className={`${remainingColor} font-medium hover:underline cursor-pointer`}
                         >
-                            {isResetting ? '...' : '↺'}
+                            Nog {formatMoney(remaining)}
                         </button>
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
-                            title="Klik om te bewerken"
-                        >
-                            {formatMoney(item.expectedAmount)}
-                        </button>
-                    </div>
-                )}
-                <div className="text-xs text-gray-500">verwacht</div>
+                    )}
+                </div>
             </div>
-
-            {/* Status Icon */}
-            <div className="text-lg">
-                {isComplete ? (
-                    <span title="Volledig">✓</span>
-                ) : isOverBudget ? (
-                    <span title="Over budget">⚠️</span>
-                ) : (
-                    <span className="text-gray-300" title="In behandeling">○</span>
-                )}
-            </div>
-
-            {/* Remove Button */}
-            <button
-                onClick={() => onRemove(item.id)}
-                className="text-gray-400 hover:text-red-600 transition-colors"
-                title="Verwijderen uit forecast"
-            >
-                ✕
-            </button>
         </div>
     );
 });

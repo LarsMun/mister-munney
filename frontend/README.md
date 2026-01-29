@@ -1,54 +1,126 @@
-# React + TypeScript + Vite
+# Munney Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript frontend for the Munney personal finance application.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework:** React 19
+- **Build Tool:** Vite
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI Components:** Radix UI
+- **Charts:** Recharts
+- **Routing:** React Router v7
+- **HTTP Client:** Axios
+- **Animations:** Framer Motion
+- **Icons:** Lucide React
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```
+src/
+├── App.tsx                 # Main application with routing
+├── main.tsx                # Entry point
+├── app/                    # Application configuration
+│   └── context/            # React contexts (Auth, Account)
+├── components/             # Shared UI components
+├── domains/                # Feature modules (domain-driven)
+│   ├── accounts/           # Account management
+│   ├── budgets/            # Budget tracking
+│   ├── categories/         # Category management
+│   ├── dashboard/          # Main dashboard & Sankey flow
+│   ├── forecast/           # Cashflow forecasting
+│   ├── patterns/           # Auto-categorization patterns
+│   ├── recurring/          # Recurring transaction detection
+│   └── transactions/       # Transaction management
+├── lib/                    # Utilities (axios config)
+├── shared/                 # Shared utilities
+│   ├── components/         # Reusable components
+│   ├── utils/              # Helper functions
+│   └── validation/         # Form validation schemas
+└── test/                   # Test setup
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Domain Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Each domain follows a consistent structure:
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
 ```
+domains/{feature}/
+├── {Feature}Page.tsx       # Main page component
+├── index.tsx               # Route definitions
+├── components/             # Feature-specific components
+├── hooks/                  # Custom React hooks
+├── models/                 # TypeScript types/interfaces
+└── services/               # API service functions
+```
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Run linting
+npm run lint
+
+# Run tests
+npm run test
+
+# Build for production
+npm run build
+```
+
+## Testing
+
+- **Unit tests:** Vitest (`npm run test`)
+- **E2E tests:** Playwright (see `TESTING.md`)
+
+## Key Patterns
+
+### API Services
+Each domain has a service file that wraps axios calls:
+```typescript
+// domains/transactions/services/TransactionsService.ts
+export async function fetchTransactions(accountId: number): Promise<Transaction[]> {
+    const response = await api.get(`/account/${accountId}/transactions`);
+    return response.data;
+}
+```
+
+### Custom Hooks
+Data fetching is handled via custom hooks with loading/error states:
+```typescript
+// domains/transactions/hooks/useTransactions.ts
+export function useTransactions(accountId: number) {
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    // ...
+}
+```
+
+### Account Context
+The active account is managed via React Context:
+```typescript
+import { useAccount } from '../app/context/AccountContext';
+
+const { accountId, accounts } = useAccount();
+```
+
+## Environment Variables
+
+Create a `.env` file (see `.env.example`):
+
+```
+VITE_API_URL=http://localhost:8787/api
+VITE_HCAPTCHA_SITEKEY=your-sitekey
+```
+
+## Related Documentation
+
+- `TESTING.md` - E2E testing guide
+- `DASHBOARD_README.md` - Dashboard implementation details
+- `../claude_docs/` - Full project documentation

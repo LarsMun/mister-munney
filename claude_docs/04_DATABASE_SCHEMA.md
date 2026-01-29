@@ -122,6 +122,29 @@ Monthly budget allocations.
 | year | INT | Budget year |
 | month | INT | Budget month (1-12) |
 
+### RecurringTransaction (`recurring_transaction`)
+Automatically detected recurring transactions (subscriptions, bills, salaries).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INT (PK) | Auto-increment |
+| account_id | INT (FK) | References account |
+| category_id | INT (FK) | References category (nullable) |
+| merchant_pattern | VARCHAR(255) | Normalized merchant identifier |
+| display_name | VARCHAR(255) | User-friendly name |
+| predicted_amount | INT | Expected amount in cents |
+| amount_variance | DECIMAL(5,2) | Allowed variance % |
+| frequency | ENUM | WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY |
+| confidence_score | DECIMAL(3,2) | Detection confidence (0.00-1.00) |
+| last_occurrence | DATE | Last detected occurrence |
+| next_expected | DATE | Calculated next expected date |
+| is_active | TINYINT(1) | Active flag (soft delete) |
+| occurrence_count | INT | Number of detected occurrences |
+| interval_consistency | DECIMAL(5,2) | How consistent intervals are |
+| transaction_type | ENUM | DEBIT or CREDIT |
+| created_at | DATETIME | Creation timestamp |
+| updated_at | DATETIME | Last update timestamp |
+
 ### SavingsAccount (`savings_account`)
 Savings goals tracking.
 
@@ -221,6 +244,7 @@ CREATE INDEX idx_login_email_time ON login_attempts(email, attempted_at);
 Migrations are stored in `backend/migrations/` and tracked via Doctrine.
 
 Recent migrations:
+- `Version20260120120000`: Recurring transaction detection
 - `Version20251113202926`: Login attempt tracking & account locking
 - `Version20251107224624`: Budget enhancements
 - `Version20251106221057`: Pattern improvements

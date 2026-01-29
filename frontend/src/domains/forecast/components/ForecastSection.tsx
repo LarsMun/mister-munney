@@ -213,9 +213,9 @@ export function ForecastSection({
                             >
                                 <ForecastItemCard
                                     item={item}
+                                    type={type === 'INCOME' ? 'income' : 'expense'}
                                     onUpdate={onUpdateItem}
                                     onRemove={onRemoveItem}
-                                    onResetToMedian={onResetItemToMedian}
                                     onDragStart={handleItemDragStart}
                                     onDragEnd={handleItemDragEnd}
                                     isDragging={draggedItem?.id === item.id}

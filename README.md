@@ -34,6 +34,14 @@ A modern, full-stack personal finance management application built with Symfony 
 - Interactive charts and visualizations (Recharts)
 - Sparkline trends for quick insights
 
+### 🔄 Recurring Transaction Detection
+- Automatic detection of recurring transactions (subscriptions, bills, salaries)
+- Pattern recognition with confidence scoring
+- Frequency detection (weekly, biweekly, monthly, quarterly, yearly)
+- Upcoming transactions widget on dashboard
+- Find forgotten subscriptions and zombie charges
+- View linked transactions for each detected pattern
+
 ### 🔐 Security
 - JWT-based authentication
 - hCaptcha integration for login protection
@@ -198,11 +206,9 @@ See `deploy/ubuntu/` for Ubuntu server deployment scripts and documentation.
 ## Features in Development
 
 - Multi-user support with account sharing
-- Cashflow forecasting
 - External payments tracking
 - Advanced behavioral insights
 - Budget templates
-- Recurring transaction management
 
 ## Project Structure
 
