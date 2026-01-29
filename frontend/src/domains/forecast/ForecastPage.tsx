@@ -62,7 +62,10 @@ export default function ForecastPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main content */}
+                <div className="lg:col-span-2 space-y-6">
                 {/* Header with Month Navigation */}
                 <div className="flex items-center justify-between">
                     <h1 className="text-xl md:text-2xl font-bold text-gray-800">Cashflow Forecast</h1>
@@ -183,15 +186,6 @@ export default function ForecastPage() {
                     </div>
                 </div>
 
-                {/* Available Items (collapsed at bottom on mobile, sidebar on desktop) */}
-                <div className="lg:hidden">
-                    <AvailableItemsList
-                        budgets={availableItems.budgets}
-                        categories={availableItems.categories}
-                        onRefresh={refresh}
-                    />
-                </div>
-
                 {/* Tip */}
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
                     <strong>Tip:</strong> Klik op een "Nog €..." bedrag om je verwachting aan te passen. Zo maak je je
@@ -199,13 +193,17 @@ export default function ForecastPage() {
                 </div>
             </div>
 
-            {/* Sidebar for available items on desktop */}
-            <div className="hidden lg:block fixed right-6 top-24 w-80">
-                <AvailableItemsList
-                    budgets={availableItems.budgets}
-                    categories={availableItems.categories}
-                    onRefresh={refresh}
-                />
+            {/* Sidebar for available items */}
+            <div className="lg:col-span-1">
+                <div className="lg:sticky lg:top-4">
+                    <AvailableItemsList
+                        budgets={availableItems.budgets}
+                        categories={availableItems.categories}
+                        onRefresh={refresh}
+                    />
+                </div>
+            </div>
+            </div>
             </div>
         </div>
     );
