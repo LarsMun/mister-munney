@@ -1,5 +1,6 @@
 // frontend/src/domains/forecast/ForecastPage.tsx
 
+import { useState } from 'react';
 import { useForecast } from './hooks/useForecast';
 import { StatusCard } from './components/StatusCard';
 import { ForecastItemCard } from './components/ForecastItemCard';
@@ -8,7 +9,7 @@ import { useAccount } from '../../app/context/AccountContext';
 import { formatMoney } from '../../shared/utils/MoneyFormat';
 import { formatMonthDisplay, getCurrentMonth } from './services/ForecastService';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { ForecastItem } from './models/Forecast';
+import type { ForecastItem, CreateForecastItem } from './models/Forecast';
 
 export default function ForecastPage() {
     const { accountId } = useAccount();
@@ -18,6 +19,7 @@ export default function ForecastPage() {
         availableItems,
         isLoading,
         error,
+        addItem,
         updateItem,
         removeItem,
         goToPreviousMonth,
@@ -25,6 +27,44 @@ export default function ForecastPage() {
         goToCurrentMonth,
         refresh,
     } = useForecast();
+
+    const [dragOverSection, setDragOverSection] = useState<'income' | 'expense' | null>(null);
+
+    const handleDragOver = (e: React.DragEvent, section: 'income' | 'expense') => {
+        e.preventDefault();
+        setDragOverSection(section);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+            setDragOverSection(null);
+        }
+    };
+
+    const handleDrop = async (e: React.DragEvent, type: 'INCOME' | 'EXPENSE') => {
+        e.preventDefault();
+        setDragOverSection(null);
+
+        const data = e.dataTransfer.getData('application/json');
+        if (!data) return;
+
+        try {
+            const parsed = JSON.parse(data);
+            if (parsed.itemType && parsed.itemId) {
+                const newItem: CreateForecastItem = {
+                    type,
+                    expectedAmount: parsed.historicalMedian || 0,
+                    ...(parsed.itemType === 'budget' ? { budgetId: parsed.itemId } : { categoryId: parsed.itemId }),
+                };
+                await addItem(newItem);
+            }
+        } catch (error) {
+            console.error('Error parsing dropped data:', error);
+        }
+    };
 
     if (!accountId) {
         return (
@@ -128,7 +168,12 @@ export default function ForecastPage() {
                 )}
 
                 {/* Income Section */}
-                <div className="space-y-3">
+                <div
+                    className="space-y-3"
+                    onDragOver={(e) => handleDragOver(e, 'income')}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 'INCOME')}
+                >
                     <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-gray-700 flex items-center gap-2">
                             <span className="w-3 h-3 bg-emerald-500 rounded-full"></span>
@@ -152,7 +197,9 @@ export default function ForecastPage() {
                                 />
                             ))
                         ) : (
-                            <div className="bg-white border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                            <div className={`bg-white border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                dragOverSection === 'income' ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200'
+                            }`}>
                                 <p className="text-gray-500">Geen inkomsten toegevoegd</p>
                                 <p className="text-sm text-gray-400 mt-1">
                                     Sleep budgetten of categorieën hierheen
@@ -163,7 +210,12 @@ export default function ForecastPage() {
                 </div>
 
                 {/* Expenses Section */}
-                <div className="space-y-3">
+                <div
+                    className="space-y-3"
+                    onDragOver={(e) => handleDragOver(e, 'expense')}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 'EXPENSE')}
+                >
                     <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-gray-700 flex items-center gap-2">
                             <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
@@ -187,7 +239,9 @@ export default function ForecastPage() {
                                 />
                             ))
                         ) : (
-                            <div className="bg-white border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                            <div className={`bg-white border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                dragOverSection === 'expense' ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
+                            }`}>
                                 <p className="text-gray-500">Geen uitgaven toegevoegd</p>
                                 <p className="text-sm text-gray-400 mt-1">
                                     Sleep budgetten of categorieën hierheen
