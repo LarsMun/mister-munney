@@ -1,6 +1,7 @@
 // frontend/src/domains/forecast/components/ForecastItemCard.tsx
 
 import { useState, memo } from 'react';
+import { X } from 'lucide-react';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import { API_URL } from '../../../lib/api';
 import type { ForecastItem, UpdateForecastItem } from '../models/Forecast';
@@ -110,6 +111,13 @@ export const ForecastItemCard = memo(function ForecastItemCard({
                         </span>
                     )}
                 </div>
+                <button
+                    onClick={() => onRemove(item.id)}
+                    className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                    title="Verwijder uit forecast"
+                >
+                    <X className="w-4 h-4" />
+                </button>
             </div>
 
             {/* Progress bar */}
