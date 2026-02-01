@@ -96,7 +96,7 @@ export default function TransactionDrawer({ transaction, onClose, onFilterByDesc
                                 }
                             }}
                         />
-                        <Detail label="Balans na transactie" value={formatMoney(transaction.balanceAfter)}/>
+                        <Detail label="Balans na transactie" value={transaction.balanceAfter !== null ? formatMoney(transaction.balanceAfter) : '—'}/>
                     </dl>
                     <button
                         onClick={() => navigate('/patterns', {

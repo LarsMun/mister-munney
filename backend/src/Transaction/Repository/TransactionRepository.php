@@ -1122,6 +1122,32 @@ class TransactionRepository extends ServiceEntityRepository
      * @param string $month Format: 'YYYY-MM'
      * @return array
      */
+    public function getLatestRealTransactionDate(int $accountId): ?\DateTime
+    {
+        $result = $this->createQueryBuilder('t')
+            ->select('MAX(t.date) as maxDate')
+            ->where('t.account = :accountId')
+            ->andWhere('t.isTemporary = false')
+            ->setParameter('accountId', $accountId)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $result ? new \DateTime($result) : null;
+    }
+
+    public function deleteTemporaryTransactionsUpToDate(int $accountId, \DateTime $maxDate): int
+    {
+        return $this->createQueryBuilder('t')
+            ->delete()
+            ->where('t.account = :accountId')
+            ->andWhere('t.isTemporary = true')
+            ->andWhere('t.date <= :maxDate')
+            ->setParameter('accountId', $accountId)
+            ->setParameter('maxDate', $maxDate)
+            ->getQuery()
+            ->execute();
+    }
+
     public function getSavingsTransactionsForMonth(int $accountId, string $month): array
     {
         $startDate = $month . '-01';

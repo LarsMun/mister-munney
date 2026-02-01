@@ -6,6 +6,7 @@ use App\Account\Repository\AccountRepository;
 use App\Entity\Transaction;
 use App\Mapper\PayloadMapper;
 use App\Shared\Controller\AccountOwnershipTrait;
+use App\Transaction\DTO\CreateTemporaryTransactionDTO;
 use App\Transaction\DTO\SetCategoryDTO;
 use App\Transaction\DTO\TransactionDTO;
 use App\Transaction\DTO\TransactionFilterDTO;
@@ -486,5 +487,36 @@ class TransactionController extends AbstractController
         $statistics = $this->transactionService->getMonthlyMedianStatistics($accountId, $months);
 
         return $this->json($statistics, 200);
+    }
+
+    #[Route('/temporary', name: 'create_temporary_transaction', methods: ['POST'])]
+    public function createTemporaryTransaction(
+        int $accountId,
+        Request $request
+    ): JsonResponse {
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $dto = $this->payloadMapper->map($data, new CreateTemporaryTransactionDTO(), true);
+
+        $transaction = $this->transactionService->createTemporaryTransaction($accountId, $dto);
+
+        return $this->json($this->transactionMapper->toDto($transaction), 201);
+    }
+
+    #[Route('/{id}/temporary', name: 'delete_temporary_transaction', methods: ['DELETE'])]
+    public function deleteTemporaryTransaction(
+        int $accountId,
+        int $id
+    ): JsonResponse {
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $this->transactionService->deleteTemporaryTransaction($id);
+
+        return new JsonResponse(null, 204);
     }
 }

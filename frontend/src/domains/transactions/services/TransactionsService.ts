@@ -46,6 +46,21 @@ export function importTransactions(_accountId: number, file: File): Promise<Impo
     }).then(res => res.data);
 }
 
+export function createTemporaryTransaction(
+    accountId: number,
+    data: { date: string; description: string; amount: number; transactionType: string; categoryId?: number }
+): Promise<Transaction> {
+    return api.post(`/account/${accountId}/transactions/temporary`, data)
+        .then(res => res.data);
+}
+
+export function deleteTemporaryTransaction(
+    accountId: number,
+    transactionId: number
+): Promise<void> {
+    return api.delete(`/account/${accountId}/transactions/${transactionId}/temporary`);
+}
+
 export function getMonthlyStatistics(
     accountId: number,
     months: string | number = 'all'

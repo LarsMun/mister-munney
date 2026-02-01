@@ -9,6 +9,7 @@ import PeriodPicker from "./components/PeriodPicker.tsx";
 import TransactionFilterForm from "./components/TransactionFilterForm.tsx";
 import AiSuggestionsModal from "./components/AiSuggestionsModal.tsx";
 import PayPalPasteModal from "./components/PayPalPasteModal.tsx";
+import AddTemporaryTransactionModal from "./components/AddTemporaryTransactionModal.tsx";
 import { getAllTransactions } from "./services/TransactionsService";
 import { matchesPattern } from "../patterns/utils/matchesPattern";
 import type { Transaction } from "./models/Transaction";
@@ -56,6 +57,7 @@ export default function TransactionPage() {
     const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
     const [aiModalOpen, setAiModalOpen] = useState(false);
     const [payPalModalOpen, setPayPalModalOpen] = useState(false);
+    const [addTempModalOpen, setAddTempModalOpen] = useState(false);
     const { categories } = useCategories(accountId!);
 
     // Apply URL parameters on mount
@@ -194,6 +196,12 @@ export default function TransactionPage() {
 
             <div className="mb-4 flex justify-end gap-3">
                 <button
+                    onClick={() => setAddTempModalOpen(true)}
+                    className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 border border-amber-300 rounded-md hover:bg-amber-200 transition-colors"
+                >
+                    + Tijdelijk
+                </button>
+                <button
                     onClick={() => setPayPalModalOpen(true)}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
                 >
@@ -222,6 +230,13 @@ export default function TransactionPage() {
             <PayPalPasteModal
                 isOpen={payPalModalOpen}
                 onClose={() => setPayPalModalOpen(false)}
+                accountId={accountId!}
+                onSuccess={handleRefresh}
+            />
+
+            <AddTemporaryTransactionModal
+                isOpen={addTempModalOpen}
+                onClose={() => setAddTempModalOpen(false)}
                 accountId={accountId!}
                 onSuccess={handleRefresh}
             />
