@@ -1062,21 +1062,26 @@ class TransactionRepository extends ServiceEntityRepository
     public function getLatestBalanceForAccount(int $accountId): ?int
     {
         $sql = "
-            SELECT
-                SUM(CASE
-                    WHEN t.transaction_type = 'CREDIT' THEN t.amount
-                    ELSE -t.amount
-                END) AS balance
+            SELECT t.balance_after
             FROM transaction t
             WHERE t.account_id = ?
+              AND t.balance_after IS NOT NULL
+              AND t.date = (
+                  SELECT MAX(t2.date)
+                  FROM transaction t2
+                  WHERE t2.account_id = ?
+                    AND t2.balance_after IS NOT NULL
+              )
+            ORDER BY t.id ASC
+            LIMIT 1
         ";
 
         $result = $this->getEntityManager()
             ->getConnection()
-            ->executeQuery($sql, [$accountId])
+            ->executeQuery($sql, [$accountId, $accountId])
             ->fetchAssociative();
 
-        return $result['balance'] !== null ? (int)$result['balance'] : null;
+        return $result['balance_after'] !== null ? (int)$result['balance_after'] : null;
     }
 
     /**
