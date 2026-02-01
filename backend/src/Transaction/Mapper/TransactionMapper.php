@@ -34,8 +34,11 @@ class TransactionMapper
         $dto->amount = $this->moneyFactory->toFloat($transaction->getAmount());
         $dto->mutationType = $transaction->getMutationType();
         $dto->notes = $transaction->getNotes();
-        $dto->balanceAfter = $this->moneyFactory->toFloat($transaction->getBalanceAfter());
+        $dto->balanceAfter = $transaction->getBalanceAfter() !== null
+            ? $this->moneyFactory->toFloat($transaction->getBalanceAfter())
+            : null;
         $dto->tag = $transaction->getTag();
+        $dto->isTemporary = $transaction->isTemporary();
 
         if ($transaction->getCategory()) {
             $category = $transaction->getCategory();
@@ -72,7 +75,9 @@ class TransactionMapper
         $dto->amount = $this->moneyFactory->toFloat($transaction->getAmount());
         $dto->mutationType = $transaction->getMutationType();
         $dto->notes = $transaction->getNotes();
-        $dto->balanceAfter = $this->moneyFactory->toFloat($transaction->getBalanceAfter());
+        $dto->balanceAfter = $transaction->getBalanceAfter() !== null
+            ? $this->moneyFactory->toFloat($transaction->getBalanceAfter())
+            : null;
         $dto->tag = $transaction->getTag();
         $dto->category = $transaction->getCategory() ? $this->categoryMapper->toDto($transaction->getCategory()) : null;
         $dto->matchConflict = false;

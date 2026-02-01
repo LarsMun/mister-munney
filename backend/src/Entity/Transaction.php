@@ -53,8 +53,11 @@ class Transaction
     #[ORM\Column(type: Types::TEXT)]
     private ?string $notes = null;
 
-    #[ORM\Column(name: "balance_after", type: Types::INTEGER)]
+    #[ORM\Column(name: "balance_after", type: Types::INTEGER, nullable: true)]
     private ?int $balanceAfterInCents = null;
+
+    #[ORM\Column(name: "is_temporary", type: "boolean", options: ["default" => false])]
+    private bool $isTemporary = false;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $tag = null;
@@ -216,9 +219,20 @@ class Transaction
         return $this->balanceAfterInCents !== null ? Money::EUR($this->balanceAfterInCents) : null;
     }
 
-    public function setBalanceAfter(Money $money): static
+    public function setBalanceAfter(?Money $money): static
     {
-        $this->balanceAfterInCents = (int) $money->getAmount();
+        $this->balanceAfterInCents = $money !== null ? (int) $money->getAmount() : null;
+        return $this;
+    }
+
+    public function isTemporary(): bool
+    {
+        return $this->isTemporary;
+    }
+
+    public function setIsTemporary(bool $isTemporary): static
+    {
+        $this->isTemporary = $isTemporary;
         return $this;
     }
 

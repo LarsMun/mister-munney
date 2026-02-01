@@ -10,8 +10,9 @@ export type Transaction = {
     amount: number;
     mutationType: string;
     notes: string;
-    balanceAfter: number;
+    balanceAfter: number | null;
     tag: string | null;
+    isTemporary?: boolean;
     category?: {
         id: number;
         name: string;

@@ -41,6 +41,7 @@ class TransactionImportService
     private array $existingTransactions = [];
     private $currentUser = null;
     private ?Account $parentAccount = null;
+    private ?Account $importedAccount = null;
     private bool $isSavingsImport = false;
     private const string REQUIRED_EXTENSION = 'csv';
 
@@ -207,7 +208,24 @@ class TransactionImportService
             $this->loadExistingTransactions($dates);
             [$imported, $skipped, $errors] = $this->processRecords($records);
 
-            return $this->generateResponse($imported, $skipped, $errors);
+            // Clean up temporary transactions covered by this import
+            $temporaryDeleted = 0;
+            if ($this->importedAccount && !empty($dates)) {
+                $maxDateStr = end($dates);
+                $maxDate = DateTime::createFromFormat('Ymd', $maxDateStr)
+                    ?: DateTime::createFromFormat('Y-m-d', $maxDateStr);
+                if ($maxDate) {
+                    $temporaryDeleted = $this->transactionRepository->deleteTemporaryTransactionsUpToDate(
+                        $this->importedAccount->getId(),
+                        $maxDate
+                    );
+                    if ($temporaryDeleted > 0) {
+                        $this->logger->info("Tijdelijke transacties verwijderd", ['count' => $temporaryDeleted]);
+                    }
+                }
+            }
+
+            return $this->generateResponse($imported, $skipped, $errors, $temporaryDeleted);
         } catch (AccountAccessDeniedException $e) {
             // Security: User tried to import transactions for an account they don't own
             $this->logger->warning("Unauthorized account access during CSV import: " . $e->getMessage());
@@ -556,6 +574,8 @@ class TransactionImportService
             $account = $this->accountService->getOrCreateAccountByNumber($accountNumber);
         }
 
+        $this->importedAccount = $account;
+
         $transaction = new Transaction();
         $transaction->setDate($date);
         $transaction->setDescription($this->getField($record, 'description'));
@@ -634,12 +654,13 @@ class TransactionImportService
      *
      * @return array Gestructureerde data voor JSON-response naar de frontend
      */
-    private function generateResponse(int $imported, int $skipped, array $errors): array
+    private function generateResponse(int $imported, int $skipped, array $errors, int $temporaryDeleted = 0): array
     {
         $this->logger->info("CSV import voltooid", [
             'imported' => $imported,
             'skipped' => $skipped,
-            'errors' => count($errors)
+            'errors' => count($errors),
+            'temporaryDeleted' => $temporaryDeleted,
         ]);
 
         return [
@@ -647,6 +668,7 @@ class TransactionImportService
             'imported' => $imported,
             'skipped' => $skipped,
             'errors' => $errors,
+            'temporaryDeleted' => $temporaryDeleted,
         ];
     }
 

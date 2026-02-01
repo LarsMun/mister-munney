@@ -7,6 +7,7 @@ use App\Category\Repository\CategoryRepository;
 use App\Entity\Transaction;
 use App\Enum\TransactionType;
 use App\Money\MoneyFactory;
+use App\Transaction\DTO\CreateTemporaryTransactionDTO;
 use App\Transaction\DTO\TransactionFilterDTO;
 use App\Transaction\Repository\TransactionRepository;
 use DatePeriod;
@@ -191,7 +192,9 @@ class TransactionService
                     $dayDebits = $dayDebits->add($transaction->getAmount());
                 }
 
-                $lastBalance = $transaction->getBalanceAfter();
+                if ($transaction->getBalanceAfter() !== null) {
+                    $lastBalance = $transaction->getBalanceAfter();
+                }
                 $transactionIndex++;
             }
 
@@ -233,6 +236,11 @@ class TransactionService
     private function calculateInitialBalance(Transaction $transaction): Money
     {
         $balanceAfter = $transaction->getBalanceAfter();
+
+        if ($balanceAfter === null) {
+            return $this->moneyFactory->zero();
+        }
+
         $amount = $transaction->getAmount();
 
         return $transaction->getTransactionType() === 'credit'
@@ -517,5 +525,61 @@ class TransactionService
         }
 
         return array_sum($values) / count($values);
+    }
+
+    public function createTemporaryTransaction(int $accountId, CreateTemporaryTransactionDTO $dto): Transaction
+    {
+        $account = $this->accountRepository->find($accountId);
+        if (!$account) {
+            throw new NotFoundHttpException("Account niet gevonden");
+        }
+
+        $date = new \DateTime($dto->date);
+
+        $latestRealDate = $this->transactionRepository->getLatestRealTransactionDate($accountId);
+        if ($latestRealDate && $date <= $latestRealDate) {
+            throw new BadRequestHttpException("Datum moet na de laatste echte transactie liggen (" . $latestRealDate->format('Y-m-d') . ")");
+        }
+
+        $transactionType = TransactionType::from(strtolower($dto->transactionType));
+        $amount = $this->moneyFactory->fromFloat($dto->amount);
+        $hash = 'temp_' . bin2hex(random_bytes(16));
+
+        $transaction = new Transaction();
+        $transaction->setDate($date);
+        $transaction->setDescription($dto->description);
+        $transaction->setAccount($account);
+        $transaction->setTransactionType($transactionType);
+        $transaction->setAmount($amount);
+        $transaction->setBalanceAfter(null);
+        $transaction->setMutationType('Tijdelijk');
+        $transaction->setNotes('');
+        $transaction->setHash($hash);
+        $transaction->setIsTemporary(true);
+
+        if ($dto->categoryId) {
+            $category = $this->categoryRepository->find($dto->categoryId);
+            if ($category) {
+                $transaction->setCategory($category);
+            }
+        }
+
+        $this->transactionRepository->save($transaction);
+
+        return $transaction;
+    }
+
+    public function deleteTemporaryTransaction(int $transactionId): void
+    {
+        $transaction = $this->transactionRepository->find($transactionId);
+        if (!$transaction) {
+            throw new NotFoundHttpException("Transactie niet gevonden");
+        }
+
+        if (!$transaction->isTemporary()) {
+            throw new BadRequestHttpException("Alleen tijdelijke transacties kunnen verwijderd worden");
+        }
+
+        $this->transactionRepository->delete($transaction);
     }
 }

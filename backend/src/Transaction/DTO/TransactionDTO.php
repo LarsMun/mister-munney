@@ -17,8 +17,9 @@ class TransactionDTO
     public float $amount;
     public string $mutationType;
     public string $notes;
-    public float $balanceAfter;
+    public ?float $balanceAfter = null;
     public ?string $tag;
+    public bool $isTemporary = false;
     public ?CategoryDTO $category = null;
     public bool $hasSplits = false;
     public int $splitCount = 0;
