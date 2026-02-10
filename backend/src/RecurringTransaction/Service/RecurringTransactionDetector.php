@@ -15,7 +15,13 @@ use Money\Money;
 class RecurringTransactionDetector
 {
     private const MIN_CONFIDENCE_THRESHOLD = 0.70;
-    private const MONTHS_TO_ANALYZE = 12;
+    private const MONTHS_TO_ANALYZE = 36;
+
+    // The window (in months) for checking recent activity
+    private const RECENT_MONTHS = 12;
+
+    // Intervals exceeding maxDays * this multiplier are treated as gaps
+    private const GAP_THRESHOLD_MULTIPLIER = 3;
 
     // Max intervals since last occurrence before considering pattern dead
     private const MAX_MISSED_INTERVALS = 2;
@@ -44,7 +50,7 @@ class RecurringTransactionDetector
             $this->recurringTransactionRepository->deleteAllForAccount($account);
         }
 
-        // Get transactions from the past 12 months
+        // Get transactions from the past 36 months
         $startDate = (new DateTimeImmutable())->modify('-' . self::MONTHS_TO_ANALYZE . ' months');
         $transactions = $this->getTransactionsForAnalysis($account, $startDate);
 
@@ -164,6 +170,22 @@ class RecurringTransactionDetector
                 continue;
             }
 
+            // Recency check: ensure the pattern is still active in the last RECENT_MONTHS
+            $recentCutoff = (new DateTimeImmutable())->modify('-' . self::RECENT_MONTHS . ' months');
+            $recentCount = 0;
+            foreach ($typedTransactions as $t) {
+                $txDate = $t->getDate();
+                if ($txDate instanceof \DateTime) {
+                    $txDate = DateTimeImmutable::createFromMutable($txDate);
+                }
+                if ($txDate >= $recentCutoff) {
+                    $recentCount++;
+                }
+            }
+            if ($recentCount < $this->getMinRecentOccurrences($frequency)) {
+                continue;
+            }
+
             // Check if existing pattern exists
             $existing = $this->recurringTransactionRepository->findByMerchantPattern(
                 $account,
@@ -273,21 +295,38 @@ class RecurringTransactionDetector
     }
 
     /**
-     * Calculate how consistent the intervals are with a given frequency
+     * Calculate how consistent the intervals are with a given frequency (gap-aware)
      */
     private function calculateIntervalConsistency(array $intervals, RecurrenceFrequency $frequency): float
     {
         $minDays = $frequency->getMinDays();
         $maxDays = $frequency->getMaxDays();
+        $gapThreshold = $maxDays * self::GAP_THRESHOLD_MULTIPLIER;
 
         $matchingIntervals = 0;
+        $nonGapIntervals = 0;
+        $gapCount = 0;
+
         foreach ($intervals as $interval) {
+            if ($interval > $gapThreshold) {
+                $gapCount++;
+                continue;
+            }
+            $nonGapIntervals++;
             if ($interval >= $minDays && $interval <= $maxDays) {
                 $matchingIntervals++;
             }
         }
 
-        return $matchingIntervals / count($intervals);
+        if ($nonGapIntervals === 0) {
+            return 0.0;
+        }
+
+        $baseConsistency = $matchingIntervals / $nonGapIntervals;
+
+        // Apply gap penalty: many gaps reduce confidence without completely killing it
+        $gapRatio = $gapCount / count($intervals);
+        return $baseConsistency * (1 - $gapRatio * 0.5);
     }
 
     /**
@@ -381,6 +420,20 @@ class RecurringTransactionDetector
         }
 
         return [$avg, round($maxDeviation, 2)];
+    }
+
+    /**
+     * Get the minimum number of transactions required in the recent window per frequency
+     */
+    private function getMinRecentOccurrences(RecurrenceFrequency $frequency): int
+    {
+        return match ($frequency) {
+            RecurrenceFrequency::WEEKLY => 4,
+            RecurrenceFrequency::BIWEEKLY => 2,
+            RecurrenceFrequency::MONTHLY => 2,
+            RecurrenceFrequency::QUARTERLY => 1,
+            RecurrenceFrequency::YEARLY => 1,
+        };
     }
 
     /**
