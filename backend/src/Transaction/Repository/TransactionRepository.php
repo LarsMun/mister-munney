@@ -1148,6 +1148,29 @@ class TransactionRepository extends ServiceEntityRepository
             ->execute();
     }
 
+    /**
+     * Bereken de netto impact van tijdelijke transacties op het saldo.
+     * CREDIT (bij) → positief, DEBIT (af) → negatief.
+     */
+    public function getTemporaryTransactionsBalanceImpact(int $accountId): int
+    {
+        $sql = "
+            SELECT COALESCE(SUM(
+                CASE WHEN t.transaction_type = 'CREDIT' THEN t.amount ELSE -t.amount END
+            ), 0) as impact
+            FROM transaction t
+            WHERE t.account_id = ?
+              AND t.is_temporary = 1
+        ";
+
+        $result = $this->getEntityManager()
+            ->getConnection()
+            ->executeQuery($sql, [$accountId])
+            ->fetchOne();
+
+        return (int) $result;
+    }
+
     public function getSavingsTransactionsForMonth(int $accountId, string $month): array
     {
         $startDate = $month . '-01';

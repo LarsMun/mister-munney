@@ -53,11 +53,11 @@ class ForecastService
         $dto->expectedResult = $dto->totalExpectedIncome - $dto->totalExpectedExpenses;
         $dto->actualResult = $dto->totalActualIncome - $dto->totalActualExpenses;
 
-        // Haal huidig saldo op
+        // Haal huidig saldo op (laatste echte balance_after + impact tijdelijke transacties)
         $currentBalanceInCents = $this->transactionRepository->getLatestBalanceForAccount($accountId);
-        $dto->currentBalance = $currentBalanceInCents !== null
-            ? $this->moneyFactory->toFloat($this->moneyFactory->fromCents($currentBalanceInCents))
-            : 0;
+        $tempImpactInCents = $this->transactionRepository->getTemporaryTransactionsBalanceImpact($accountId);
+        $adjustedBalanceInCents = ($currentBalanceInCents ?? 0) + $tempImpactInCents;
+        $dto->currentBalance = $this->moneyFactory->toFloat($this->moneyFactory->fromCents($adjustedBalanceInCents));
 
         // Bereken verwacht eindsaldo
         $remainingExpectedIncome = $dto->totalExpectedIncome - $dto->totalActualIncome;
