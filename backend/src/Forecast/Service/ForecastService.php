@@ -36,32 +36,41 @@ class ForecastService
         $dto = new ForecastSummaryDTO();
         $dto->month = $month;
 
+        // Actuals exclusief temp voor eindsaldo berekening
+        $actualIncomeNoTemp = 0.0;
+        $actualExpensesNoTemp = 0.0;
+
         foreach ($items as $item) {
             $itemDto = $this->mapItemToDto($item, $month);
+            $actualNoTemp = $this->calculateActualAmount($item, $month, true);
 
             if ($item->isIncome()) {
                 $dto->incomeItems[] = $itemDto;
                 $dto->totalExpectedIncome += $itemDto->expectedAmount;
                 $dto->totalActualIncome += $itemDto->actualAmount;
+                $actualIncomeNoTemp += $actualNoTemp;
             } else {
                 $dto->expenseItems[] = $itemDto;
                 $dto->totalExpectedExpenses += $itemDto->expectedAmount;
                 $dto->totalActualExpenses += $itemDto->actualAmount;
+                $actualExpensesNoTemp += $actualNoTemp;
             }
         }
 
         $dto->expectedResult = $dto->totalExpectedIncome - $dto->totalExpectedExpenses;
         $dto->actualResult = $dto->totalActualIncome - $dto->totalActualExpenses;
 
-        // Haal huidig saldo op (laatste echte balance_after + impact tijdelijke transacties)
+        // Huidig saldo = laatste echte balance_after + impact tijdelijke transacties
         $currentBalanceInCents = $this->transactionRepository->getLatestBalanceForAccount($accountId);
         $tempImpactInCents = $this->transactionRepository->getTemporaryTransactionsBalanceImpact($accountId);
         $adjustedBalanceInCents = ($currentBalanceInCents ?? 0) + $tempImpactInCents;
         $dto->currentBalance = $this->moneyFactory->toFloat($this->moneyFactory->fromCents($adjustedBalanceInCents));
 
-        // Bereken verwacht eindsaldo
-        $remainingExpectedIncome = $dto->totalExpectedIncome - $dto->totalActualIncome;
-        $remainingExpectedExpenses = $dto->totalExpectedExpenses - $dto->totalActualExpenses;
+        // Eindsaldo: huidig saldo + wat nog binnenkomt - wat nog uitgaat
+        // Gebruik actuals ZONDER temp om dubbeltelling te voorkomen
+        // (temp zit al verwerkt in currentBalance)
+        $remainingExpectedIncome = $dto->totalExpectedIncome - $actualIncomeNoTemp;
+        $remainingExpectedExpenses = $dto->totalExpectedExpenses - $actualExpensesNoTemp;
         $dto->projectedBalance = $dto->currentBalance + $remainingExpectedIncome - $remainingExpectedExpenses;
 
         return $dto;
@@ -298,22 +307,21 @@ class ForecastService
     /**
      * Bereken het actuele bedrag voor een forecast item in een maand
      */
-    private function calculateActualAmount(ForecastItem $item, string $month): float
+    private function calculateActualAmount(ForecastItem $item, string $month, bool $excludeTemporary = false): float
     {
-        $accountId = $item->getAccount()->getId();
-
         if ($item->getBudget()) {
             // Som van alle categorieën in dit budget
             $categoryIds = $item->getBudget()->getCategories()->map(fn($c) => $c->getId())->toArray();
             if (empty($categoryIds)) {
                 return 0;
             }
-            $amountInCents = $this->transactionRepository->getTotalSpentByCategoriesInMonth($categoryIds, $month);
+            $amountInCents = $this->transactionRepository->getTotalSpentByCategoriesInMonth($categoryIds, $month, $excludeTemporary);
         } elseif ($item->getCategory()) {
             // Alleen deze categorie
             $amountInCents = $this->transactionRepository->getTotalSpentByCategoriesInMonth(
                 [$item->getCategory()->getId()],
-                $month
+                $month,
+                $excludeTemporary
             );
         } else {
             return 0;
