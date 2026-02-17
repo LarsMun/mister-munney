@@ -627,13 +627,14 @@ class TransactionRepository extends ServiceEntityRepository
      * @param string $monthYear Maand in YYYY-MM formaat
      * @return int Totaal in centen
      */
-    public function getTotalSpentByCategoriesInMonth(array $categoryIds, string $monthYear): int
+    public function getTotalSpentByCategoriesInMonth(array $categoryIds, string $monthYear, bool $excludeTemporary = false): int
     {
         if (empty($categoryIds)) {
             return 0;
         }
 
         $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $tempFilter = $excludeTemporary ? 'AND t.is_temporary = 0' : '';
 
         $sql = "
             SELECT
@@ -654,6 +655,7 @@ class TransactionRepository extends ServiceEntityRepository
             FROM transaction t
             WHERE t.category_id IN ($placeholders)
               AND SUBSTRING(t.date, 1, 7) = ?
+              $tempFilter
               AND (
                   (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
                   OR
