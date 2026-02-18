@@ -28,7 +28,7 @@ export const ForecastItemCard = memo(function ForecastItemCard({
     const [isEditing, setIsEditing] = useState(false);
     const [tempValue, setTempValue] = useState('');
 
-    const remaining = item.expectedAmount - item.actualAmount;
+    const remaining = Math.max(0, item.expectedAmount - item.actualAmount);
     const progress = item.expectedAmount > 0 ? (item.actualAmount / item.expectedAmount) * 100 : 0;
     const isAdjusted = item.expectedAmount !== item.actualAmount; // You might want to track original expected vs current
 
