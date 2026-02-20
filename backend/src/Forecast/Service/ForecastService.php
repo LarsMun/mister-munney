@@ -36,24 +36,17 @@ class ForecastService
         $dto = new ForecastSummaryDTO();
         $dto->month = $month;
 
-        // Actuals exclusief temp voor eindsaldo berekening
-        $actualIncomeNoTemp = 0.0;
-        $actualExpensesNoTemp = 0.0;
-
         foreach ($items as $item) {
             $itemDto = $this->mapItemToDto($item, $month);
-            $actualNoTemp = $this->calculateActualAmount($item, $month, true);
 
             if ($item->isIncome()) {
                 $dto->incomeItems[] = $itemDto;
                 $dto->totalExpectedIncome += $itemDto->expectedAmount;
                 $dto->totalActualIncome += $itemDto->actualAmount;
-                $actualIncomeNoTemp += $actualNoTemp;
             } else {
                 $dto->expenseItems[] = $itemDto;
                 $dto->totalExpectedExpenses += $itemDto->expectedAmount;
                 $dto->totalActualExpenses += $itemDto->actualAmount;
-                $actualExpensesNoTemp += $actualNoTemp;
             }
         }
 
@@ -66,11 +59,10 @@ class ForecastService
         $adjustedBalanceInCents = ($currentBalanceInCents ?? 0) + $tempImpactInCents;
         $dto->currentBalance = $this->moneyFactory->toFloat($this->moneyFactory->fromCents($adjustedBalanceInCents));
 
-        // Eindsaldo: huidig saldo + wat nog binnenkomt - wat nog uitgaat
-        // Gebruik actuals ZONDER temp om dubbeltelling te voorkomen
-        // (temp zit al verwerkt in currentBalance)
-        $remainingExpectedIncome = $dto->totalExpectedIncome - $actualIncomeNoTemp;
-        $remainingExpectedExpenses = $dto->totalExpectedExpenses - $actualExpensesNoTemp;
+        // Eindsaldo: huidig saldo + nog te ontvangen - nog uit te geven
+        // Temp transacties zitten al in currentBalance EN in totalActual*, dus consistent
+        $remainingExpectedIncome = $dto->totalExpectedIncome - $dto->totalActualIncome;
+        $remainingExpectedExpenses = $dto->totalExpectedExpenses - $dto->totalActualExpenses;
         $dto->projectedBalance = $dto->currentBalance + $remainingExpectedIncome - $remainingExpectedExpenses;
 
         return $dto;
