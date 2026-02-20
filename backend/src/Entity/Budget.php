@@ -52,6 +52,9 @@ class Budget
     #[ORM\Column(type: Types::INTEGER, options: ['default' => 2])]
     private int $durationMonths = 2;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    private bool $isActive = true;
+
     // --- Getters & Setters ---
 
     public function getId(): ?int
@@ -184,6 +187,17 @@ class Budget
     public function setDurationMonths(int $durationMonths): static
     {
         $this->durationMonths = $durationMonths;
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
         return $this;
     }
 

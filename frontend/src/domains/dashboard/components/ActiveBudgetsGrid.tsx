@@ -24,7 +24,7 @@ export default function ActiveBudgetsGrid({ budgets, startDate, endDate, account
         return (
             <div className="text-center py-8 text-gray-500">
                 <p>Geen actieve budgetten gevonden</p>
-                <p className="text-sm mt-2">Budgetten met recente transacties worden hier weergegeven</p>
+                <p className="text-sm mt-2">Activeer budgetten via de Budgetten pagina om ze hier te tonen</p>
             </div>
         );
     }

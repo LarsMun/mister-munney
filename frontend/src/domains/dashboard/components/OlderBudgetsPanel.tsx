@@ -62,12 +62,12 @@ export default function OlderBudgetsPanel({ budgets, accountId }: OlderBudgetsPa
                 <summary className="cursor-pointer p-6 font-semibold text-gray-800 hover:bg-gray-50 transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                     <div className="flex items-center gap-2">
                         <span className="text-gray-400" aria-hidden="true">▶</span>
-                        <span>Oudere Budgetten ({budgets.length})</span>
+                        <span>Inactieve Budgetten ({budgets.length})</span>
                     </div>
                 </summary>
                 <div className="p-6 pt-0 border-t border-gray-200">
                     <p className="text-sm text-gray-700 mb-4">
-                        Deze budgetten hebben geen recente transacties (laatste 2 maanden) maar zijn nog actief.
+                        Deze budgetten zijn op inactief gezet. Je kunt ze weer activeren via de Budgetten pagina.
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                         {budgets.map(budget => (

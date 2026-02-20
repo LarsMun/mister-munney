@@ -115,13 +115,33 @@ export function BudgetCard({
                         />
                     </div>
                 </div>
-                <button
-                    onClick={() => setShowDeleteBudgetDialog(true)}
-                    className="ml-2 text-red-600 hover:bg-red-50 hover:text-red-700 px-2 py-1 rounded transition-colors"
-                    title="Budget verwijderen"
-                >
-                    🗑️
-                </button>
+                <div className="flex items-center gap-2 ml-2">
+                    <label className="flex items-center gap-1.5 cursor-pointer" title={budget.isActive ? 'Budget is actief' : 'Budget is inactief'}>
+                        <span className="text-xs text-gray-500">Actief</span>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={budget.isActive}
+                            onClick={() => onUpdate(budget.id, { isActive: !budget.isActive })}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                                budget.isActive ? 'bg-blue-600' : 'bg-gray-300'
+                            }`}
+                        >
+                            <span
+                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                    budget.isActive ? 'translate-x-4.5' : 'translate-x-0.5'
+                                }`}
+                            />
+                        </button>
+                    </label>
+                    <button
+                        onClick={() => setShowDeleteBudgetDialog(true)}
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700 px-2 py-1 rounded transition-colors"
+                        title="Budget verwijderen"
+                    >
+                        🗑️
+                    </button>
+                </div>
             </div>
 
             {/* Budget Type Badge */}

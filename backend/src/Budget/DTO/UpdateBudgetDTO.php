@@ -20,4 +20,6 @@ class UpdateBudgetDTO
 
     #[Assert\Length(max: 255, maxMessage: 'Icoon mag maximaal 255 karakters zijn')]
     public ?string $icon = null;
+
+    public ?bool $isActive = null;
 }

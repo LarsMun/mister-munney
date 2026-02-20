@@ -17,14 +17,12 @@ import type { SankeyFlowData, SankeyMode } from '../../dashboard/models/SankeyFl
  * Fetch active budgets with insights
  */
 export async function fetchActiveBudgets(
-    months?: number,
     type?: BudgetType,
     startDate?: string,
     endDate?: string,
     accountId?: number
 ): Promise<ActiveBudget[]> {
     const params = new URLSearchParams();
-    if (months !== undefined) params.append('months', months.toString());
     if (type) params.append('type', type);
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
@@ -38,12 +36,10 @@ export async function fetchActiveBudgets(
  * Fetch older/inactive budgets
  */
 export async function fetchOlderBudgets(
-    months?: number,
     type?: BudgetType,
     accountId?: number
 ): Promise<OlderBudget[]> {
     const params = new URLSearchParams();
-    if (months !== undefined) params.append('months', months.toString());
     if (type) params.append('type', type);
     if (accountId !== undefined) params.append('accountId', accountId.toString());
 

@@ -95,7 +95,6 @@ class AdaptiveDashboardController extends AbstractController
             throw new AccessDeniedHttpException('Living dashboard feature is disabled');
         }
 
-        $months = $request->query->getInt('months', 2);
         $type = $request->query->get('type'); // optional: EXPENSE, INCOME, PROJECT
         $startDate = $request->query->get('startDate'); // YYYY-MM-DD
         $endDate = $request->query->get('endDate'); // YYYY-MM-DD
@@ -111,7 +110,7 @@ class AdaptiveDashboardController extends AbstractController
         $budgetType = $type ? BudgetType::from($type) : null;
 
         // Get active budgets filtered by account
-        $activeBudgets = $this->activeBudgetService->getActiveBudgets($months, $budgetType, $accountId);
+        $activeBudgets = $this->activeBudgetService->getActiveBudgets($budgetType, $accountId);
 
         // Separate by type
         $expenseIncomeBudgets = array_filter(
@@ -171,7 +170,6 @@ class AdaptiveDashboardController extends AbstractController
             throw new AccessDeniedHttpException('Living dashboard feature is disabled');
         }
 
-        $months = $request->query->getInt('months', 2);
         $type = $request->query->get('type');
         $accountId = $request->query->getInt('accountId'); // Filter by account
 
@@ -184,7 +182,7 @@ class AdaptiveDashboardController extends AbstractController
 
         $budgetType = $type ? BudgetType::from($type) : null;
 
-        $olderBudgets = $this->activeBudgetService->getOlderBudgets($months, $budgetType, $accountId);
+        $olderBudgets = $this->activeBudgetService->getOlderBudgets($budgetType, $accountId);
 
         // Simple DTOs without insights
         $dtos = array_map(function (Budget $budget) {
