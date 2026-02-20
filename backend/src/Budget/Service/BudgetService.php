@@ -86,6 +86,10 @@ class BudgetService
             $budget->setIcon($updateBudgetDTO->icon);
         }
 
+        if ($updateBudgetDTO->isActive !== null) {
+            $budget->setIsActive($updateBudgetDTO->isActive);
+        }
+
         return $this->budgetRepository->save($budget);
     }
 

@@ -19,6 +19,7 @@ class BudgetMapper
         $dto->accountId = $budget->getAccount()->getId();
         $dto->budgetType = $budget->getBudgetType()->value;
         $dto->icon = $budget->getIcon();
+        $dto->isActive = $budget->isActive();
         $dto->createdAt = $budget->getCreatedAt()->format('Y-m-d H:i:s');
         $dto->updatedAt = $budget->getUpdatedAt()->format('Y-m-d H:i:s');
 

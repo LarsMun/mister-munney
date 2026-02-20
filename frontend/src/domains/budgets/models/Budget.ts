@@ -8,6 +8,7 @@ export interface Budget {
     accountId: number;
     budgetType: BudgetType;
     icon?: string | null;
+    isActive: boolean;
     createdAt: string;
     updatedAt: string;
     categories: Category[];
@@ -33,6 +34,7 @@ export interface UpdateBudget {
     name?: string;
     budgetType?: BudgetType;
     icon?: string | null;
+    isActive?: boolean;
 }
 
 export interface AssignCategories {

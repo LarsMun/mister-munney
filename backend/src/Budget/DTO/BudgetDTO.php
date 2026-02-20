@@ -11,6 +11,7 @@ class BudgetDTO
     public int $accountId;
     public string $budgetType;
     public ?string $icon = null;
+    public bool $isActive = true;
     public string $createdAt;
     public string $updatedAt;
 
