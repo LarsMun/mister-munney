@@ -5,7 +5,7 @@ import { X, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMoney, formatNumber } from '../../../shared/utils/MoneyFormat';
 import { getTransactions } from '../../transactions/services/TransactionsService';
 import type { Transaction } from '../../transactions/models/Transaction';
-import { fetchAggregateStatistics, type AggregateStatistics, type StatisticsPeriod } from '../../categories/services/CategoryService';
+import { fetchAggregateStatistics, type AggregateStatistics, type StatisticsPeriod, type CategoryBreakdownItem } from '../../categories/services/CategoryService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MonthlyData {
@@ -106,14 +106,14 @@ export default function HistoricalDataDrawer({
         if (!isOpen || !accountId || !categoryIds?.length) return;
 
         setIsLoadingStats(true);
-        fetchAggregateStatistics(accountId, categoryIds, period, includeCurrentMonth)
+        fetchAggregateStatistics(accountId, categoryIds, period, includeCurrentMonth, isBudgetView)
             .then(setStatistics)
             .catch(err => {
                 console.error('Error fetching aggregate statistics:', err);
                 setStatistics(null);
             })
             .finally(() => setIsLoadingStats(false));
-    }, [isOpen, accountId, categoryIds, period, includeCurrentMonth]);
+    }, [isOpen, accountId, categoryIds, period, includeCurrentMonth, isBudgetView]);
 
     // Filter and sort history based on selected period
     const { chartHistory, listHistory } = useMemo(() => {
@@ -377,6 +377,69 @@ export default function HistoricalDataDrawer({
                                 </div>
                             </div>
 
+                            {/* Category Breakdown */}
+                            {isBudgetView && statistics?.categoryBreakdown && statistics.categoryBreakdown.length > 0 && (
+                                <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                        Per categorie
+                                    </h3>
+                                    {isLoadingStats ? (
+                                        <div className="flex items-center justify-center py-4">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {statistics.categoryBreakdown.map((cat) => {
+                                                const maxTotal = Math.max(
+                                                    ...statistics.categoryBreakdown!.map(c => Math.abs(parseFloat(c.total)))
+                                                );
+                                                const barWidth = maxTotal > 0
+                                                    ? (Math.abs(parseFloat(cat.total)) / maxTotal) * 100
+                                                    : 0;
+
+                                                return (
+                                                    <div key={cat.categoryId}>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <div
+                                                                    className="w-3 h-3 rounded-full flex-shrink-0"
+                                                                    style={{ backgroundColor: cat.categoryColor }}
+                                                                />
+                                                                <span className="text-sm font-medium text-gray-900 truncate">
+                                                                    {cat.categoryName}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-4 flex-shrink-0 text-right">
+                                                                <div className="text-xs text-gray-500">
+                                                                    <span className="hidden sm:inline">med. </span>
+                                                                    {formatMoney(Math.abs(parseFloat(cat.median)))}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    <span className="hidden sm:inline">gem. </span>
+                                                                    {formatMoney(Math.abs(parseFloat(cat.average)))}
+                                                                </div>
+                                                                <div className="text-sm font-semibold text-gray-900 w-20 text-right">
+                                                                    {formatMoney(Math.abs(parseFloat(cat.total)))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="absolute left-0 top-0 h-full rounded-full transition-all"
+                                                                style={{
+                                                                    width: `${barWidth}%`,
+                                                                    backgroundColor: cat.categoryColor
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Chart */}
                             {chartHistory.length > 0 && (
                                 <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
@@ -503,6 +566,121 @@ export default function HistoricalDataDrawer({
                                                     ) : transactions.length === 0 ? (
                                                         <div className="text-center py-8 text-gray-500">
                                                             <p className="text-sm">Geen transacties gevonden</p>
+                                                        </div>
+                                                    ) : isBudgetView && statistics?.categoryBreakdown ? (
+                                                        <div className="p-4 space-y-4">
+                                                            {(() => {
+                                                                // Group transactions by category
+                                                                const grouped = new Map<number, { name: string; color: string; transactions: Transaction[] }>();
+                                                                // Initialize from breakdown so categories with €0 also appear
+                                                                for (const cat of statistics.categoryBreakdown!) {
+                                                                    grouped.set(cat.categoryId, {
+                                                                        name: cat.categoryName,
+                                                                        color: cat.categoryColor,
+                                                                        transactions: []
+                                                                    });
+                                                                }
+                                                                // Assign transactions to groups
+                                                                for (const tx of transactions) {
+                                                                    if (tx.category) {
+                                                                        const group = grouped.get(tx.category.id);
+                                                                        if (group) {
+                                                                            group.transactions.push(tx);
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                // Get monthly subtotals from breakdown
+                                                                const monthlySubtotals = new Map<number, number>();
+                                                                for (const cat of statistics.categoryBreakdown!) {
+                                                                    const monthEntry = cat.monthlyTotals.find(m => m.month === monthData.month);
+                                                                    monthlySubtotals.set(cat.categoryId, monthEntry?.total ?? 0);
+                                                                }
+
+                                                                // Sort by subtotal (highest first)
+                                                                const sortedCategories = [...grouped.entries()].sort(
+                                                                    (a, b) => Math.abs(monthlySubtotals.get(b[0]) ?? 0) - Math.abs(monthlySubtotals.get(a[0]) ?? 0)
+                                                                );
+
+                                                                return sortedCategories.map(([catId, group]) => {
+                                                                    const subtotal = monthlySubtotals.get(catId) ?? 0;
+
+                                                                    return (
+                                                                        <div key={catId}>
+                                                                            {/* Category header */}
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div
+                                                                                        className="w-3 h-3 rounded-full flex-shrink-0"
+                                                                                        style={{ backgroundColor: group.color }}
+                                                                                    />
+                                                                                    <span className="text-sm font-semibold text-gray-800">
+                                                                                        {group.name}
+                                                                                    </span>
+                                                                                    <span className="text-xs text-gray-400">
+                                                                                        ({group.transactions.length})
+                                                                                    </span>
+                                                                                </div>
+                                                                                <span className={`text-sm font-semibold ${isIncomeBudget ? 'text-green-600' : 'text-red-600'}`}>
+                                                                                    {subtotal === 0 ? (
+                                                                                        <span className="text-gray-400 font-normal">{'\u20AC'}0,00</span>
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            {isIncomeBudget ? '+' : '-'}
+                                                                                            {formatMoney(Math.abs(subtotal))}
+                                                                                        </>
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
+                                                                            {/* Transactions in this category */}
+                                                                            {group.transactions.length > 0 ? (
+                                                                                <div className="space-y-1 ml-5">
+                                                                                    {group.transactions.map((transaction) => (
+                                                                                        <div
+                                                                                            key={transaction.id}
+                                                                                            className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow"
+                                                                                        >
+                                                                                            <div className="flex items-start justify-between">
+                                                                                                <div className="flex-1 min-w-0 mr-4">
+                                                                                                    <p className="font-medium text-gray-900 truncate text-sm">
+                                                                                                        {transaction.description}
+                                                                                                    </p>
+                                                                                                    <p className="text-xs text-gray-500 mt-1">
+                                                                                                        {new Date(transaction.date).toLocaleDateString('nl-NL', {
+                                                                                                            day: 'numeric',
+                                                                                                            month: 'short',
+                                                                                                            year: 'numeric'
+                                                                                                        })}
+                                                                                                    </p>
+                                                                                                    {transaction.notes && (
+                                                                                                        <p className="text-xs text-gray-400 mt-1 line-clamp-1">
+                                                                                                            {transaction.notes}
+                                                                                                        </p>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                                <div className="text-right flex-shrink-0">
+                                                                                                    <p
+                                                                                                        className={`font-semibold text-sm ${
+                                                                                                            transaction.transactionType === 'credit'
+                                                                                                                ? 'text-green-600'
+                                                                                                                : 'text-red-600'
+                                                                                                        }`}
+                                                                                                    >
+                                                                                                        {transaction.transactionType === 'credit' ? '+' : '-'}
+                                                                                                        {formatMoney(Math.abs(transaction.amount))}
+                                                                                                    </p>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <p className="text-xs text-gray-400 ml-5 italic">Geen transacties deze maand</p>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                });
+                                                            })()}
                                                         </div>
                                                     ) : (
                                                         <div className="p-4 space-y-2">
