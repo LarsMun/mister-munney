@@ -5,6 +5,7 @@ import { X, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMoney, formatNumber } from '../../../shared/utils/MoneyFormat';
 import { getTransactions } from '../../transactions/services/TransactionsService';
 import type { Transaction } from '../../transactions/models/Transaction';
+import { fetchAggregateStatistics, type AggregateStatistics, type StatisticsPeriod } from '../../categories/services/CategoryService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MonthlyData {
@@ -35,7 +36,16 @@ interface HistoricalDataDrawerProps {
     isLoading: boolean;
     accountId?: number;
     isBudgetView?: boolean;
+    categoryIds?: number[];
 }
+
+const PERIOD_OPTIONS: { value: StatisticsPeriod; label: string }[] = [
+    { value: '6m', label: '6 mnd' },
+    { value: '1y', label: '1 jaar' },
+    { value: '2y', label: '2 jaar' },
+    { value: '3y', label: '3 jaar' },
+    { value: 'all', label: 'Alles' },
+];
 
 export default function HistoricalDataDrawer({
     isOpen,
@@ -43,12 +53,19 @@ export default function HistoricalDataDrawer({
     data,
     isLoading,
     accountId,
-    isBudgetView = false
+    isBudgetView = false,
+    categoryIds
 }: HistoricalDataDrawerProps) {
     // State for expanded months and their transactions
     const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
     const [monthTransactions, setMonthTransactions] = useState<Record<string, Transaction[]>>({});
     const [loadingMonths, setLoadingMonths] = useState<Set<string>>(new Set());
+
+    // Period selector state
+    const [period, setPeriod] = useState<StatisticsPeriod>('1y');
+    const [includeCurrentMonth, setIncludeCurrentMonth] = useState(false);
+    const [statistics, setStatistics] = useState<AggregateStatistics | null>(null);
+    const [isLoadingStats, setIsLoadingStats] = useState(false);
 
     // Prevent body scroll when drawer is open
     useEffect(() => {
@@ -68,14 +85,34 @@ export default function HistoricalDataDrawer({
             setExpandedMonths(new Set());
             setMonthTransactions({});
             setLoadingMonths(new Set());
+            setStatistics(null);
+            setPeriod('1y');
+            setIncludeCurrentMonth(false);
         }
     }, [isOpen]);
 
+    // Fetch aggregate statistics when drawer opens or period changes
+    useEffect(() => {
+        if (!isOpen || !accountId || !categoryIds?.length) return;
+
+        setIsLoadingStats(true);
+        fetchAggregateStatistics(accountId, categoryIds, period, includeCurrentMonth)
+            .then(setStatistics)
+            .catch(err => {
+                console.error('Error fetching aggregate statistics:', err);
+                setStatistics(null);
+            })
+            .finally(() => setIsLoadingStats(false));
+    }, [isOpen, accountId, categoryIds, period, includeCurrentMonth]);
+
     if (!isOpen) return null;
 
+    // Use statistics history if available, otherwise fall back to data.history
+    const displayHistory = statistics?.history ?? data?.history ?? [];
+
     // Calculate max value for bar chart scaling
-    const maxAmount = data?.history
-        ? Math.max(...data.history.map(h => Math.abs(h.total)))
+    const maxAmount = displayHistory.length > 0
+        ? Math.max(...displayHistory.map(h => Math.abs(h.total)))
         : 0;
 
     // Toggle month expansion and fetch transactions
@@ -111,7 +148,7 @@ export default function HistoricalDataDrawer({
 
                     if (isBudgetView) {
                         // For budget view, filter by categories in this budget
-                        const budgetCategoryIds = (data as any).budget?.categoryIds || [];
+                        const budgetCategoryIds = categoryIds || (data as any).budget?.categoryIds || [];
                         filteredTransactions = response.data.filter(t =>
                             t.category && budgetCategoryIds.includes(t.category.id)
                         );
@@ -139,6 +176,11 @@ export default function HistoricalDataDrawer({
             }
         }
     };
+
+    // Determine displayed average/median values
+    const displayAverage = statistics ? parseFloat(statistics.average) : (data?.averagePerMonth ?? 0);
+    const displayMedian = statistics ? parseFloat(statistics.median) : 0;
+    const displayMonthCount = statistics?.monthCount ?? data?.monthCount ?? 0;
 
     return (
         <>
@@ -204,13 +246,46 @@ export default function HistoricalDataDrawer({
                     </button>
                 </div>
 
+                {/* Period Selector */}
+                {categoryIds && categoryIds.length > 0 && (
+                    <div className="px-6 py-3 border-b border-gray-200 bg-white">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-1">
+                                {PERIOD_OPTIONS.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => setPeriod(opt.value)}
+                                        className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                                            period === opt.value
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={includeCurrentMonth}
+                                    onChange={e => setIncludeCurrentMonth(e.target.checked)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                Huidige maand meenemen
+                            </label>
+                        </div>
+                    </div>
+                )}
+
                 {/* Content */}
                 <div className="overflow-y-auto h-[calc(100%-88px)]">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                         </div>
-                    ) : !data || data.history.length === 0 ? (
+                    ) : !data || (data.history.length === 0 && displayHistory.length === 0) ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                             <Calendar className="w-16 h-16 mb-4 text-gray-300" />
                             <p className="text-lg">Geen historische gegevens gevonden</p>
@@ -218,80 +293,72 @@ export default function HistoricalDataDrawer({
                     ) : (
                         <div className="p-6">
                             {/* Summary Cards */}
-                            {(() => {
-                                // Calculate median over 12 months BEFORE the current month
-                                const currentMonth = new Date().toISOString().substring(0, 7);
-                                const previousMonths = [...data.history]
-                                    .filter(m => m.month < currentMonth) // Exclude current month
-                                    .sort((a, b) => b.month.localeCompare(a.month))
-                                    .slice(0, 12); // Last 12 months
-
-                                // Calculate median
-                                const amounts = previousMonths.map(m => Math.abs(m.total)).sort((a, b) => a - b);
-                                let median12Months = 0;
-                                if (amounts.length > 0) {
-                                    const mid = Math.floor(amounts.length / 2);
-                                    median12Months = amounts.length % 2 === 0
-                                        ? (amounts[mid - 1] + amounts[mid]) / 2
-                                        : amounts[mid];
-                                }
-
-                                return (
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                            <div className="flex items-center gap-2 text-blue-600 mb-1">
-                                                <TrendingUp className="w-4 h-4" />
-                                                <span className="text-xs font-medium uppercase">Totaal</span>
-                                            </div>
-                                            <p className="text-2xl font-bold text-gray-900">
-                                                {formatMoney(Math.abs(data.totalAmount))}
-                                            </p>
-                                        </div>
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                            <div className="flex items-center gap-2 text-green-600 mb-1">
-                                                <Calendar className="w-4 h-4" />
-                                                <span className="text-xs font-medium uppercase">Gem./maand</span>
-                                            </div>
-                                            <p className="text-2xl font-bold text-gray-900">
-                                                {formatMoney(Math.abs(data.averagePerMonth))}
-                                            </p>
-                                        </div>
-                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                                            <div className="flex items-center gap-2 text-orange-600 mb-1">
-                                                <TrendingUp className="w-4 h-4" />
-                                                <span className="text-xs font-medium uppercase">Mediaan 12 mnd</span>
-                                            </div>
-                                            <p className="text-2xl font-bold text-gray-900">
-                                                {formatMoney(median12Months)}
-                                            </p>
-                                            {previousMonths.length < 12 && previousMonths.length > 0 && (
-                                                <p className="text-xs text-orange-600 mt-1">
-                                                    ({previousMonths.length} {previousMonths.length === 1 ? 'maand' : 'maanden'})
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                            <div className="flex items-center gap-2 text-purple-600 mb-1">
-                                                <Calendar className="w-4 h-4" />
-                                                <span className="text-xs font-medium uppercase">Periode</span>
-                                            </div>
-                                            <p className="text-2xl font-bold text-gray-900">
-                                                {data.monthCount} {data.monthCount === 1 ? 'maand' : 'maanden'}
-                                            </p>
-                                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-blue-600 mb-1">
+                                        <TrendingUp className="w-4 h-4" />
+                                        <span className="text-xs font-medium uppercase">Totaal</span>
                                     </div>
-                                );
-                            })()}
+                                    <p className="text-2xl font-bold text-gray-900">
+                                        {formatMoney(Math.abs(data.totalAmount))}
+                                    </p>
+                                </div>
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-green-600 mb-1">
+                                        <Calendar className="w-4 h-4" />
+                                        <span className="text-xs font-medium uppercase">Gem./maand</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-gray-900">
+                                        {isLoadingStats ? (
+                                            <span className="inline-block w-20 h-7 bg-green-100 animate-pulse rounded" />
+                                        ) : (
+                                            formatMoney(Math.abs(displayAverage))
+                                        )}
+                                    </p>
+                                    {statistics && (
+                                        <p className="text-xs text-green-600 mt-1">
+                                            ({displayMonthCount} {displayMonthCount === 1 ? 'maand' : 'maanden'})
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-orange-600 mb-1">
+                                        <TrendingUp className="w-4 h-4" />
+                                        <span className="text-xs font-medium uppercase">Mediaan</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-gray-900">
+                                        {isLoadingStats ? (
+                                            <span className="inline-block w-20 h-7 bg-orange-100 animate-pulse rounded" />
+                                        ) : (
+                                            formatMoney(Math.abs(displayMedian))
+                                        )}
+                                    </p>
+                                    {statistics && (
+                                        <p className="text-xs text-orange-600 mt-1">
+                                            ({displayMonthCount} {displayMonthCount === 1 ? 'maand' : 'maanden'})
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-purple-600 mb-1">
+                                        <Calendar className="w-4 h-4" />
+                                        <span className="text-xs font-medium uppercase">Periode</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-gray-900">
+                                        {displayMonthCount} {displayMonthCount === 1 ? 'maand' : 'maanden'}
+                                    </p>
+                                </div>
+                            </div>
 
                             {/* Chart */}
-                            {data.history.length > 0 && (
+                            {displayHistory.length > 0 && (
                                 <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                         Grafiek
                                     </h3>
                                     <ResponsiveContainer width="100%" height={300}>
                                         <BarChart
-                                            data={data.history.map(item => {
+                                            data={displayHistory.map(item => {
                                                 const monthDate = new Date(item.month + '-01');
                                                 const monthName = monthDate.toLocaleDateString('nl-NL', {
                                                     month: 'short',
@@ -337,7 +404,7 @@ export default function HistoricalDataDrawer({
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                     Maandelijkse uitsplitsing
                                 </h3>
-                                {data.history.map((monthData) => {
+                                {displayHistory.map((monthData) => {
                                     const monthDate = new Date(monthData.month + '-01');
                                     const monthName = monthDate.toLocaleDateString('nl-NL', {
                                         month: 'long',
@@ -351,6 +418,8 @@ export default function HistoricalDataDrawer({
                                     const isExpanded = expandedMonths.has(monthData.month);
                                     const isLoadingMonth = loadingMonths.has(monthData.month);
                                     const transactions = monthTransactions[monthData.month] || [];
+                                    // transactionCount may not exist on statistics history
+                                    const txCount = (monthData as any).transactionCount;
 
                                     return (
                                         <div
@@ -371,9 +440,11 @@ export default function HistoricalDataDrawer({
                                                             <ChevronDown className="w-5 h-5 text-gray-500" />
                                                         )}
                                                         <p className="font-medium text-gray-900">{monthName}</p>
-                                                        <span className="text-xs text-gray-500">
-                                                            ({monthData.transactionCount} {monthData.transactionCount === 1 ? 'transactie' : 'transacties'})
-                                                        </span>
+                                                        {txCount !== undefined && (
+                                                            <span className="text-xs text-gray-500">
+                                                                ({txCount} {txCount === 1 ? 'transactie' : 'transacties'})
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="text-right">
                                                         <p

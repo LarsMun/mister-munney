@@ -3,6 +3,7 @@
 namespace App\Category\Controller;
 
 use App\Account\Repository\AccountRepository;
+use App\Budget\Service\BudgetInsightsService;
 use App\Category\DTO\CategoryDTO;
 use App\Category\DTO\CategoryWithTransactionsDTO;
 use App\Category\Mapper\CategoryMapper;
@@ -30,18 +31,21 @@ class CategoryController extends AbstractController
     private CategoryMapper $categoryMapper;
     private TransactionService $transactionService;
     private AccountRepository $accountRepository;
+    private BudgetInsightsService $budgetInsightsService;
 
     public function __construct(
         CategoryService $categoryService,
         CategoryMapper $categoryMapper,
         TransactionService $transactionService,
-        AccountRepository $accountRepository
+        AccountRepository $accountRepository,
+        BudgetInsightsService $budgetInsightsService
     )
     {
         $this->categoryService = $categoryService;
         $this->categoryMapper = $categoryMapper;
         $this->transactionService = $transactionService;
         $this->accountRepository = $accountRepository;
+        $this->budgetInsightsService = $budgetInsightsService;
     }
 
     protected function getAccountRepository(): AccountRepository
@@ -586,6 +590,61 @@ class CategoryController extends AbstractController
         $statistics = $this->categoryService->getCategoryStatistics($accountId, $months);
 
         return $this->json($statistics, 200);
+    }
+
+    #[OA\Post(
+        path: '/api/account/{accountId}/categories/aggregate-statistics',
+        summary: 'Bereken gemiddelde en mediaan voor een set categorieën',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['categoryIds'],
+                properties: [
+                    new OA\Property(property: 'categoryIds', type: 'array', items: new OA\Items(type: 'integer'), example: [1, 2, 3]),
+                    new OA\Property(property: 'period', type: 'string', enum: ['6m', '1y', '2y', '3y', 'all'], example: '1y'),
+                    new OA\Property(property: 'includeCurrentMonth', type: 'boolean', example: false)
+                ]
+            )
+        ),
+        tags: ['Categories'],
+        parameters: [
+            new OA\Parameter(
+                name: 'accountId',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', minimum: 1, example: 1)
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Aggregate statistics'),
+            new OA\Response(response: 400, description: 'Ongeldige invoer')
+        ]
+    )]
+    #[Route('/aggregate-statistics', name: 'get_aggregate_statistics', methods: ['POST'])]
+    public function getAggregateStatistics(int $accountId, Request $request): JsonResponse
+    {
+        if ($error = $this->verifyAccountOwnership($accountId)) {
+            return $error;
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        $categoryIds = $data['categoryIds'] ?? [];
+        if (empty($categoryIds) || !is_array($categoryIds)) {
+            return $this->json(['error' => 'categoryIds is verplicht en mag niet leeg zijn'], 400);
+        }
+
+        $period = $data['period'] ?? '1y';
+        $allowedPeriods = ['6m', '1y', '2y', '3y', 'all'];
+        if (!in_array($period, $allowedPeriods, true)) {
+            return $this->json(['error' => 'Ongeldige period. Toegestaan: ' . implode(', ', $allowedPeriods)], 400);
+        }
+
+        $includeCurrentMonth = (bool) ($data['includeCurrentMonth'] ?? false);
+
+        $statistics = $this->budgetInsightsService->computeCategoryStatistics($categoryIds, $period, $includeCurrentMonth);
+
+        return $this->json($statistics);
     }
 
     #[OA\Get(

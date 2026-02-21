@@ -148,6 +148,7 @@ export interface BudgetHistory {
     }>;
     totalAmount: number;
     averagePerMonth: number;
+    medianPerMonth: number;
     monthCount: number;
 }
 

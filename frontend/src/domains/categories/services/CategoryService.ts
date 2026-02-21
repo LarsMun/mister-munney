@@ -101,6 +101,32 @@ export async function mergeCategories(
     return response.data;
 }
 
+// Aggregate statistics types
+export type StatisticsPeriod = '6m' | '1y' | '2y' | '3y' | 'all';
+
+export interface AggregateStatistics {
+    average: string;
+    median: string;
+    monthCount: number;
+    period: StatisticsPeriod;
+    includeCurrentMonth: boolean;
+    history: Array<{ month: string; total: number }>;
+}
+
+export async function fetchAggregateStatistics(
+    accountId: number,
+    categoryIds: number[],
+    period: StatisticsPeriod = '1y',
+    includeCurrentMonth = false
+): Promise<AggregateStatistics> {
+    const response = await api.post(`/account/${accountId}/categories/aggregate-statistics`, {
+        categoryIds,
+        period,
+        includeCurrentMonth
+    });
+    return response.data;
+}
+
 export interface CategoryHistory {
     category: {
         id: number;
