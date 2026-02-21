@@ -181,7 +181,7 @@ export function BudgetCard({
                         >
                             <span
                                 className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                                    budget.isActive ? 'translate-x-4.5' : 'translate-x-0.5'
+                                    budget.isActive ? 'translate-x-[18px]' : 'translate-x-[2px]'
                                 }`}
                             />
                         </button>
