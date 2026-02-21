@@ -328,6 +328,28 @@ class BudgetService
     }
 
     /**
+     * Berekent de mediaan van de formatted history array.
+     */
+    private function calculateMedianFromHistory(array $history): float
+    {
+        if (empty($history)) {
+            return 0.0;
+        }
+
+        $amounts = array_map(fn($row) => (float) $row['total'], $history);
+        sort($amounts);
+
+        $count = count($amounts);
+        $middle = (int) floor($count / 2);
+
+        if ($count % 2 === 0) {
+            return ($amounts[$middle - 1] + $amounts[$middle]) / 2;
+        }
+
+        return $amounts[$middle];
+    }
+
+    /**
      * Berekent de mediaan van maandelijkse totalen.
      */
     private function calculateMedian(array $monthlyTotals): int
@@ -555,6 +577,9 @@ class BudgetService
         // Bereken gemiddelde per maand
         $averagePerMonth = $monthCount > 0 ? $totalAmount / $monthCount : 0;
 
+        // Bereken mediaan per maand
+        $medianPerMonth = $this->calculateMedianFromHistory($history);
+
         return [
             'budget' => [
                 'id' => $budget->getId(),
@@ -565,6 +590,7 @@ class BudgetService
             'history' => $history,
             'totalAmount' => number_format(abs($totalAmount), 2, '.', ''),
             'averagePerMonth' => number_format(abs($averagePerMonth), 2, '.', ''),
+            'medianPerMonth' => number_format(abs($medianPerMonth), 2, '.', ''),
             'monthCount' => $monthCount
         ];
     }

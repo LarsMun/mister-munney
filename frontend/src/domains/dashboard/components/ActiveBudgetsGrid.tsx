@@ -76,6 +76,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
     const [historicalData, setHistoricalData] = useState<CategoryHistory | BudgetHistory | null>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isBudgetHistory, setIsBudgetHistory] = useState(false);
+    const [drawerCategoryIds, setDrawerCategoryIds] = useState<number[]>([]);
 
     // Load category breakdown and budget history on mount
     useEffect(() => {
@@ -237,6 +238,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
         setIsHistoryDrawerOpen(true);
         setIsLoadingHistory(true);
         setIsBudgetHistory(false);
+        setDrawerCategoryIds([category.categoryId]);
 
         try {
             const data = await fetchCategoryHistory(accountId, category.categoryId);
@@ -260,6 +262,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
         setIsHistoryDrawerOpen(true);
         setIsLoadingHistory(true);
         setIsBudgetHistory(true);
+        setDrawerCategoryIds(budgetHistoryData?.budget?.categoryIds || []);
 
         try {
             const data = await fetchBudgetHistory(accountId, budget.id);
@@ -445,10 +448,10 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-                            {/* Show average line indicator */}
+                            {/* Show median and average indicators */}
                             <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
-                                <span>Gem: {formatMoney(budgetHistoryData.averagePerMonth)}</span>
-                                <span>{budgetHistoryData.monthCount} maanden</span>
+                                <span>Med: {formatMoney(budgetHistoryData.medianPerMonth)} | Gem: {formatMoney(budgetHistoryData.averagePerMonth)}</span>
+                                <span>{budgetHistoryData.monthCount} mnd</span>
                             </div>
                         </div>
                     )}
@@ -547,6 +550,7 @@ function BudgetCardCompact({ budget, startDate, endDate, accountId, totalAmount 
                 isLoading={isLoadingHistory}
                 accountId={accountId}
                 isBudgetView={isBudgetHistory}
+                categoryIds={drawerCategoryIds}
             />
         </article>
     );

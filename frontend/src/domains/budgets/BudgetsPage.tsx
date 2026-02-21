@@ -150,6 +150,7 @@ export default function BudgetsPage() {
                             key={budget.id}
                             budget={budget}
                             categoryStats={categoryStats}
+                            accountId={accountId}
                             onUpdate={updateBudget}
                             onDelete={handleDeleteBudgetClick}
                             onDrop={handleCategoryDrop}

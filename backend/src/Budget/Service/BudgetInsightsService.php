@@ -64,8 +64,16 @@ class BudgetInsightsService
         // Get current period total
         $current = $this->getSelectedPeriodTotal($budget, $startDate, $endDate);
 
-        // Get normal (median of 6 months prior)
-        $normal = $this->computeNormal($budget, 6, $start);
+        // Get normal (median of 12 months prior)
+        $normal = $this->computeNormal($budget, 12, $start);
+
+        // Get average (12 months prior)
+        $categoryIds = array_map(fn($cat) => $cat->getId(), $budget->getCategories()->toArray());
+        $averageMonthlyTotals = $this->getMonthlyTotals($categoryIds, 12, excludeCurrentMonth: true, beforeDate: $start);
+        $averageSum = array_sum($averageMonthlyTotals);
+        $averageCount = count($averageMonthlyTotals);
+        $averageCents = $averageCount > 0 ? (int) round($averageSum / $averageCount) : 0;
+        $average = $this->moneyFactory->fromCents($averageCents);
 
         // Get sparkline (last 6 periods before current)
         $sparkline = $this->getSparklineData($budget, 6, $start);
@@ -84,6 +92,7 @@ class BudgetInsightsService
             'budgetName' => $budget->getName(),
             'current' => $this->moneyFactory->toString($current),
             'normal' => $this->moneyFactory->toString($normal),
+            'average' => $this->moneyFactory->toString($average),
             'previousPeriod' => $previousPeriodData['amount'] ? $this->moneyFactory->toString($previousPeriodData['amount']) : null,
             'previousPeriodLabel' => $previousPeriodData['label'],
             'lastYear' => $lastYearData ? $this->moneyFactory->toString($lastYearData) : null,
@@ -97,7 +106,8 @@ class BudgetInsightsService
      */
     public function computeNormal(Budget $budget, int $months = 6, ?DateTimeImmutable $beforeDate = null): Money
     {
-        $monthlyTotals = $this->getMonthlyTotals($budget, $months, excludeCurrentMonth: true, beforeDate: $beforeDate);
+        $categoryIds = array_map(fn($cat) => $cat->getId(), $budget->getCategories()->toArray());
+        $monthlyTotals = $this->getMonthlyTotals($categoryIds, $months, excludeCurrentMonth: true, beforeDate: $beforeDate);
 
         if (empty($monthlyTotals)) {
             return $this->moneyFactory->zero();
@@ -126,11 +136,164 @@ class BudgetInsightsService
     }
 
     /**
+     * Compute aggregate statistics (average + median) for a set of category IDs.
+     *
+     * @param array $categoryIds
+     * @param string $period '6m', '1y', '2y', '3y', 'all'
+     * @param bool $includeCurrentMonth
+     * @return array
+     */
+    public function computeCategoryStatistics(array $categoryIds, string $period = '1y', bool $includeCurrentMonth = false): array
+    {
+        if (empty($categoryIds)) {
+            return [
+                'average' => '0.00',
+                'median' => '0.00',
+                'monthCount' => 0,
+                'period' => $period,
+                'includeCurrentMonth' => $includeCurrentMonth,
+                'history' => [],
+            ];
+        }
+
+        // Translate period to months
+        $periodMap = ['6m' => 6, '1y' => 12, '2y' => 24, '3y' => 36];
+        $months = $periodMap[$period] ?? null; // null for 'all'
+
+        if ($months !== null) {
+            $monthlyTotals = $this->getMonthlyTotals($categoryIds, $months, excludeCurrentMonth: !$includeCurrentMonth);
+        } else {
+            // 'all': find earliest transaction date for these categories
+            $monthlyTotals = $this->getAllMonthlyTotals($categoryIds, !$includeCurrentMonth);
+        }
+
+        // Calculate median
+        $values = array_values($monthlyTotals);
+        sort($values);
+        $count = count($values);
+        $medianCents = 0;
+
+        if ($count > 0) {
+            if ($count % 2 === 0) {
+                $mid1 = $values[($count / 2) - 1];
+                $mid2 = $values[$count / 2];
+                $medianCents = (int) (($mid1 + $mid2) / 2);
+            } else {
+                $medianCents = $values[(int) floor($count / 2)];
+            }
+        }
+
+        // Calculate average
+        $sum = array_sum($monthlyTotals);
+        $averageCents = $count > 0 ? (int) round($sum / $count) : 0;
+
+        // Build history array
+        $history = [];
+        foreach ($monthlyTotals as $month => $totalCents) {
+            $history[] = [
+                'month' => $month,
+                'total' => $this->moneyFactory->toFloat($this->moneyFactory->fromCents($totalCents)),
+            ];
+        }
+
+        return [
+            'average' => $this->moneyFactory->toString($this->moneyFactory->fromCents($averageCents)),
+            'median' => $this->moneyFactory->toString($this->moneyFactory->fromCents($medianCents)),
+            'monthCount' => $count,
+            'period' => $period,
+            'includeCurrentMonth' => $includeCurrentMonth,
+            'history' => $history,
+        ];
+    }
+
+    /**
+     * Get all monthly totals from the earliest transaction to now for given category IDs.
+     *
+     * @param array $categoryIds
+     * @param bool $excludeCurrentMonth
+     * @return array<string, int> Key: YYYY-MM, Value: cents
+     */
+    private function getAllMonthlyTotals(array $categoryIds, bool $excludeCurrentMonth): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        $categoryPlaceholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        // Find earliest transaction date for these categories
+        $sql = "SELECT MIN(t.date) FROM transaction t WHERE t.category_id IN ($categoryPlaceholders)";
+        $earliestDate = $this->entityManager->getConnection()->executeQuery($sql, $categoryIds)->fetchOne();
+
+        if (!$earliestDate) {
+            return [];
+        }
+
+        // Build month list from earliest to now
+        $date = new DateTimeImmutable($earliestDate);
+        $date = $date->modify('first day of this month');
+        $now = new DateTimeImmutable();
+        $endDate = $excludeCurrentMonth ? $now->modify('first day of this month')->modify('-1 day') : $now;
+        $endMonth = $endDate->format('Y-m');
+
+        $monthsList = [];
+        while ($date->format('Y-m') <= $endMonth) {
+            $monthsList[] = $date->format('Y-m');
+            $date = $date->modify('+1 month');
+        }
+
+        if (empty($monthsList)) {
+            return [];
+        }
+
+        // Query totals
+        $monthPlaceholders = implode(',', array_fill(0, count($monthsList), '?'));
+
+        $sql = "
+            SELECT
+                SUBSTRING(t.date, 1, 7) as month,
+                SUM(
+                    CASE
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
+                        THEN
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            END
+                        ELSE
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
+                    END
+                ) as total
+            FROM transaction t
+            WHERE t.category_id IN ($categoryPlaceholders)
+            AND SUBSTRING(t.date, 1, 7) IN ($monthPlaceholders)
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                OR
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+            GROUP BY month
+        ";
+
+        $params = array_merge($categoryIds, $monthsList);
+        $results = $this->entityManager->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
+
+        // Build map with defaults of 0
+        $totals = array_fill_keys($monthsList, 0);
+        foreach ($results as $row) {
+            $totals[$row['month']] = (int) $row['total'];
+        }
+
+        return $totals;
+    }
+
+    /**
      * Get sparkline data (last N months before the given date)
      */
     public function getSparklineData(Budget $budget, int $months = 6, ?DateTimeImmutable $beforeDate = null): array
     {
-        $monthlyTotals = $this->getMonthlyTotals($budget, $months, excludeCurrentMonth: true, beforeDate: $beforeDate);
+        $categoryIds = array_map(fn($cat) => $cat->getId(), $budget->getCategories()->toArray());
+        $monthlyTotals = $this->getMonthlyTotals($categoryIds, $months, excludeCurrentMonth: true, beforeDate: $beforeDate);
 
         // Return as array of float values for the frontend
         return array_map(
@@ -173,23 +336,19 @@ class BudgetInsightsService
     }
 
     /**
-     * Get monthly totals for a budget over N months
+     * Get monthly totals for given category IDs over N months
      *
-     * @param Budget $budget
+     * @param array $categoryIds Array of category IDs
      * @param int $months Number of months to retrieve
      * @param bool $excludeCurrentMonth Whether to exclude the current month
      * @param DateTimeImmutable|null $beforeDate Calculate months before this date (defaults to now)
      * @return array<string, int> Key: YYYY-MM, Value: cents
      */
-    private function getMonthlyTotals(Budget $budget, int $months, bool $excludeCurrentMonth, ?DateTimeImmutable $beforeDate = null): array
+    private function getMonthlyTotals(array $categoryIds, int $months, bool $excludeCurrentMonth, ?DateTimeImmutable $beforeDate = null): array
     {
-        $categories = $budget->getCategories();
-
-        if ($categories->isEmpty()) {
+        if (empty($categoryIds)) {
             return [];
         }
-
-        $categoryIds = array_map(fn($cat) => $cat->getId(), $categories->toArray());
 
         // Build month list
         $monthsList = [];

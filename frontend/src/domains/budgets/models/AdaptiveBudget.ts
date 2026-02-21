@@ -7,6 +7,7 @@ export interface BudgetInsight {
     budgetName: string;
     current: string;
     normal: string;
+    average: string;
     previousPeriod: string | null;
     previousPeriodLabel: string;
     lastYear: string | null;

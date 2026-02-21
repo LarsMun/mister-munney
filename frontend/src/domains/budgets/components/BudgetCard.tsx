@@ -1,16 +1,20 @@
 // frontend/src/domains/budgets/components/BudgetCard.tsx
 
 import React, { useState } from 'react';
+import { BarChart3 } from 'lucide-react';
 import type { Budget } from '../models/Budget';
 import { CategoryStatistics } from '../../categories/models/CategoryStatistics';
 import { InlineBudgetEditor } from './InlineBudgetEditor';
 import ConfirmDialog from '../../../shared/components/ConfirmDialog';
 import { formatMoney } from '../../../shared/utils/MoneyFormat';
 import { API_URL } from '../../../lib/api';
+import { fetchBudgetHistory, type BudgetHistory } from '../services/BudgetsService';
+import HistoricalDataDrawer from '../../dashboard/components/HistoricalDataDrawer';
 
 interface BudgetCardProps {
     budget: Budget;
     categoryStats: CategoryStatistics | null;
+    accountId: number;
     onUpdate: (budgetId: number, updates: Partial<Budget>) => Promise<void>;
     onDelete: (budgetId: number) => void;
     onDrop: (budgetId: number, categoryIds: number[]) => void;
@@ -20,6 +24,7 @@ interface BudgetCardProps {
 export function BudgetCard({
     budget,
     categoryStats,
+    accountId,
     onUpdate,
     onDelete,
     onDrop,
@@ -27,6 +32,11 @@ export function BudgetCard({
 }: BudgetCardProps) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [showDeleteBudgetDialog, setShowDeleteBudgetDialog] = useState(false);
+
+    // Historical data drawer state
+    const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+    const [historicalData, setHistoricalData] = useState<BudgetHistory | null>(null);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -69,6 +79,24 @@ export function BudgetCard({
         }
     };
 
+    // Handler for clicking budget name to show historical data
+    const handleBudgetNameClick = async () => {
+        if (!accountId) return;
+
+        setIsHistoryDrawerOpen(true);
+        setIsLoadingHistory(true);
+
+        try {
+            const data = await fetchBudgetHistory(accountId, budget.id);
+            setHistoricalData(data);
+        } catch (error) {
+            console.error('Error fetching budget history:', error);
+            setHistoricalData(null);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
+
     // Helper functie om stats voor een categorie te vinden
     const getStatsForCategory = (categoryId: number) => {
         return categoryStats?.categories.find(stat => stat.categoryId === categoryId);
@@ -87,6 +115,22 @@ export function BudgetCard({
     };
 
     const totalExpected = calculateTotalExpected();
+
+    // Calculate total average
+    const calculateTotalAverage = () => {
+        let total = 0;
+        budget.categories.forEach(category => {
+            const stats = getStatsForCategory(category.id);
+            if (stats) {
+                total += stats.averagePerMonth;
+            }
+        });
+        return total;
+    };
+
+    const totalAverage = calculateTotalAverage();
+
+    const budgetCategoryIds = budget.categories.map(c => c.id);
 
     return (
         <div
@@ -114,6 +158,14 @@ export function BudgetCard({
                             onUpdateBudget={onUpdate}
                         />
                     </div>
+                    <button
+                        type="button"
+                        onClick={handleBudgetNameClick}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        title="Bekijk historische gegevens"
+                    >
+                        <BarChart3 className="w-4 h-4" />
+                    </button>
                 </div>
                 <div className="flex items-center gap-2 ml-2">
                     <label className="flex items-center gap-1.5 cursor-pointer" title={budget.isActive ? 'Budget is actief' : 'Budget is inactief'}>
@@ -200,14 +252,28 @@ export function BudgetCard({
                         </div>
 
                         {/* Totaal verwacht (gebaseerd op historische data) */}
-                        {budget.categories.length > 0 && totalExpected !== 0 && (
-                            <div className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200">
-                                <span className="text-sm font-medium text-gray-700">
-                                    Verwacht totaal (mediaan):
-                                </span>
-                                <span className="text-sm font-bold text-blue-700">
-                                    {formatMoney(Math.abs(totalExpected))}
-                                </span>
+                        {budget.categories.length > 0 && (totalExpected !== 0 || totalAverage !== 0) && (
+                            <div className="p-2 bg-blue-50 rounded border border-blue-200 space-y-1">
+                                {totalExpected !== 0 && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700">
+                                            Mediaan:
+                                        </span>
+                                        <span className="text-sm font-bold text-blue-700">
+                                            {formatMoney(Math.abs(totalExpected))}
+                                        </span>
+                                    </div>
+                                )}
+                                {totalAverage !== 0 && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700">
+                                            Gemiddelde:
+                                        </span>
+                                        <span className="text-sm font-bold text-blue-700">
+                                            {formatMoney(Math.abs(totalAverage))}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>
@@ -240,6 +306,17 @@ export function BudgetCard({
                     setShowDeleteBudgetDialog(false);
                 }}
                 onCancel={() => setShowDeleteBudgetDialog(false)}
+            />
+
+            {/* Historical Data Drawer */}
+            <HistoricalDataDrawer
+                isOpen={isHistoryDrawerOpen}
+                onClose={() => setIsHistoryDrawerOpen(false)}
+                data={historicalData}
+                isLoading={isLoadingHistory}
+                accountId={accountId}
+                isBudgetView={true}
+                categoryIds={budgetCategoryIds}
             />
         </div>
     );
