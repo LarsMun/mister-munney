@@ -107,13 +107,20 @@ export default function HistoricalDataDrawer({
 
     if (!isOpen) return null;
 
-    // Use statistics history if available, otherwise fall back to data.history
-    const displayHistory = statistics?.history ?? data?.history ?? [];
+    // Always use data.history for chart and monthly list (full history from original load)
+    // statistics is only used for summary cards (average/median over selected period)
+    const fullHistory = data?.history ?? [];
+
+    // Sort: chronological (ASC) for chart, reverse (DESC newest first) for monthly list
+    const chartHistory = [...fullHistory].sort((a, b) => a.month.localeCompare(b.month));
+    const listHistory = [...fullHistory].sort((a, b) => b.month.localeCompare(a.month));
 
     // Calculate max value for bar chart scaling
-    const maxAmount = displayHistory.length > 0
-        ? Math.max(...displayHistory.map(h => Math.abs(h.total)))
+    const maxAmount = fullHistory.length > 0
+        ? Math.max(...fullHistory.map(h => Math.abs(h.total)))
         : 0;
+
+    const hasPeriodSelector = categoryIds && categoryIds.length > 0;
 
     // Toggle month expansion and fetch transactions
     const handleMonthToggle = async (month: string) => {
@@ -280,12 +287,12 @@ export default function HistoricalDataDrawer({
                 )}
 
                 {/* Content */}
-                <div className="overflow-y-auto h-[calc(100%-88px)]">
+                <div className={`overflow-y-auto ${hasPeriodSelector ? 'h-[calc(100%-88px-52px)]' : 'h-[calc(100%-88px)]'}`}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                         </div>
-                    ) : !data || (data.history.length === 0 && displayHistory.length === 0) ? (
+                    ) : !data || fullHistory.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                             <Calendar className="w-16 h-16 mb-4 text-gray-300" />
                             <p className="text-lg">Geen historische gegevens gevonden</p>
@@ -351,14 +358,14 @@ export default function HistoricalDataDrawer({
                             </div>
 
                             {/* Chart */}
-                            {displayHistory.length > 0 && (
+                            {chartHistory.length > 0 && (
                                 <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                         Grafiek
                                     </h3>
                                     <ResponsiveContainer width="100%" height={300}>
                                         <BarChart
-                                            data={displayHistory.map(item => {
+                                            data={chartHistory.map(item => {
                                                 const monthDate = new Date(item.month + '-01');
                                                 const monthName = monthDate.toLocaleDateString('nl-NL', {
                                                     month: 'short',
@@ -404,7 +411,7 @@ export default function HistoricalDataDrawer({
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                     Maandelijkse uitsplitsing
                                 </h3>
-                                {displayHistory.map((monthData) => {
+                                {listHistory.map((monthData) => {
                                     const monthDate = new Date(monthData.month + '-01');
                                     const monthName = monthDate.toLocaleDateString('nl-NL', {
                                         month: 'long',
