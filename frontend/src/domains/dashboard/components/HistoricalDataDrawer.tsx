@@ -1,6 +1,6 @@
 // frontend/src/domains/dashboard/components/HistoricalDataDrawer.tsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMoney, formatNumber } from '../../../shared/utils/MoneyFormat';
 import { getTransactions } from '../../transactions/services/TransactionsService';
@@ -47,6 +47,14 @@ const PERIOD_OPTIONS: { value: StatisticsPeriod; label: string }[] = [
     { value: 'all', label: 'Alles' },
 ];
 
+const PERIOD_MONTHS: Record<string, number | null> = {
+    '6m': 6,
+    '1y': 12,
+    '2y': 24,
+    '3y': 36,
+    'all': null,
+};
+
 export default function HistoricalDataDrawer({
     isOpen,
     onClose,
@@ -66,6 +74,8 @@ export default function HistoricalDataDrawer({
     const [includeCurrentMonth, setIncludeCurrentMonth] = useState(false);
     const [statistics, setStatistics] = useState<AggregateStatistics | null>(null);
     const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+    const hasPeriodSelector = !!(categoryIds && categoryIds.length > 0);
 
     // Prevent body scroll when drawer is open
     useEffect(() => {
@@ -105,34 +115,56 @@ export default function HistoricalDataDrawer({
             .finally(() => setIsLoadingStats(false));
     }, [isOpen, accountId, categoryIds, period, includeCurrentMonth]);
 
+    // Filter and sort history based on selected period
+    const { chartHistory, listHistory } = useMemo(() => {
+        const fullHistory = data?.history ?? [];
+        if (fullHistory.length === 0) return { chartHistory: [], listHistory: [] };
+
+        const periodMonths = PERIOD_MONTHS[period];
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        // Filter by period
+        let filtered: MonthlyData[];
+        if (periodMonths === null || !hasPeriodSelector) {
+            // "all" or no period selector: show everything
+            filtered = fullHistory;
+        } else {
+            // Calculate cutoff month
+            const cutoff = new Date(now.getFullYear(), now.getMonth() - periodMonths, 1);
+            const cutoffMonth = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
+            filtered = fullHistory.filter(h => h.month >= cutoffMonth);
+        }
+
+        // Optionally exclude current month
+        if (!includeCurrentMonth && hasPeriodSelector) {
+            filtered = filtered.filter(h => h.month < currentMonth);
+        }
+
+        // Chart: chronological (ASC)
+        const asc = [...filtered].sort((a, b) => (a.month < b.month ? -1 : a.month > b.month ? 1 : 0));
+        // List: newest first (DESC)
+        const desc = [...filtered].sort((a, b) => (a.month > b.month ? -1 : a.month < b.month ? 1 : 0));
+
+        return { chartHistory: asc, listHistory: desc };
+    }, [data?.history, period, includeCurrentMonth, hasPeriodSelector]);
+
     if (!isOpen) return null;
 
-    // Always use data.history for chart and monthly list (full history from original load)
-    // statistics is only used for summary cards (average/median over selected period)
-    const fullHistory = data?.history ?? [];
-
-    // Sort: chronological (ASC) for chart, reverse (DESC newest first) for monthly list
-    const chartHistory = [...fullHistory].sort((a, b) => a.month.localeCompare(b.month));
-    const listHistory = [...fullHistory].sort((a, b) => b.month.localeCompare(a.month));
-
     // Calculate max value for bar chart scaling
-    const maxAmount = fullHistory.length > 0
-        ? Math.max(...fullHistory.map(h => Math.abs(h.total)))
+    const maxAmount = listHistory.length > 0
+        ? Math.max(...listHistory.map(h => Math.abs(Number(h.total))))
         : 0;
-
-    const hasPeriodSelector = categoryIds && categoryIds.length > 0;
 
     // Toggle month expansion and fetch transactions
     const handleMonthToggle = async (month: string) => {
         const isExpanded = expandedMonths.has(month);
 
         if (isExpanded) {
-            // Collapse
             const newExpanded = new Set(expandedMonths);
             newExpanded.delete(month);
             setExpandedMonths(newExpanded);
         } else {
-            // Expand
             const newExpanded = new Set(expandedMonths);
             newExpanded.add(month);
             setExpandedMonths(newExpanded);
@@ -142,39 +174,29 @@ export default function HistoricalDataDrawer({
                 setLoadingMonths(new Set(loadingMonths).add(month));
 
                 try {
-                    // Calculate date range for the month
                     const [year, monthNum] = month.split('-');
                     const startDate = `${year}-${monthNum}-01`;
                     const lastDay = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
                     const endDate = `${year}-${monthNum}-${lastDay.toString().padStart(2, '0')}`;
 
-                    // Fetch transactions for this month
                     const response = await getTransactions(accountId, startDate, endDate);
 
                     let filteredTransactions: Transaction[];
 
                     if (isBudgetView) {
-                        // For budget view, filter by categories in this budget
                         const budgetCategoryIds = categoryIds || (data as any).budget?.categoryIds || [];
                         filteredTransactions = response.data.filter(t =>
                             t.category && budgetCategoryIds.includes(t.category.id)
                         );
                     } else {
-                        // For category view, filter by category
                         const categoryId = (data as any).category?.id;
                         filteredTransactions = response.data.filter(t => t.category?.id === categoryId);
                     }
 
-                    setMonthTransactions(prev => ({
-                        ...prev,
-                        [month]: filteredTransactions
-                    }));
+                    setMonthTransactions(prev => ({ ...prev, [month]: filteredTransactions }));
                 } catch (error) {
                     console.error('Error fetching transactions for month:', error);
-                    setMonthTransactions(prev => ({
-                        ...prev,
-                        [month]: []
-                    }));
+                    setMonthTransactions(prev => ({ ...prev, [month]: [] }));
                 } finally {
                     const newLoading = new Set(loadingMonths);
                     newLoading.delete(month);
@@ -197,19 +219,18 @@ export default function HistoricalDataDrawer({
                 onClick={onClose}
             />
 
-            {/* Drawer */}
+            {/* Drawer - flex column layout */}
             <div
-                className={`fixed top-0 right-0 h-full w-full max-w-3xl bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+                className={`fixed top-0 right-0 h-full w-full max-w-3xl bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
                     isOpen ? 'translate-x-0' : 'translate-x-full'
                 }`}
             >
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
+                {/* Header - fixed */}
+                <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center gap-3">
                         {data && (
                             <>
                                 {isBudgetView ? (
-                                    // Budget view header
                                     <>
                                         <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                                             <span className="text-xl">💰</span>
@@ -222,7 +243,6 @@ export default function HistoricalDataDrawer({
                                         </div>
                                     </>
                                 ) : (
-                                    // Category view header
                                     <>
                                         <div
                                             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -253,9 +273,9 @@ export default function HistoricalDataDrawer({
                     </button>
                 </div>
 
-                {/* Period Selector */}
-                {categoryIds && categoryIds.length > 0 && (
-                    <div className="px-6 py-3 border-b border-gray-200 bg-white">
+                {/* Period Selector - fixed */}
+                {hasPeriodSelector && (
+                    <div className="flex-shrink-0 px-6 py-3 border-b border-gray-200 bg-white">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                             <div className="flex items-center gap-1">
                                 {PERIOD_OPTIONS.map(opt => (
@@ -286,13 +306,13 @@ export default function HistoricalDataDrawer({
                     </div>
                 )}
 
-                {/* Content */}
-                <div className={`overflow-y-auto ${hasPeriodSelector ? 'h-[calc(100%-88px-52px)]' : 'h-[calc(100%-88px)]'}`}>
+                {/* Content - scrollable, takes remaining space */}
+                <div className="flex-1 overflow-y-auto min-h-0">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                         </div>
-                    ) : !data || fullHistory.length === 0 ? (
+                    ) : !data || listHistory.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                             <Calendar className="w-16 h-16 mb-4 text-gray-300" />
                             <p className="text-lg">Geen historische gegevens gevonden</p>
@@ -373,7 +393,7 @@ export default function HistoricalDataDrawer({
                                                 });
                                                 return {
                                                     month: monthName,
-                                                    amount: Math.abs(item.total),
+                                                    amount: Math.abs(Number(item.total)),
                                                     originalTotal: item.total
                                                 };
                                             })}
@@ -406,7 +426,7 @@ export default function HistoricalDataDrawer({
                                 </div>
                             )}
 
-                            {/* Monthly Data List with Bar Chart */}
+                            {/* Monthly Data List - newest first */}
                             <div className="space-y-3">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                     Maandelijkse uitsplitsing
@@ -417,15 +437,13 @@ export default function HistoricalDataDrawer({
                                         month: 'long',
                                         year: 'numeric'
                                     });
-                                    // For INCOME budgets, amounts are stored as negative (credit), so we invert the display
                                     const isIncomeBudget = isBudgetView && (data as any).budget?.budgetType === 'INCOME';
                                     const barWidth = maxAmount > 0
-                                        ? (Math.abs(monthData.total) / maxAmount) * 100
+                                        ? (Math.abs(Number(monthData.total)) / maxAmount) * 100
                                         : 0;
                                     const isExpanded = expandedMonths.has(monthData.month);
                                     const isLoadingMonth = loadingMonths.has(monthData.month);
                                     const transactions = monthTransactions[monthData.month] || [];
-                                    // transactionCount may not exist on statistics history
                                     const txCount = (monthData as any).transactionCount;
 
                                     return (
@@ -460,7 +478,7 @@ export default function HistoricalDataDrawer({
                                                             }`}
                                                         >
                                                             {isIncomeBudget ? '+' : '-'}
-                                                            {formatMoney(Math.abs(monthData.total))}
+                                                            {formatMoney(Math.abs(Number(monthData.total)))}
                                                         </p>
                                                     </div>
                                                 </div>
