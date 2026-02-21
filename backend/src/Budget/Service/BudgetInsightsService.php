@@ -143,7 +143,7 @@ class BudgetInsightsService
      * @param bool $includeCurrentMonth
      * @return array
      */
-    public function computeCategoryStatistics(array $categoryIds, string $period = '1y', bool $includeCurrentMonth = false): array
+    public function computeCategoryStatistics(array $categoryIds, string $period = '1y', bool $includeCurrentMonth = false, bool $includeBreakdown = false): array
     {
         if (empty($categoryIds)) {
             return [
@@ -196,7 +196,7 @@ class BudgetInsightsService
             ];
         }
 
-        return [
+        $result = [
             'average' => $this->moneyFactory->toString($this->moneyFactory->fromCents($averageCents)),
             'median' => $this->moneyFactory->toString($this->moneyFactory->fromCents($medianCents)),
             'monthCount' => $count,
@@ -204,6 +204,83 @@ class BudgetInsightsService
             'includeCurrentMonth' => $includeCurrentMonth,
             'history' => $history,
         ];
+
+        if ($includeBreakdown && count($categoryIds) > 1) {
+            $result['categoryBreakdown'] = $this->buildCategoryBreakdown($categoryIds, $months, !$includeCurrentMonth);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Build per-category breakdown with statistics.
+     */
+    private function buildCategoryBreakdown(array $categoryIds, ?int $months, bool $excludeCurrentMonth): array
+    {
+        // Get per-category monthly totals
+        if ($months !== null) {
+            $perCategory = $this->getMonthlyTotalsPerCategory($categoryIds, $months, $excludeCurrentMonth);
+        } else {
+            $perCategory = $this->getAllMonthlyTotalsPerCategory($categoryIds, $excludeCurrentMonth);
+        }
+
+        // Fetch category metadata
+        $categoryPlaceholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $sql = "SELECT id, name, color FROM category WHERE id IN ($categoryPlaceholders)";
+        $categories = $this->entityManager->getConnection()->executeQuery($sql, $categoryIds)->fetchAllAssociative();
+        $categoryMap = [];
+        foreach ($categories as $cat) {
+            $categoryMap[(int) $cat['id']] = $cat;
+        }
+
+        $breakdown = [];
+        foreach ($perCategory as $catId => $monthlyTotals) {
+            $values = array_values($monthlyTotals);
+            sort($values);
+            $count = count($values);
+
+            // Median
+            $medianCents = 0;
+            if ($count > 0) {
+                if ($count % 2 === 0) {
+                    $mid1 = $values[($count / 2) - 1];
+                    $mid2 = $values[$count / 2];
+                    $medianCents = (int) (($mid1 + $mid2) / 2);
+                } else {
+                    $medianCents = $values[(int) floor($count / 2)];
+                }
+            }
+
+            // Average
+            $sum = array_sum($monthlyTotals);
+            $averageCents = $count > 0 ? (int) round($sum / $count) : 0;
+
+            // Monthly history
+            $monthlyHistory = [];
+            foreach ($monthlyTotals as $month => $totalCents) {
+                $monthlyHistory[] = [
+                    'month' => $month,
+                    'total' => $this->moneyFactory->toFloat($this->moneyFactory->fromCents($totalCents)),
+                ];
+            }
+
+            $catMeta = $categoryMap[$catId] ?? ['name' => 'Onbekend', 'color' => '#999999'];
+
+            $breakdown[] = [
+                'categoryId' => $catId,
+                'categoryName' => $catMeta['name'],
+                'categoryColor' => $catMeta['color'] ?? '#999999',
+                'average' => $this->moneyFactory->toString($this->moneyFactory->fromCents($averageCents)),
+                'median' => $this->moneyFactory->toString($this->moneyFactory->fromCents($medianCents)),
+                'total' => $this->moneyFactory->toString($this->moneyFactory->fromCents($sum)),
+                'monthlyTotals' => $monthlyHistory,
+            ];
+        }
+
+        // Sort by total (highest absolute value first)
+        usort($breakdown, fn($a, $b) => abs((float) $b['total']) <=> abs((float) $a['total']));
+
+        return $breakdown;
     }
 
     /**
@@ -407,6 +484,163 @@ class BudgetInsightsService
 
         foreach ($results as $row) {
             $totals[$row['month']] = (int) $row['total'];
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Get monthly totals per category for given category IDs over N months.
+     *
+     * @param array $categoryIds
+     * @param int $months
+     * @param bool $excludeCurrentMonth
+     * @param DateTimeImmutable|null $beforeDate
+     * @return array<int, array<string, int>> Key: categoryId, Value: [month => cents]
+     */
+    private function getMonthlyTotalsPerCategory(array $categoryIds, int $months, bool $excludeCurrentMonth, ?DateTimeImmutable $beforeDate = null): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        // Build month list (same logic as getMonthlyTotals)
+        $monthsList = [];
+        $date = $beforeDate ?? new DateTimeImmutable();
+
+        if ($excludeCurrentMonth) {
+            $date = $date->modify('-1 month');
+        }
+
+        for ($i = 0; $i < $months; $i++) {
+            $monthKey = $date->format('Y-m');
+            $monthsList[] = $monthKey;
+            $date = $date->modify('-1 month');
+        }
+
+        $monthsList = array_reverse($monthsList);
+
+        $categoryPlaceholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $monthPlaceholders = implode(',', array_fill(0, count($monthsList), '?'));
+
+        $sql = "
+            SELECT
+                t.category_id,
+                SUBSTRING(t.date, 1, 7) as month,
+                SUM(
+                    CASE
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
+                        THEN
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            END
+                        ELSE
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
+                    END
+                ) as total
+            FROM transaction t
+            WHERE t.category_id IN ($categoryPlaceholders)
+            AND SUBSTRING(t.date, 1, 7) IN ($monthPlaceholders)
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                OR
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+            GROUP BY t.category_id, month
+        ";
+
+        $params = array_merge($categoryIds, $monthsList);
+        $results = $this->entityManager->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
+
+        // Build map: categoryId => [month => cents], with defaults of 0
+        $totals = [];
+        foreach ($categoryIds as $catId) {
+            $totals[$catId] = array_fill_keys($monthsList, 0);
+        }
+        foreach ($results as $row) {
+            $totals[(int) $row['category_id']][$row['month']] = (int) $row['total'];
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Get all monthly totals per category from the earliest transaction to now.
+     *
+     * @param array $categoryIds
+     * @param bool $excludeCurrentMonth
+     * @return array<int, array<string, int>> Key: categoryId, Value: [month => cents]
+     */
+    private function getAllMonthlyTotalsPerCategory(array $categoryIds, bool $excludeCurrentMonth): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
+        $categoryPlaceholders = implode(',', array_fill(0, count($categoryIds), '?'));
+
+        $sql = "SELECT MIN(t.date) FROM transaction t WHERE t.category_id IN ($categoryPlaceholders)";
+        $earliestDate = $this->entityManager->getConnection()->executeQuery($sql, $categoryIds)->fetchOne();
+
+        if (!$earliestDate) {
+            return [];
+        }
+
+        $date = new DateTimeImmutable($earliestDate);
+        $date = $date->modify('first day of this month');
+        $now = new DateTimeImmutable();
+        $endDate = $excludeCurrentMonth ? $now->modify('first day of this month')->modify('-1 day') : $now;
+        $endMonth = $endDate->format('Y-m');
+
+        $monthsList = [];
+        while ($date->format('Y-m') <= $endMonth) {
+            $monthsList[] = $date->format('Y-m');
+            $date = $date->modify('+1 month');
+        }
+
+        if (empty($monthsList)) {
+            return [];
+        }
+
+        $monthPlaceholders = implode(',', array_fill(0, count($monthsList), '?'));
+
+        $sql = "
+            SELECT
+                t.category_id,
+                SUBSTRING(t.date, 1, 7) as month,
+                SUM(
+                    CASE
+                        WHEN (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) > 0
+                        THEN
+                            CASE WHEN t.transaction_type = 'CREDIT'
+                            THEN -(t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            ELSE (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0))
+                            END
+                        ELSE
+                            CASE WHEN t.transaction_type = 'CREDIT' THEN -t.amount ELSE t.amount END
+                    END
+                ) as total
+            FROM transaction t
+            WHERE t.category_id IN ($categoryPlaceholders)
+            AND SUBSTRING(t.date, 1, 7) IN ($monthPlaceholders)
+            AND (
+                (SELECT COUNT(st.id) FROM transaction st WHERE st.parent_transaction_id = t.id) = 0
+                OR
+                (t.amount - COALESCE((SELECT SUM(ABS(st.amount)) FROM transaction st WHERE st.parent_transaction_id = t.id AND st.category_id IS NOT NULL), 0)) != 0
+            )
+            GROUP BY t.category_id, month
+        ";
+
+        $params = array_merge($categoryIds, $monthsList);
+        $results = $this->entityManager->getConnection()->executeQuery($sql, $params)->fetchAllAssociative();
+
+        $totals = [];
+        foreach ($categoryIds as $catId) {
+            $totals[$catId] = array_fill_keys($monthsList, 0);
+        }
+        foreach ($results as $row) {
+            $totals[(int) $row['category_id']][$row['month']] = (int) $row['total'];
         }
 
         return $totals;

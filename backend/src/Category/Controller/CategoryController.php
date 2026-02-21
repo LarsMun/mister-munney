@@ -602,7 +602,8 @@ class CategoryController extends AbstractController
                 properties: [
                     new OA\Property(property: 'categoryIds', type: 'array', items: new OA\Items(type: 'integer'), example: [1, 2, 3]),
                     new OA\Property(property: 'period', type: 'string', enum: ['6m', '1y', '2y', '3y', 'all'], example: '1y'),
-                    new OA\Property(property: 'includeCurrentMonth', type: 'boolean', example: false)
+                    new OA\Property(property: 'includeCurrentMonth', type: 'boolean', example: false),
+                    new OA\Property(property: 'includeBreakdown', type: 'boolean', example: false)
                 ]
             )
         ),
@@ -641,8 +642,9 @@ class CategoryController extends AbstractController
         }
 
         $includeCurrentMonth = (bool) ($data['includeCurrentMonth'] ?? false);
+        $includeBreakdown = (bool) ($data['includeBreakdown'] ?? false);
 
-        $statistics = $this->budgetInsightsService->computeCategoryStatistics($categoryIds, $period, $includeCurrentMonth);
+        $statistics = $this->budgetInsightsService->computeCategoryStatistics($categoryIds, $period, $includeCurrentMonth, $includeBreakdown);
 
         return $this->json($statistics);
     }
